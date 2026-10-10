@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import i18n, pages, secretstore, systemstore, validation
+from .. import certinfo, i18n, pages, secretstore, systemstore, validation
 from ..config import Config, load_config
 from ..i18n import N_, _, ngettext
 from ..signing import (
@@ -38,18 +38,18 @@ from ..signing import (
     SigningError,
     _atomic_write,
     check_target,
-    image_aspect,
     inspect_pdf,
     open_signer,
     printable,
     sign_pdf,
+    stamp_size,
 )
 from . import background
 from .certdialog import CertManagerDialog
 from .screen import fit_to_screen
 from .settings import SettingsDialog
 from .dialogs import ask_secret
-from .document import PdfDocument, signature_pixmap
+from .document import PdfDocument, render_stamp
 from .pageview import PageView
 from .pagetools import PagesPanel
 
@@ -263,6 +263,7 @@ class MainWindow(QMainWindow):
         self.image_check.toggled.connect(self._cert_changed)
         self.text_check = QCheckBox(_("Text"))
         self.text_check.setChecked(True)
+        self.text_check.toggled.connect(self._cert_changed)
         row.addWidget(self.image_check)
         row.addWidget(self.text_check)
         row.addStretch()
@@ -326,10 +327,16 @@ class MainWindow(QMainWindow):
     def _cert_changed(self, *_args) -> None:
         p = self.current_profile()
         pixmap, aspect = None, 3.0
-        if p and p.image_path and self.image_check.isChecked():
-            pm = signature_pixmap(p.image_path)
-            if not pm.isNull():
-                pixmap, aspect = pm, image_aspect(p.image_path)
+        if p is not None:  # the stamp as signing will draw it, with the stored certificate
+            with_image, with_text = self.image_check.isChecked(), self.text_check.isChecked()
+            params = certinfo.text_params(certinfo.load(p.certificate), p)
+            try:
+                w, h = stamp_size(p, params, with_image=with_image, with_text=with_text)
+            except (OSError, ValueError, SigningError):  # e.g. a missing image
+                w, h = 3.0, 1.0
+            pm = render_stamp(p, params, with_image=with_image, with_text=with_text,
+                              height_px=STAMP_PREVIEW_PX)
+            pixmap, aspect = (None if pm.isNull() else pm), w / h
         self.view.set_signature_appearance(pixmap, aspect)
         self._update_target()
 
@@ -754,12 +761,13 @@ class MainWindow(QMainWindow):
             creds = secretstore.resolve_credentials(
                 profile, lambda prompt: ask(lambda: self._ask_unbusy(prompt)))
             with open_signer(profile, creds) as signer:
-                return sign_pdf(
+                name = sign_pdf(
                     data, out, signer, profile,
                     field_name=field_name, page=page, box=box,
                     with_image=with_image, with_text=with_text,
                     pdf_password=pdf_password, allow_breaking=True, trust=trust,
                 )
+                return name, certinfo.to_pem(signer.signing_cert)
 
         QGuiApplication.setOverrideCursor(Qt.WaitCursor)
         if profile.type in HARDWARE_TYPES:  # may wait for a touch or a PIN pad
@@ -768,7 +776,7 @@ class MainWindow(QMainWindow):
         else:
             self.statusBar().showMessage(_("Signing…"))
         try:
-            name = background.run(self, work)
+            name, pem_text = background.run(self, work)
         except secretstore.Cancelled:
             self.statusBar().showMessage(_(HINT))
             return
@@ -781,10 +789,25 @@ class MainWindow(QMainWindow):
             if QGuiApplication.overrideCursor() is not None:
                 QGuiApplication.restoreOverrideCursor()
 
+        self._remember_certificate(profile.name, pem_text)
         self.open(out, self.pdf_password, page=self.view.page)
         self.statusBar().showMessage(
             _("Signed '{field}' → {file}. You can add further signatures.").format(
                 field=name, file=out.name), 15000)
+
+    def _remember_certificate(self, name: str, pem_text: str) -> None:
+        """Keep the profile's stored certificate current (e.g. a renewed card)."""
+        p = self.config.certs.get(name)
+        if p is None or p.certificate == pem_text:
+            return
+        p.certificate = pem_text
+        if self.config.path is None:  # not from a file (tests): nothing to update
+            return self._cert_changed()
+        try:
+            self.config.save()
+        except OSError:  # only details for display; signing worked
+            pass
+        self._cert_changed()
 
     def _ask_unbusy(self, prompt: str) -> str | None:
         QGuiApplication.restoreOverrideCursor()
@@ -795,6 +818,7 @@ class MainWindow(QMainWindow):
 
 
 ICON = Path(__file__).with_name("icon.png")
+STAMP_PREVIEW_PX = 240  # height of the placed stamp's preview, sharp enough when zoomed
 HARDWARE_TYPES = ("pkcs11", "system")
 TOKEN_HINT = N_("Signing… If your card reader asks for the PIN or your security key "
                 "blinks, confirm there.")

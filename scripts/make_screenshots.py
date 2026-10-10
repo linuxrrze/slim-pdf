@@ -24,6 +24,7 @@ from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication, QInputDialog, QLineEdit  # noqa: E402
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter  # noqa: E402
 from pyhanko.sign import fields  # noqa: E402
+from cryptography.hazmat.primitives import serialization  # noqa: E402
 
 from pdfsigner.config import CertProfile, Config  # noqa: E402
 from pdfsigner.gui import app as gui_app  # noqa: E402
@@ -125,17 +126,23 @@ def main() -> None:
     draw_signature_image(tmp / "certs/supervisor.png", seed=7)
     doc = sample_pdf(tmp / "expense-claim.pdf")
 
+    # the certificate as the GUI stores it once read: real values in the previews
+    alice_pem = alice_cert.public_bytes(serialization.Encoding.PEM).decode()
     alice = CertProfile(name="FAU S/MIME", path="~/certs/fau-smime.p12", image="~/certs/signature.png",
-                        reason="Expense claim", location="Erlangen", secret="keyring")
+                        reason="Expense claim", location="Erlangen", secret="keyring",
+                        certificate=alice_pem)
     vault = CertProfile(name="Vault (KeePass)", secret="keepass", keepass_db="~/Passwords.kdbx",
                         keepass_entry="Certificates/FAU S/MIME", keepass_attachment="fau-smime.p12",
-                        image="~/certs/signature.png", stamp_text="")
+                        image="~/certs/signature.png", stamp_text="", certificate=alice_pem)
     token = CertProfile(name="YubiKey PIV", type="pkcs11",
                         pkcs11_lib="/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so",
-                        token_label="PIV_II", key_label="SIGN key", secret="prompt")
+                        token_label="PIV_II", key_label="SIGN key", secret="prompt",
+                        image="~/certs/signature.png", text_position="right",
+                        stamp_text="%(cn)s\n%(date)s %(time)s\nReason: %(reason)s",
+                        reason="Approval", certificate=alice_pem)
     run_alice = CertProfile(name="FAU S/MIME", path="~/certs/fau-smime.p12",
                             image="~/certs/signature.png", reason="Expense claim",
-                            location="Erlangen", secret="prompt")
+                            location="Erlangen", secret="prompt", certificate=alice_pem)
     run_bob = CertProfile(name="Supervisor", path="~/certs/supervisor.p12",
                           image="~/certs/supervisor.png",
                           stamp_text="Approved by %(signer)s\n%(ts)s", secret="prompt")

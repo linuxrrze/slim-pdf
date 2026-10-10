@@ -551,6 +551,65 @@ def test_text_sits_below_image(profile, blank_pdf, tmp_path):
 
 
 
+
+@pytest.mark.parametrize("position", ["below", "above", "left", "right"])
+def test_text_position(profile, blank_pdf, tmp_path, position):
+    """The text goes where the profile says, next to the image, never on it."""
+    from pdfsigner import certinfo
+    from pdfsigner.signing import stamp_size
+
+    profile.image = str(draw_signature_image(tmp_path / "green.png", color=(20, 150, 40)))
+    profile.text_position = position
+    profile.stamp_text = "%(signer)s\n%(date)s"
+    w, h = stamp_size(profile, certinfo.text_params(None, profile))
+    box = (100, 500, 100 + 2 * w, 500 + 2 * h)  # the stamp's proportions, twice the size
+    out = tmp_path / "out.pdf"
+    with signer_for(profile) as s:
+        sign_pdf(blank_pdf, out, s, profile, page=0, box=box)
+    scale = 3
+    img = render_page(out, 0, scale)
+    field = _px_rect(out, 0, box, scale)
+    image, text = green_bbox(img, field), text_bbox(img, field)
+    assert image and text
+    side = {"below": image[3] <= text[1], "above": text[3] <= image[1],
+            "left": text[2] <= image[0], "right": image[2] <= text[0]}
+    assert side[position], f"{position}: image {image}, text {text}"
+
+
+def test_stamp_scales_as_a_whole(profile, blank_pdf, tmp_path):
+    """A bigger box gets bigger text, not just a bigger image."""
+    profile.image = str(draw_signature_image(tmp_path / "green.png", color=(20, 150, 40)))
+    heights = []
+    for factor in (1, 2):
+        box = (100, 400, 100 + 120 * factor, 400 + 60 * factor)
+        out = tmp_path / f"out{factor}.pdf"
+        with signer_for(profile) as s:
+            sign_pdf(blank_pdf, out, s, profile, page=0, box=box)
+        img = render_page(out, 0, 3)
+        text = text_bbox(img, _px_rect(out, 0, box, 3))
+        heights.append(text[3] - text[1])
+    assert heights[1] == pytest.approx(2 * heights[0], rel=0.15)
+
+
+def test_stamp_text_uses_the_signers_certificate(profile, blank_pdf, tmp_path):
+    profile.image = ""
+    profile.stamp_text = "CN=%(cn)s on %(date)s"
+    out = tmp_path / "out.pdf"
+    with signer_for(profile) as s:
+        sign_pdf(blank_pdf, out, s, profile, page=0, box=(100, 500, 400, 540))
+    with open(out, "rb") as fh:
+        r = PdfFileReader(fh)
+        streams = []
+        sig_field = r.root["/AcroForm"]["/Fields"][0].get_object()
+        todo = [sig_field["/AP"]["/N"]]
+        while todo:  # the appearance and the form XObjects inside it
+            xobj = todo.pop().get_object()
+            streams.append(xobj.data)
+            todo += list(xobj.get("/Resources", {}).get("/XObject", {}).values())
+    # (pyHanko writes "=" and "-" as octal escapes)
+    assert any(b"Alice Example on 20" in data for data in streams)
+
+
 # --- vector (PDF) signature images ---------------------------------------------------------
 
 

@@ -69,6 +69,132 @@ msgstr ""
 msgid "signing failed: {error}"
 msgstr ""
 
+#: src/pdfsigner/certinfo.py
+msgid "Signer's name"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Common name"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "E-mail address"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Organization"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Organizational unit"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Title"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Country"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Issuer"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Serial number"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Date and time of signing"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Date of signing"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Time of signing"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Reason"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Location"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Contact"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "the stamp text has a stray %: write %% for a percent sign, placeholders as %(name)s"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+#, python-brace-format
+msgid "unknown placeholder %({name})s in the stamp text; known: {known}"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "expired"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "not yet valid"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+#, python-brace-format
+msgid "valid, {days} days left"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Subject"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Valid from"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Valid until"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Status"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Key"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Key usage"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Extended key usage"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "Alternative names"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "SHA-256 fingerprint"
+msgstr ""
+
+#: src/pdfsigner/certinfo.py
+msgid "SHA-1 fingerprint"
+msgstr ""
+
 #: src/pdfsigner/cli.py
 msgid ""
 "Command line interface.\n"
@@ -231,7 +357,13 @@ msgid "signature image (PNG with transparency recommended)"
 msgstr ""
 
 #: src/pdfsigner/cli.py
-msgid "text on the stamp; %%(signer)s and %%(ts)s are replaced; '' for none"
+#, python-brace-format
+msgid "text on the stamp, \\n for a new line; '' for none; placeholders: {fields}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "where the text goes, seen from the image: {positions}"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -294,12 +426,26 @@ msgstr ""
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "certificate: not read yet ('pdfsigner certs test {name}' reads it)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "certificate:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "certificate {name} exists, use 'certs edit'"
 msgstr ""
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
 msgid "saved to {path}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "'pdfsigner certs test {name}' checks it and stores the certificate's details"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -320,6 +466,10 @@ msgstr ""
 #: src/pdfsigner/cli.py
 #, python-brace-format
 msgid "note: profile uses secret={secret}; switch with 'pdfsigner certs edit {name} --secret keyring'"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "certificate stored in the profile"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -808,6 +958,7 @@ msgid "start the GUI"
 msgstr ""
 
 #: src/pdfsigner/cli.py
+#: src/pdfsigner/gui/certdialog.py
 msgid "cancelled"
 msgstr ""
 
@@ -864,6 +1015,11 @@ msgstr ""
 #: src/pdfsigner/config.py
 #, python-brace-format
 msgid "{name}: keepass_yubikey requires secret = 'keepassxc'"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: text_position must be one of {positions}"
 msgstr ""
 
 #: src/pdfsigner/config.py
@@ -1455,6 +1611,35 @@ msgid "System certificate store"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
+msgid "Below the image"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Above the image"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Left of the image"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Right of the image"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The certificate hasn't been read yet. Save the profile or use the test in its editor; both read it from the key."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "Certificate of {name!r}"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Certificate (PEM, public):"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
 #, python-brace-format
 msgid "key ID {id}"
 msgstr ""
@@ -1493,6 +1678,14 @@ msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Make default"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Details…"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The certificate's details, without a PIN"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -1620,7 +1813,15 @@ msgid "Images"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "empty = image only; %(signer)s, %(ts)s are replaced"
+msgid "empty = image only"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "One line per line on the stamp. Insert adds certificate attributes and the signing time; a line whose values are all empty is left out."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Insert"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -1628,19 +1829,19 @@ msgid "Stamp text"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
+msgid "Text position"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The stamp as it will look, with the values of the certificate (or sample values until it has been read)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Preview"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
 msgid "Signature details"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "Reason"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "Location"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "Contact"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -1717,11 +1918,20 @@ msgid "{type} (not available on this system)"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "(no image)"
+msgid "(cannot load image)"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "(cannot load image)"
+msgid "(no preview)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Not read yet. Saving reads it from the key (asking for the PIN or passphrase once), as does the test below."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "{name}, valid until {date} ({status})"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -1785,6 +1995,15 @@ msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Certificate OK"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid ""
+"The certificate could not be read from the key:\n"
+"{error}\n"
+"\n"
+"Save the profile without the certificate's details?"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py

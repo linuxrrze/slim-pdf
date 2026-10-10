@@ -5,8 +5,8 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -19,16 +19,18 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QToolButton,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
-from .. import secretstore, systemstore, tokens
+from .. import certinfo, secretstore, systemstore, tokens
 from ..config import (
     KEEPASS_SOURCES,
     PKCS11_EXAMPLE,
@@ -39,11 +41,12 @@ from ..config import (
     supported_cert_types,
 )
 from ..i18n import N_, _
+from ..certinfo import STAMP_FIELDS
 from ..signing import SigningError, describe_signer, open_signer
 from . import background
 from .dialogs import ask_secret
 from .screen import ElidedLabel, fit_to_screen, scrollable
-from .document import signature_pixmap
+from .document import render_stamp
 
 SECRET_LABELS = {
     "prompt": N_("Ask every time"),
@@ -64,6 +67,56 @@ TYPE_NAMES = {
     "pkcs11": N_("PKCS#11 token"),
     "system": N_("System certificate store"),
 }
+
+
+PREVIEW_HEIGHT = 80  # pixels
+POSITION_LABELS = {
+    "below": N_("Below the image"),
+    "above": N_("Above the image"),
+    "left": N_("Left of the image"),
+    "right": N_("Right of the image"),
+}
+# Settings that choose the key: changing one means another certificate.
+KEY_FIELDS = ("type", "path", "pkcs11_lib", "token_label", "key_label", "key_id",
+              "cert_label", "system_cert", "keepass_db", "keepass_entry", "keepass_attachment")
+
+
+def show_certificate(parent: QWidget, name: str, pem_text: str) -> None:
+    """The stored certificate's details, as a dialog (no PIN needed)."""
+    cert = certinfo.load(pem_text)
+    if cert is None:
+        QMessageBox.information(parent, _("Certificate"), _(
+            "The certificate hasn't been read yet. Save the profile or use the test "
+            "in its editor; both read it from the key."))
+        return
+    dlg = QDialog(parent)
+    dlg.setWindowTitle(_("Certificate of {name!r}").format(name=name))
+    tree = QTreeWidget()
+    tree.setHeaderHidden(True)
+    tree.setColumnCount(2)
+    tree.setRootIsDecorated(False)
+    tree.setWordWrap(True)
+    for label, value in certinfo.details(cert):
+        item = QTreeWidgetItem([label, value])
+        item.setToolTip(1, value)
+        tree.addTopLevelItem(item)
+    tree.resizeColumnToContents(0)
+    pem_view = QPlainTextEdit(pem_text)
+    pem_view.setReadOnly(True)
+    pem_view.setFixedHeight(90)
+    buttons = QDialogButtonBox(QDialogButtonBox.Close)
+    buttons.rejected.connect(dlg.reject)
+    lay = QVBoxLayout(dlg)
+    lay.addWidget(tree, 1)
+    lay.addWidget(QLabel(_("Certificate (PEM, public):")))
+    lay.addWidget(pem_view)
+    lay.addWidget(buttons)
+    fit_to_screen(dlg, 640, 480)
+    dlg.tree = tree  # for the tests
+    if getattr(parent, "_exec_details", None):
+        parent._exec_details(dlg)
+    else:
+        dlg.exec()
 
 
 def _summary(p: CertProfile) -> str:
@@ -110,7 +163,7 @@ class CertManagerDialog(QDialog):
         self.changed = False  # the config file was written
 
         self.list = QTreeWidget()
-        self.list.setHeaderLabels([_("Name"), _("Type"), _("Certificate")])
+        self.list.setHeaderLabels([_("Name"), _("Type"), _("Valid until"), _("Certificate")])
         self.list.setRootIsDecorated(False)
         self.list.setAllColumnsShowFocus(True)
         self.list.header().setStretchLastSection(True)
@@ -125,8 +178,12 @@ class CertManagerDialog(QDialog):
         self.remove_btn.clicked.connect(self._remove)
         self.default_btn = QPushButton(_("Make default"))
         self.default_btn.clicked.connect(self._make_default)
+        self.details_btn = QPushButton(_("Details…"))
+        self.details_btn.setToolTip(_("The certificate's details, without a PIN"))
+        self.details_btn.clicked.connect(self._details)
         side = QVBoxLayout()
-        for b in (self.add_btn, self.edit_btn, self.remove_btn, self.default_btn):
+        for b in (self.add_btn, self.edit_btn, self.remove_btn, self.default_btn,
+                  self.details_btn):
             side.addWidget(b)
         side.addStretch()
 
@@ -156,9 +213,15 @@ class CertManagerDialog(QDialog):
             label = (_("{name}  (default)").format(name=name) if name == self.config.default
                      else name)
             kind = _(TYPE_NAMES[p.type]) if p.type in TYPE_NAMES else p.type
-            item = QTreeWidgetItem([label, kind, _summary(p)])
+            cert = certinfo.load(p.certificate)
+            until = f"{cert.not_valid_after:%Y-%m-%d}" if cert else "–"
+            item = QTreeWidgetItem([label, kind, until, _summary(p)])
             item.setData(0, Qt.UserRole, name)
-            item.setToolTip(2, _summary(p))
+            item.setToolTip(3, _summary(p))
+            if cert is not None:
+                item.setToolTip(2, certinfo.validity(cert))
+                if certinfo.expires_soon(cert):
+                    item.setForeground(2, QColor(200, 40, 40))
             if name == self.config.default:
                 font = item.font(0)
                 font.setBold(True)
@@ -168,7 +231,7 @@ class CertManagerDialog(QDialog):
                 self.list.setCurrentItem(item)
         if self.list.currentItem() is None and self.list.topLevelItemCount():
             self.list.setCurrentItem(self.list.topLevelItem(0))
-        for column in (0, 1):
+        for column in (0, 1, 2):
             self.list.resizeColumnToContents(column)
         self._update_buttons()
 
@@ -176,6 +239,8 @@ class CertManagerDialog(QDialog):
         name = self.current()
         for b in (self.edit_btn, self.remove_btn):
             b.setEnabled(name is not None)
+        self.details_btn.setEnabled(
+            name is not None and certinfo.load(self.config.certs[name].certificate) is not None)
         self.default_btn.setEnabled(name is not None and name != self.config.default)
 
     def _exec_editor(self, dlg: CertEditDialog) -> int:
@@ -193,6 +258,10 @@ class CertManagerDialog(QDialog):
     def _edit(self) -> None:
         if self.current():
             self._open_editor(self.current())
+
+    def _details(self) -> None:
+        if name := self.current():
+            show_certificate(self, name, self.config.certs[name].certificate)
 
     def _write(self) -> bool:
         try:
@@ -255,6 +324,18 @@ class CertEditDialog(QDialog):
         general = QFormLayout()
         general.addRow(_("Name"), self.name_edit)
         general.addRow(_("Type"), self.type_combo)
+        self._certificate = ""  # PEM, as stored in the profile
+        self.cert_label = QLabel()
+        self.cert_label.setWordWrap(True)
+        self.details_btn = QPushButton(_("Details…"))
+        self.details_btn.clicked.connect(
+            lambda: show_certificate(self, self._profile_name(), self._certificate))
+        cert_row = QWidget()
+        lay = QHBoxLayout(cert_row)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(self.cert_label, 1)
+        lay.addWidget(self.details_btn, 0, Qt.AlignTop)
+        general.addRow(_("Certificate"), cert_row)
 
         self.p12_box = QGroupBox(_("PKCS#12 file"))
         f = QFormLayout(self.p12_box)
@@ -305,25 +386,55 @@ class CertEditDialog(QDialog):
         appearance = QGroupBox(_("Appearance"))
         f = QFormLayout(appearance)
         img_edit = line("image", _("PNG with transparent background, or PDF (vector)"))
-        img_edit.textChanged.connect(self._update_preview)
         f.addRow(_("Signature image"), _path_row(
             img_edit, _("Signature image"),
             _("Images") + " (*.png *.jpg *.jpeg *.pdf);;" + _("All files") + " (*)"))
-        self.preview = QLabel()
-        self.preview.setFixedHeight(60)
-        self.preview.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        f.addRow("", self.preview)
         self.stamp_text = QPlainTextEdit()
-        self.stamp_text.setFixedHeight(48)
-        self.stamp_text.setPlaceholderText(
-            _("empty = image only; %(signer)s, %(ts)s are replaced"))
-        f.addRow(_("Stamp text"), self.stamp_text)
+        self.stamp_text.setFixedHeight(64)
+        self.stamp_text.setPlaceholderText(_("empty = image only"))
+        self.stamp_text.setToolTip(_(
+            "One line per line on the stamp. Insert adds certificate attributes and the "
+            "signing time; a line whose values are all empty is left out."))
+        insert = QToolButton()
+        insert.setText(_("Insert"))
+        insert.setPopupMode(QToolButton.InstantPopup)
+        menu = QMenu(insert)
+        for key, label in STAMP_FIELDS.items():
+            menu.addAction(f"{_(label)}  %({key})s", lambda k=key: self._insert_field(k))
+        insert.setMenu(menu)
+        text_row = QWidget()
+        lay = QHBoxLayout(text_row)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(self.stamp_text)
+        lay.addWidget(insert, 0, Qt.AlignTop)
+        f.addRow(_("Stamp text"), text_row)
+        self.position_combo = QComboBox()
+        for pos, label in POSITION_LABELS.items():
+            self.position_combo.addItem(_(label), pos)
+        f.addRow(_("Text position"), self.position_combo)
+        self.preview = QLabel()
+        self.preview.setMinimumHeight(PREVIEW_HEIGHT + 8)
+        self.preview.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.preview.setStyleSheet("background: white; border: 1px solid #bbb")
+        self.preview.setToolTip(_("The stamp as it will look, with the values of the "
+                                  "certificate (or sample values until it has been read)"))
+        f.addRow(_("Preview"), self.preview)
+        # the preview follows every change, once typing pauses
+        self._preview_timer = QTimer(self)
+        self._preview_timer.setSingleShot(True)
+        self._preview_timer.setInterval(150)
+        self._preview_timer.timeout.connect(self._update_preview)
+        img_edit.textChanged.connect(self._preview_timer.start)
+        self.stamp_text.textChanged.connect(self._preview_timer.start)
+        self.position_combo.currentIndexChanged.connect(self._preview_timer.start)
 
         meta = QGroupBox(_("Signature details"))
         f = QFormLayout(meta)
         f.addRow(_("Reason"), line("reason"))
         f.addRow(_("Location"), line("location"))
         f.addRow(_("Contact"), line("contact_info"))
+        for attr in ("reason", "location", "contact_info"):  # %(reason)s etc. on the stamp
+            self.e[attr].textChanged.connect(self._preview_timer.start)
         f.addRow(_("Timestamp URL"), line("timestamp_url", _("optional RFC 3161 TSA")))
         self.ltv_check = QCheckBox(_("Embed validation data (LTV)"))
         self.ltv_check.setToolTip(_(
@@ -393,6 +504,8 @@ class CertEditDialog(QDialog):
         for attr, w in self.e.items():
             w.setText(getattr(p, attr))
         self.stamp_text.setPlainText(p.stamp_text)
+        self.position_combo.setCurrentIndex(max(0, self.position_combo.findData(p.text_position)))
+        self._set_certificate(p.certificate)
         self.ltv_check.setChecked(p.ltv)
         self.secret_combo.setCurrentIndex(SECRET_SOURCES.index(p.secret))
         self._update_visibility()
@@ -409,6 +522,8 @@ class CertEditDialog(QDialog):
         for attr, w in self.e.items():
             setattr(p, attr, w.text().strip())
         p.stamp_text = self.stamp_text.toPlainText()
+        p.text_position = self.position_combo.currentData()
+        p.certificate = self._certificate
         p.ltv = self.ltv_check.isChecked()
         p.secret = self.secret_combo.currentData()
         return p
@@ -427,12 +542,43 @@ class CertEditDialog(QDialog):
         self._secret_form.setRowVisible(self.yubikey_row, source == "keepassxc")
 
     def _update_preview(self) -> None:
-        path = self.e["image"].text().strip()
-        pm = signature_pixmap(CertProfile(name="_", image=path).image_path) if path else QPixmap()
+        self._preview_timer.stop()
+        p = self._store_form()
+        try:
+            certinfo.check_template(p.stamp_text)
+        except ValueError as e:
+            self.preview.setText(str(e))
+            return
+        if p.image and not p.image_path.exists():
+            self.preview.setText(_("(cannot load image)"))
+            return
+        params = certinfo.text_params(certinfo.load(p.certificate), p)
+        pm = render_stamp(p, params, height_px=PREVIEW_HEIGHT)
         if pm.isNull():
-            self.preview.setText(_("(no image)") if not path else _("(cannot load image)"))
+            self.preview.setText(_("(cannot load image)") if p.image else _("(no preview)"))
+            return
+        width = max(self.preview.width() - 8, 100)
+        if pm.width() > width:  # a long text: as wide as there is room
+            pm = pm.scaledToWidth(width, Qt.SmoothTransformation)
+        self.preview.setPixmap(pm)
+
+    def _insert_field(self, key: str) -> None:
+        self.stamp_text.insertPlainText(f"%({key})s")
+        self.stamp_text.setFocus()
+
+    def _set_certificate(self, pem_text: str) -> None:
+        self._certificate = pem_text
+        cert = certinfo.load(pem_text)
+        self.details_btn.setEnabled(cert is not None)
+        if cert is None:
+            self.cert_label.setText(_(
+                "Not read yet. Saving reads it from the key (asking for the PIN or "
+                "passphrase once), as does the test below."))
         else:
-            self.preview.setPixmap(pm.scaledToHeight(56, Qt.SmoothTransformation))
+            self.cert_label.setText(_("{name}, valid until {date} ({status})").format(
+                name=certinfo.signer_name(cert), date=f"{cert.not_valid_after:%Y-%m-%d}",
+                status=certinfo.validity(cert)))
+        self._preview_timer.start()
 
     # actions ------------------------------------------------------------------
 
@@ -526,17 +672,51 @@ class CertEditDialog(QDialog):
             creds = secretstore.resolve_credentials(
                 p, lambda prompt: ask(lambda: ask_secret(self, prompt)))
             with open_signer(p, creds) as signer:
-                return describe_signer(signer)
+                return describe_signer(signer), certinfo.to_pem(signer.signing_cert)
 
         try:
             p.validate()
-            info = background.run(self, work)
+            info, pem_text = background.run(self, work)
+            self._set_certificate(pem_text)
         except secretstore.Cancelled:
             return
         except (ValueError, SigningError, secretstore.SecretError) as e:
             QMessageBox.critical(self, _("Test failed"), str(e))
             return
         QMessageBox.information(self, _("Certificate OK"), info)
+
+    def _needs_certificate(self, p: CertProfile) -> bool:
+        """A new profile, or one now using another key, gets its certificate
+        read on saving (unless the test just read it)."""
+        if self.name is None:
+            return not p.certificate
+        old = self.config.certs[self.name]
+        moved = any(getattr(old, f) != getattr(p, f) for f in KEY_FIELDS)
+        return moved and p.certificate == old.certificate
+
+    def _read_certificate(self, p: CertProfile) -> str | None:
+        """The certificate (PEM) from the key, asking for the PIN or passphrase
+        once; '' to save without it, None to go back to the form."""
+        def work(ask):
+            creds = secretstore.resolve_credentials(
+                p, lambda prompt: ask(lambda: ask_secret(self, prompt)))
+            with open_signer(p, creds) as signer:
+                return certinfo.to_pem(signer.signing_cert)
+
+        QGuiApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            return background.run(self, work)
+        except secretstore.Cancelled:
+            error = _("cancelled")
+        except (SigningError, secretstore.SecretError, ValueError, OSError) as e:
+            error = str(e)
+        finally:
+            QGuiApplication.restoreOverrideCursor()
+        answer = QMessageBox.question(
+            self, _("Certificate"),
+            _("The certificate could not be read from the key:\n{error}\n\n"
+              "Save the profile without the certificate's details?").format(error=error))
+        return "" if answer == QMessageBox.Yes else None
 
     def _save(self) -> None:
         p = self._store_form()
@@ -552,6 +732,12 @@ class CertEditDialog(QDialog):
         except ValueError as e:
             QMessageBox.warning(self, _("Invalid certificate"), str(e))
             return
+        if self._needs_certificate(p):
+            pem_text = self._read_certificate(p)
+            if pem_text is None:
+                return  # stays open: the user wants to fix something first
+            p.certificate = pem_text
+            self._set_certificate(pem_text)
         old = (copy.deepcopy(self.config.certs.get(p.name)), self.config.default)
         self.config.certs[p.name] = p
         if not self.config.default:

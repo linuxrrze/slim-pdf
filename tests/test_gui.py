@@ -50,6 +50,16 @@ class Boxes:
         return "\n".join(c[2] for c in self.calls)
 
 
+READ_CERTIFICATE = CertEditDialog._read_certificate
+
+
+@pytest.fixture(autouse=True)
+def no_certificate_reading(monkeypatch):
+    """Saving a new profile reads its certificate from the key, which asks for
+    a PIN; tests that don't test that save without it."""
+    monkeypatch.setattr(CertEditDialog, "_read_certificate", lambda self, p: "")
+
+
 @pytest.fixture
 def secrets(monkeypatch):
     asked = []
@@ -71,10 +81,11 @@ def save_to(monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def window(qapp, profile, p12_bob, secrets, save_to):
+def window(qapp, profile, p12_bob, secrets, save_to, tmp_path):
     bob = CertProfile(name="bob", path=str(p12_bob[0]), secret="prompt")  # no image
     profile.secret = "prompt"
-    cfg = Config(certs={"alice": profile, "bob": bob}, default="alice")
+    cfg = Config(certs={"alice": profile, "bob": bob}, default="alice",
+                 path=tmp_path / "window-config.toml")
     win = gui_app.MainWindow(cfg)
     win.resize(900, 1000)
     win.show()
@@ -87,6 +98,18 @@ def window(qapp, profile, p12_bob, secrets, save_to):
 def click_scene(view, x, y):
     QTest.mouseClick(view.viewport(), Qt.LeftButton, Qt.NoModifier,
                      view.mapFromScene(QPointF(x, y)))
+
+
+def stamp_aspect(window, name="alice"):
+    """width / height of the profile's whole stamp (image and text)."""
+    from pdfsigner import certinfo
+    from pdfsigner.signing import stamp_size
+
+    p = window.config.certs[name]
+    w, h = stamp_size(p, certinfo.text_params(certinfo.load(p.certificate), p),
+                      with_image=window.image_check.isChecked(),
+                      with_text=window.text_check.isChecked())
+    return w / h
 
 
 def place(view, x, y):
@@ -147,7 +170,7 @@ def test_place_resize_sign_twice(window, form_pdf, save_to, p12, p12_bob):
     item = view.placement
     assert isinstance(item, SignatureItem)
     w, h = item.size
-    assert w / h == pytest.approx(3.0)
+    assert w / h == pytest.approx(stamp_aspect(window))
     assert window.sign_act.isEnabled() and window.sign_btn.text() == "Sign…"
     assert "New signature on page 1" in window.target_label.text()
 
@@ -157,7 +180,7 @@ def test_place_resize_sign_twice(window, form_pdf, save_to, p12, p12_bob):
     drag_scene(view, handle, (handle[0] + 90, handle[1] + 5))
     w2, h2 = item.size
     assert w2 > w + 60
-    assert w2 / h2 == pytest.approx(3.0)
+    assert w2 / h2 == pytest.approx(stamp_aspect(window))
 
     page, box = view.placement_box()
     assert page == 0
@@ -165,7 +188,7 @@ def test_place_resize_sign_twice(window, form_pdf, save_to, p12, p12_bob):
     assert r2.topLeft() == r.topLeft()  # resizing keeps the top-left corner
     assert box[0] == pytest.approx(r2.left(), abs=0.1)
     assert box[3] == pytest.approx(842 - r2.top(), abs=0.1)  # display y from the top
-    assert (box[2] - box[0]) / (box[3] - box[1]) == pytest.approx(3.0, rel=0.01)
+    assert (box[2] - box[0]) / (box[3] - box[1]) == pytest.approx(stamp_aspect(window), rel=0.01)
 
     window.sign()
     info = inspect_pdf(out)
@@ -213,7 +236,7 @@ def test_placement_clamped_to_page(window, blank_pdf):
     r = view.placement.scene_rect()
     assert r.right() <= 595 + 0.01 and r.bottom() <= 842 + 0.01
     w, h = view.placement.size
-    assert w / h == pytest.approx(3.0)
+    assert w / h == pytest.approx(stamp_aspect(window))
     view.placement.scale_by(0.01)
     assert view.placement.size[0] == pytest.approx(30)  # minimum width
 
@@ -373,12 +396,16 @@ def test_switching_certificate_updates_preview(window, blank_pdf):
     window.open(blank_pdf)
     place(window.view, 200, 300)
     item = window.view.placement
-    assert item._pixmap is not None
+    with_image = item._pixmap
+    assert with_image is not None
     window.cert_combo.setCurrentIndex(window.cert_combo.findData("bob"))  # no image
-    assert item._pixmap is None
+    assert item._pixmap is not None and item._pixmap.cacheKey() != with_image.cacheKey()
+    assert item.size[0] / item.size[1] == pytest.approx(stamp_aspect(window, "bob"))
     window.cert_combo.setCurrentIndex(window.cert_combo.findData("alice"))
-    window.image_check.setChecked(False)
-    assert item._pixmap is None
+    window.image_check.setChecked(False)  # the text alone
+    assert item.size[0] / item.size[1] == pytest.approx(stamp_aspect(window))
+    window.text_check.setChecked(False)  # neither: a plain text stamp, as when signing
+    assert item._pixmap is not None
 
 
 def test_image_and_text_switches_are_passed(window, blank_pdf, save_to, monkeypatch):
@@ -620,7 +647,7 @@ def dialog(open_editor):
 
 
 def rows(manager):
-    return [[manager.list.topLevelItem(i).text(c) for c in range(3)]
+    return [[manager.list.topLevelItem(i).text(c) for c in range(4)]
             for i in range(manager.list.topLevelItemCount())]
 
 
@@ -651,8 +678,8 @@ def editing(manager, monkeypatch, fill, save=True):
 
 def test_manager_lists_profiles(manager, p12):
     """Only the list: the profiles' settings are in the editor."""
-    assert rows(manager) == [["work  (default)", "PKCS#12 file", str(p12[0])],
-                             ["tok", "PKCS#11 token", "x.so – key ID 02"]]
+    assert rows(manager) == [["work  (default)", "PKCS#12 file", "–", str(p12[0])],
+                             ["tok", "PKCS#11 token", "–", "x.so – key ID 02"]]
     assert manager.current() == "work"
     assert manager.edit_btn.isEnabled() and manager.remove_btn.isEnabled()
     assert not manager.default_btn.isEnabled()  # already the default
@@ -708,7 +735,7 @@ def test_manager_edit_add_default(manager, monkeypatch, tmp_path):
     editing(manager, monkeypatch, vault)
     manager._add()
     assert manager.current() == "vault"  # the new profile is selected
-    assert rows(manager)[2] == ["vault", "PKCS#12 file", "KeePass: Certificates/FAU S/MIME"]
+    assert rows(manager)[2] == ["vault", "PKCS#12 file", "–", "KeePass: Certificates/FAU S/MIME"]
     manager._make_default()
 
     cfg = load_config(tmp_path / "config.toml")
@@ -760,7 +787,7 @@ def test_manager_remove(manager, monkeypatch, tmp_path):
     select(manager, "work")
     manager._remove()
     assert list(manager.config.certs) == ["tok"] and manager.config.default == "tok"
-    assert rows(manager) == [["tok  (default)", "PKCS#11 token", "x.so – key ID 02"]]
+    assert rows(manager) == [["tok  (default)", "PKCS#11 token", "–", "x.so – key ID 02"]]
     cfg = load_config(tmp_path / "config.toml")
     assert list(cfg.certs) == ["tok"] and cfg.default == "tok"
 
@@ -818,7 +845,7 @@ def test_ctrl_wheel_resizes_signature_and_zooms_page(window, blank_pdf):
     w0 = view.placement.size[0]
     wheel(view, (200, 300), 120)  # over the signature: resize
     w1, h1 = view.placement.size
-    assert w1 == pytest.approx(w0 * 1.1) and w1 / h1 == pytest.approx(3.0)
+    assert w1 == pytest.approx(w0 * 1.1) and w1 / h1 == pytest.approx(stamp_aspect(window))
     zoom = view.zoom
     wheel(view, (450, 700), 120)  # over the page: zoom
     assert view.zoom == pytest.approx(zoom * 1.15)
@@ -914,7 +941,9 @@ def test_pdf_signature_image_preview(window, form_pdf, tmp_path):
     window.open(form_pdf)
     place(window.view, 200, 300)
     w, h = window.view.placement.size
-    assert w / h == pytest.approx(4.0)
+    assert w / h == pytest.approx(stamp_aspect(window))
+    window.text_check.setChecked(False)  # the image alone: its own 4:1
+    assert window.view.placement.size[0] / window.view.placement.size[1] == pytest.approx(4.0)
     pm = window.view.placement._pixmap
     assert pm is not None and not pm.isNull()
 
@@ -1283,3 +1312,108 @@ def test_dialog_module_field_offers_the_modules_found(open_editor, monkeypatch):
     d.e["pkcs11_lib"].setText("/opt/vendor/lib/libvendor-pkcs11.so")
     assert d._store_form().pkcs11_lib == "/opt/vendor/lib/libvendor-pkcs11.so"
     assert combo.count() == 2
+
+
+# --- certificate details and stamp appearance -------------------------------------------
+
+
+def test_new_profile_reads_its_certificate_once(open_editor, monkeypatch, p12, tmp_path):
+    """Saving a new profile asks for the PIN/passphrase once and keeps the
+    certificate, so its details and the stamp need no PIN later."""
+    monkeypatch.setattr(CertEditDialog, "_read_certificate", READ_CERTIFICATE)
+    asked = []
+    monkeypatch.setattr(certdialog, "ask_secret",
+                        lambda parent, prompt: asked.append(prompt) or PASSPHRASE)
+    new = open_editor(None)
+    assert not new.details_btn.isEnabled() and "Not read yet" in new.cert_label.text()
+    new.name_edit.setText("card")
+    new.e["path"].setText(str(p12[0]))
+    new._save()
+    assert new.result() == QtWidgets.QDialog.Accepted and len(asked) == 1
+    saved = load_config(tmp_path / "config.toml").certs["card"]
+    from pdfsigner import certinfo
+
+    assert certinfo.signer_name(certinfo.load(saved.certificate)) == "Alice Example"
+    assert "Alice Example, valid until" in new.cert_label.text()
+
+    # editing other settings doesn't ask again; another key does
+    again = open_editor("card")
+    again.e["reason"].setText("Approval")
+    again._save()
+    assert len(asked) == 1
+    again = open_editor("card")
+    again.e["path"].setText(str(p12[0]) + "x")
+    boxes = Boxes(monkeypatch, certdialog, answer=QtWidgets.QMessageBox.No)
+    again._save()  # unreadable: the user goes back to the form
+    assert boxes.kinds() == ["question"] and "could not be read" in boxes.text()
+    assert again.result() != QtWidgets.QDialog.Accepted
+
+
+def test_unreadable_certificate_can_be_saved_without(open_editor, monkeypatch, tmp_path):
+    monkeypatch.setattr(CertEditDialog, "_read_certificate", READ_CERTIFICATE)
+    monkeypatch.setattr(certdialog, "ask_secret", lambda parent, prompt: None)  # Cancel
+    boxes = Boxes(monkeypatch, certdialog)  # "Save without?" Yes
+    new = open_editor(None)
+    new.name_edit.setText("later")
+    new.e["path"].setText("missing.p12")
+    new._save()
+    assert boxes.kinds() == ["question"] and "cancelled" in boxes.text()
+    assert new.result() == QtWidgets.QDialog.Accepted
+    assert load_config(tmp_path / "config.toml").certs["later"].certificate == ""
+
+
+def test_test_button_stores_the_certificate(dialog, monkeypatch, tmp_path):
+    monkeypatch.setattr(certdialog, "ask_secret", lambda parent, prompt: PASSPHRASE)
+    Boxes(monkeypatch, certdialog)
+    dialog._test()
+    assert dialog.details_btn.isEnabled()
+    dialog._save()  # no second unlock: the test read it
+    assert load_config(tmp_path / "config.toml").certs["work"].certificate
+
+
+def test_certificate_details_dialog(manager, monkeypatch, p12):
+    from cryptography.hazmat.primitives import serialization
+
+    pem_text = p12[1].public_bytes(serialization.Encoding.PEM).decode()
+    assert not manager.details_btn.isEnabled()  # nothing read yet
+    manager.config.certs["work"].certificate = pem_text
+    manager._refresh_list("work")
+    assert manager.details_btn.isEnabled()
+    assert rows(manager)[0][2] == f"{p12[1].not_valid_after_utc:%Y-%m-%d}"
+    shown = []
+    monkeypatch.setattr(manager, "_exec_details", shown.append, raising=False)
+    manager._details()
+    [dlg] = shown
+    items = {dlg.tree.topLevelItem(i).text(0): dlg.tree.topLevelItem(i).text(1)
+             for i in range(dlg.tree.topLevelItemCount())}
+    assert "Alice Example" in items["Subject"] and items["Key"] == "EC secp256r1"
+    assert items["Status"].startswith("valid, ")
+
+
+def test_stamp_preview_follows_the_form(dialog, qapp):
+    """The editor shows the stamp as signing draws it: image and text."""
+    dialog._update_preview()
+    first = dialog.preview.pixmap()
+    assert first is not None and not first.isNull()
+    dialog.stamp_text.setPlainText("")
+    dialog._insert_field("cn")
+    assert dialog.stamp_text.toPlainText() == "%(cn)s"
+    dialog.position_combo.setCurrentIndex(dialog.position_combo.findData("right"))
+    dialog._update_preview()
+    beside = dialog.preview.pixmap()
+    assert beside.width() / beside.height() > first.width() / first.height()
+    assert dialog._store_form().text_position == "right"
+    dialog.stamp_text.setPlainText("%(nope)s")
+    dialog._update_preview()
+    assert "unknown placeholder" in dialog.preview.text()
+
+
+def test_signing_keeps_the_stored_certificate_current(window, form_pdf, save_to, p12):
+    from pdfsigner import certinfo
+
+    window.config.certs["alice"].certificate = ""
+    window.open(form_pdf)
+    window.view.select_field("Applicant")
+    window.sign()
+    stored = certinfo.load(window.config.certs["alice"].certificate)
+    assert stored is not None and certinfo.signer_name(stored) == "Alice Example"

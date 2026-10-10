@@ -101,8 +101,11 @@ keepass_entry = "Certificates/FAU S/MIME"
 keepass_attachment = "fau.p12"
 ```
 
-The stamp text supports `%(signer)s` (certificate CN) and `%(ts)s` (signing
-time). An empty text gives an image-only stamp.
+The stamp text is a template with placeholders for the certificate (`%(cn)s`,
+`%(org)s`, `%(email)s`, `%(issuer)s`, …) and the signing time (`%(ts)s`,
+`%(date)s`, `%(time)s`); `text_position` puts it below, above, left or right of
+the image. An empty text gives an image-only stamp. See
+[the stamp text](docs/cli.md#the-stamp-text).
 
 ## Documentation
 

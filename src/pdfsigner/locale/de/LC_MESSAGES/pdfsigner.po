@@ -71,6 +71,132 @@ msgstr "nicht unterstützter Hash-Algorithmus {digest}"
 msgid "signing failed: {error}"
 msgstr "Signieren fehlgeschlagen: {error}"
 
+#: src/pdfsigner/certinfo.py
+msgid "Signer's name"
+msgstr "Name des Unterzeichners"
+
+#: src/pdfsigner/certinfo.py
+msgid "Common name"
+msgstr "Allgemeiner Name (CN)"
+
+#: src/pdfsigner/certinfo.py
+msgid "E-mail address"
+msgstr "E-Mail-Adresse"
+
+#: src/pdfsigner/certinfo.py
+msgid "Organization"
+msgstr "Organisation"
+
+#: src/pdfsigner/certinfo.py
+msgid "Organizational unit"
+msgstr "Organisationseinheit"
+
+#: src/pdfsigner/certinfo.py
+msgid "Title"
+msgstr "Titel"
+
+#: src/pdfsigner/certinfo.py
+msgid "Country"
+msgstr "Land"
+
+#: src/pdfsigner/certinfo.py
+msgid "Issuer"
+msgstr "Aussteller"
+
+#: src/pdfsigner/certinfo.py
+msgid "Serial number"
+msgstr "Seriennummer"
+
+#: src/pdfsigner/certinfo.py
+msgid "Date and time of signing"
+msgstr "Datum und Uhrzeit der Signatur"
+
+#: src/pdfsigner/certinfo.py
+msgid "Date of signing"
+msgstr "Datum der Signatur"
+
+#: src/pdfsigner/certinfo.py
+msgid "Time of signing"
+msgstr "Uhrzeit der Signatur"
+
+#: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Reason"
+msgstr "Grund"
+
+#: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Location"
+msgstr "Ort"
+
+#: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Contact"
+msgstr "Kontakt"
+
+#: src/pdfsigner/certinfo.py
+msgid "the stamp text has a stray %: write %% for a percent sign, placeholders as %(name)s"
+msgstr "der Stempeltext enthält ein einzelnes %: Prozentzeichen als %% schreiben, Platzhalter als %(name)s"
+
+#: src/pdfsigner/certinfo.py
+#, python-brace-format
+msgid "unknown placeholder %({name})s in the stamp text; known: {known}"
+msgstr "unbekannter Platzhalter %({name})s im Stempeltext; bekannt: {known}"
+
+#: src/pdfsigner/certinfo.py
+msgid "expired"
+msgstr "abgelaufen"
+
+#: src/pdfsigner/certinfo.py
+msgid "not yet valid"
+msgstr "noch nicht gültig"
+
+#: src/pdfsigner/certinfo.py
+#, python-brace-format
+msgid "valid, {days} days left"
+msgstr "gültig, noch {days} Tage"
+
+#: src/pdfsigner/certinfo.py
+msgid "Subject"
+msgstr "Inhaber"
+
+#: src/pdfsigner/certinfo.py
+msgid "Valid from"
+msgstr "Gültig ab"
+
+#: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Valid until"
+msgstr "Gültig bis"
+
+#: src/pdfsigner/certinfo.py
+msgid "Status"
+msgstr "Status"
+
+#: src/pdfsigner/certinfo.py
+msgid "Key"
+msgstr "Schlüssel"
+
+#: src/pdfsigner/certinfo.py
+msgid "Key usage"
+msgstr "Schlüsselverwendung"
+
+#: src/pdfsigner/certinfo.py
+msgid "Extended key usage"
+msgstr "Erweiterte Schlüsselverwendung"
+
+#: src/pdfsigner/certinfo.py
+msgid "Alternative names"
+msgstr "Alternative Namen"
+
+#: src/pdfsigner/certinfo.py
+msgid "SHA-256 fingerprint"
+msgstr "SHA-256-Fingerabdruck"
+
+#: src/pdfsigner/certinfo.py
+msgid "SHA-1 fingerprint"
+msgstr "SHA-1-Fingerabdruck"
+
 #: src/pdfsigner/cli.py
 msgid ""
 "Command line interface.\n"
@@ -250,8 +376,14 @@ msgid "signature image (PNG with transparency recommended)"
 msgstr "Signaturbild (PNG mit Transparenz empfohlen)"
 
 #: src/pdfsigner/cli.py
-msgid "text on the stamp; %%(signer)s and %%(ts)s are replaced; '' for none"
-msgstr "Text auf dem Stempel; %%(signer)s und %%(ts)s werden ersetzt; '' für keinen"
+#, python-brace-format
+msgid "text on the stamp, \\n for a new line; '' for none; placeholders: {fields}"
+msgstr "Text auf dem Stempel, \\n für eine neue Zeile; '' für keinen; Platzhalter: {fields}"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "where the text goes, seen from the image: {positions}"
+msgstr "wo der Text steht, vom Bild aus gesehen: {positions}"
 
 #: src/pdfsigner/cli.py
 msgid "signature reason"
@@ -313,6 +445,15 @@ msgstr "keine Zertifikate konfiguriert ({path})"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "certificate: not read yet ('pdfsigner certs test {name}' reads it)"
+msgstr "Zertifikat: noch nicht gelesen ('pdfsigner certs test {name}' liest es)"
+
+#: src/pdfsigner/cli.py
+msgid "certificate:"
+msgstr "Zertifikat:"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "certificate {name} exists, use 'certs edit'"
 msgstr "Zertifikat {name} existiert bereits, 'certs edit' verwenden"
 
@@ -320,6 +461,11 @@ msgstr "Zertifikat {name} existiert bereits, 'certs edit' verwenden"
 #, python-brace-format
 msgid "saved to {path}"
 msgstr "gespeichert in {path}"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "'pdfsigner certs test {name}' checks it and stores the certificate's details"
+msgstr "'pdfsigner certs test {name}' prüft es und speichert die Angaben des Zertifikats"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
@@ -340,6 +486,10 @@ msgstr "im Schlüsselbund gespeichert ({backend})"
 #, python-brace-format
 msgid "note: profile uses secret={secret}; switch with 'pdfsigner certs edit {name} --secret keyring'"
 msgstr "Hinweis: Profil verwendet secret={secret}; umstellen mit 'pdfsigner certs edit {name} --secret keyring'"
+
+#: src/pdfsigner/cli.py
+msgid "certificate stored in the profile"
+msgstr "Zertifikat im Profil gespeichert"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
@@ -834,6 +984,7 @@ msgid "start the GUI"
 msgstr "die GUI starten"
 
 #: src/pdfsigner/cli.py
+#: src/pdfsigner/gui/certdialog.py
 msgid "cancelled"
 msgstr "abgebrochen"
 
@@ -893,6 +1044,11 @@ msgstr "{name}: keepass_attachment erfordert secret = 'keepass' oder 'keepassxc'
 #, python-brace-format
 msgid "{name}: keepass_yubikey requires secret = 'keepassxc'"
 msgstr "{name}: keepass_yubikey erfordert secret = 'keepassxc'"
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: text_position must be one of {positions}"
+msgstr "{name}: text_position muss eins von {positions} sein"
 
 #: src/pdfsigner/config.py
 #, python-brace-format
@@ -1520,6 +1676,35 @@ msgid "System certificate store"
 msgstr "Zertifikatsspeicher des Systems"
 
 #: src/pdfsigner/gui/certdialog.py
+msgid "Below the image"
+msgstr "Unter dem Bild"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Above the image"
+msgstr "Über dem Bild"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Left of the image"
+msgstr "Links vom Bild"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Right of the image"
+msgstr "Rechts vom Bild"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The certificate hasn't been read yet. Save the profile or use the test in its editor; both read it from the key."
+msgstr "Das Zertifikat wurde noch nicht gelesen. Profil speichern oder den Test im Editor verwenden; beides liest es aus dem Schlüssel."
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "Certificate of {name!r}"
+msgstr "Zertifikat von {name!r}"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Certificate (PEM, public):"
+msgstr "Zertifikat (PEM, öffentlich):"
+
+#: src/pdfsigner/gui/certdialog.py
 #, python-brace-format
 msgid "key ID {id}"
 msgstr "Schlüssel-ID {id}"
@@ -1559,6 +1744,14 @@ msgstr "Entfernen"
 #: src/pdfsigner/gui/certdialog.py
 msgid "Make default"
 msgstr "Als Standard festlegen"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Details…"
+msgstr "Details…"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The certificate's details, without a PIN"
+msgstr "Die Angaben des Zertifikats, ohne PIN"
 
 #: src/pdfsigner/gui/certdialog.py
 #, python-brace-format
@@ -1687,28 +1880,36 @@ msgid "Images"
 msgstr "Bilder"
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "empty = image only; %(signer)s, %(ts)s are replaced"
-msgstr "leer = nur Bild; %(signer)s, %(ts)s werden ersetzt"
+msgid "empty = image only"
+msgstr "leer = nur Bild"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "One line per line on the stamp. Insert adds certificate attributes and the signing time; a line whose values are all empty is left out."
+msgstr "Eine Zeile pro Zeile auf dem Stempel. „Einfügen“ fügt Angaben aus dem Zertifikat und den Signaturzeitpunkt ein; eine Zeile, deren Werte alle leer sind, entfällt."
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Insert"
+msgstr "Einfügen"
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Stamp text"
 msgstr "Stempeltext"
 
 #: src/pdfsigner/gui/certdialog.py
+msgid "Text position"
+msgstr "Textposition"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The stamp as it will look, with the values of the certificate (or sample values until it has been read)"
+msgstr "Der Stempel, wie er aussehen wird, mit den Werten des Zertifikats (oder Beispielwerten, bis es gelesen wurde)"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Preview"
+msgstr "Vorschau"
+
+#: src/pdfsigner/gui/certdialog.py
 msgid "Signature details"
 msgstr "Signaturdetails"
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "Reason"
-msgstr "Grund"
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "Location"
-msgstr "Ort"
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "Contact"
-msgstr "Kontakt"
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Timestamp URL"
@@ -1784,12 +1985,21 @@ msgid "{type} (not available on this system)"
 msgstr "{type} (auf diesem System nicht verfügbar)"
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "(no image)"
-msgstr "(kein Bild)"
-
-#: src/pdfsigner/gui/certdialog.py
 msgid "(cannot load image)"
 msgstr "(Bild kann nicht geladen werden)"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "(no preview)"
+msgstr "(keine Vorschau)"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Not read yet. Saving reads it from the key (asking for the PIN or passphrase once), as does the test below."
+msgstr "Noch nicht gelesen. Beim Speichern wird es aus dem Schlüssel gelesen (einmal mit PIN oder Passphrase), ebenso beim Test unten."
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "{name}, valid until {date} ({status})"
+msgstr "{name}, gültig bis {date} ({status})"
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Keyring"
@@ -1855,6 +2065,19 @@ msgstr "Test fehlgeschlagen"
 #: src/pdfsigner/gui/certdialog.py
 msgid "Certificate OK"
 msgstr "Zertifikat OK"
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid ""
+"The certificate could not be read from the key:\n"
+"{error}\n"
+"\n"
+"Save the profile without the certificate's details?"
+msgstr ""
+"Das Zertifikat konnte nicht aus dem Schlüssel gelesen werden:\n"
+"{error}\n"
+"\n"
+"Profil ohne die Angaben des Zertifikats speichern?"
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Invalid certificate"

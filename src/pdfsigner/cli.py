@@ -14,10 +14,12 @@ from pyhanko.pdf_utils.misc import PdfError
 from pypdf.errors import PyPdfError
 
 from . import i18n, pages, secretstore
+from .certinfo import STAMP_FIELDS
 from .config import (
     CERT_TYPES,
     PKCS11_EXAMPLE,
     SECRET_SOURCES,
+    TEXT_POSITIONS,
     CertProfile,
     Config,
     load_config,
@@ -118,8 +120,10 @@ PROFILE_OPTS = {
     "--system-cert": ("system_cert", N_("Windows/macOS certificate store: thumbprint or part "
                                         "of the subject (see 'certs system')")),
     "--image": ("image", N_("signature image (PNG with transparency recommended)")),
-    "--stamp-text": ("stamp_text", N_("text on the stamp; %%(signer)s and %%(ts)s are "
-                                      "replaced; '' for none")),
+    "--stamp-text": ("stamp_text", N_("text on the stamp, \\n for a new line; '' for none; "
+                                      "placeholders: {fields}")),
+    "--text-position": ("text_position", N_("where the text goes, seen from the image: "
+                                            "{positions}")),
     "--reason": ("reason", N_("signature reason")),
     "--location": ("location", N_("signature location")),
     "--contact": ("contact_info", N_("contact info")),
@@ -138,7 +142,9 @@ PROFILE_OPTS = {
 def _add_profile_opts(p: argparse.ArgumentParser) -> None:
     for opt, (attr, text) in PROFILE_OPTS.items():
         help_ = _(text).format(types=", ".join(CERT_TYPES), example=PKCS11_EXAMPLE,
-                               sources=", ".join(SECRET_SOURCES))
+                               sources=", ".join(SECRET_SOURCES),
+                               fields=", ".join(f"%%({k})s" for k in STAMP_FIELDS),
+                               positions=", ".join(TEXT_POSITIONS))
         if attr == "ltv":
             p.add_argument(opt, dest=attr, default=None, choices=("yes", "no"), help=help_)
         else:
@@ -183,11 +189,24 @@ def cmd_certs_list(cfg: Config, args) -> int:
 
 
 def cmd_certs_show(cfg: Config, args) -> int:
+    from . import certinfo
+
     p = cfg.get(args.name)
     for f in dc_fields(p):
         v = getattr(p, f.name)
+        if f.name == "certificate":
+            continue  # below, readable
         if v or f.name in ("ltv", "stamp_text"):  # false / '' are meaningful here
             print(f"{f.name:20} {v!r}")
+    cert = certinfo.load(p.certificate)
+    print()
+    if cert is None:
+        print(_("certificate: not read yet ('pdfsigner certs test {name}' reads it)").format(
+            name=_quote(p.name)))
+    else:
+        print(_("certificate:"))
+        for label, value in certinfo.details(cert):
+            print(f"  {label + ':':22} {value}")
     return 0
 
 
@@ -201,6 +220,8 @@ def cmd_certs_add(cfg: Config, args) -> int:
     if args.default:
         cfg.default = profile.name
     print(_("saved to {path}").format(path=cfg.save()))
+    print(_("'pdfsigner certs test {name}' checks it and stores the certificate's "
+            "details").format(name=_quote(profile.name)))
     return 0
 
 
@@ -247,9 +268,16 @@ def cmd_certs_set_secret(cfg: Config, args) -> int:
 
 
 def cmd_certs_test(cfg: Config, args) -> int:
+    from . import certinfo
+
     p = cfg.get(args.name)
     with open_signer(p, resolve_credentials(p, _ask)) as signer:
         print(describe_signer(signer))
+        pem_text = certinfo.to_pem(signer.signing_cert)
+    if pem_text != p.certificate:  # kept for 'certs show' and the stamp preview
+        p.certificate = pem_text
+        cfg.save()
+        print(_("certificate stored in the profile"))
     return 0
 
 

@@ -17,6 +17,7 @@ from pathlib import Path
 import tomli_w
 from platformdirs import user_config_dir
 
+from .certinfo import check_template
 from .i18n import LANGUAGES, N_, _
 
 CERT_TYPES = ("pkcs12", "pkcs11", "system")
@@ -38,6 +39,7 @@ def supported_cert_types(platform: str | None = None) -> tuple[str, ...]:
 #   none    - no secret needed (unencrypted PKCS#12, PIN pad readers)
 SECRET_SOURCES = ("prompt", "keyring", "keepass", "keepassxc", "none")
 KEEPASS_SOURCES = ("keepass", "keepassxc")
+TEXT_POSITIONS = ("below", "above", "left", "right")  # the stamp text, seen from the image
 
 # The stored default stays English, so existing profiles keep their stamp;
 # new profiles start with the text in the current language (new_profile()).
@@ -77,9 +79,10 @@ class CertProfile:
     # or part of the subject (see `pdfsigner certs system`)
     system_cert: str = ""
 
-    # Appearance
+    # Appearance: the text's placeholders are listed in certinfo.STAMP_FIELDS
     image: str = ""
     stamp_text: str = DEFAULT_STAMP_TEXT
+    text_position: str = "below"  # of the image: below, above, left, right
 
     # Signature metadata
     reason: str = ""
@@ -97,6 +100,10 @@ class CertProfile:
     keepass_entry: str = ""  # "Group/Sub/Title" or just "Title"
     keepass_attachment: str = ""  # attachment filename holding the .p12
     keepass_yubikey: str = ""  # keepassxc only: YubiKey "slot[:serial]", e.g. "2"
+
+    # The signing certificate (public, PEM) as last read from the key: for
+    # showing its details and previewing the stamp without a PIN.
+    certificate: str = ""
 
     def validate(self) -> None:
         if not self.name:
@@ -116,6 +123,13 @@ class CertProfile:
         if self.keepass_yubikey and self.secret != "keepassxc":
             raise ValueError(_("{name}: keepass_yubikey requires secret = 'keepassxc'").format(
                 name=self.name))
+        if self.text_position not in TEXT_POSITIONS:
+            raise ValueError(_("{name}: text_position must be one of {positions}").format(
+                name=self.name, positions=", ".join(TEXT_POSITIONS)))
+        try:
+            check_template(self.stamp_text)
+        except ValueError as e:
+            raise ValueError(f"{self.name}: {e}") from None
         if self.type == "system" and not self.system_cert:
             raise ValueError(_("{name}: system needs system_cert (thumbprint or subject)").format(
                 name=self.name))

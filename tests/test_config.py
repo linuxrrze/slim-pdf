@@ -155,3 +155,25 @@ def test_supported_cert_types():
     assert supported_cert_types("linux") == ("pkcs12", "pkcs11")
     assert supported_cert_types("win32") == supported_cert_types("darwin") == (
         "pkcs12", "pkcs11", "system")
+
+
+def test_stamp_settings_are_checked():
+    from pdfsigner.config import CertProfile
+
+    CertProfile(name="p", path="x.p12", stamp_text="%(cn)s\n%(date)s",
+                text_position="right").validate()
+    with pytest.raises(ValueError, match="text_position must be one of"):
+        CertProfile(name="p", path="x.p12", text_position="middle").validate()
+    with pytest.raises(ValueError, match=r"p: unknown placeholder %\(nam\)s"):
+        CertProfile(name="p", path="x.p12", stamp_text="%(nam)s").validate()
+
+
+def test_certificate_is_saved_and_loaded(tmp_path):
+    from pdfsigner.config import CertProfile, Config, load_config
+
+    pem_text = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
+    cfg = Config(path=tmp_path / "c.toml")
+    cfg.put(CertProfile(name="p", path="x.p12", certificate=pem_text, text_position="left"))
+    cfg.save()
+    again = load_config(tmp_path / "c.toml").certs["p"]
+    assert (again.certificate, again.text_position) == (pem_text, "left")

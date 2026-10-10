@@ -47,6 +47,48 @@ def signature_pixmap(path):
     return QPixmap(str(path))
 
 
+def render_stamp(profile, params: dict[str, str], *, with_image: bool = True,
+                 with_text: bool = True, height_px: int = 120):
+    """QPixmap of the stamp exactly as signing draws it (pyHanko lays it
+    out on an empty page, pdfium renders it), at its natural proportions;
+    a null pixmap if it can't be built (e.g. a missing image)."""
+    from pyhanko.pdf_utils import generic
+    from pyhanko.pdf_utils.layout import BoxConstraints
+    from pyhanko.pdf_utils.writer import PdfFileWriter
+    from PySide6.QtGui import QPixmap
+
+    from ..signing import build_stamp_style, stamp_size
+
+    try:
+        w, h = stamp_size(profile, params, with_image=with_image, with_text=with_text)
+        style = build_stamp_style(profile, with_image=with_image, with_text=with_text,
+                                  params=params, box_size=(w, h))
+        writer = PdfFileWriter()  # one empty page of the stamp's size
+        writer.insert_page(generic.DictionaryObject({
+            generic.pdf_name("/Type"): generic.pdf_name("/Page"),
+            generic.pdf_name("/MediaBox"): generic.ArrayObject(
+                generic.FloatObject(v) for v in (0, 0, w, h)),
+            generic.pdf_name("/Resources"): generic.DictionaryObject(),
+            generic.pdf_name("/Contents"): writer.add_object(generic.StreamObject(stream_data=b"")),
+        }))
+        box = BoxConstraints(width=w, height=h)
+        style.create_stamp(writer, box, {}).apply(0, 0, 0)
+        out = io.BytesIO()
+        writer.write(out)
+        pdf = pdfium.PdfDocument(out.getvalue())
+        try:
+            img = pdf[0].render(scale=height_px / h).to_pil()
+        finally:
+            pdf.close()
+    except Exception:  # noqa: BLE001 - a preview never breaks the dialog
+        return QPixmap()
+    png = io.BytesIO()
+    img.save(png, "PNG")
+    pm = QPixmap()
+    pm.loadFromData(png.getvalue(), "PNG")
+    return pm
+
+
 class PdfDocument:
     def __init__(self, source: str | bytes, password: str | None = None):
         """``source`` is a path or the PDF bytes."""

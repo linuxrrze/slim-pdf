@@ -70,7 +70,8 @@ saved to ~/.config/pdfsigner/config.toml
 | `--type TYPE` | `pkcs12` (default), `pkcs11` or `system`. Rarely needed: `--pkcs11-lib` implies `pkcs11`, `--system-cert` implies `system`. |
 | `--p12 FILE` | PKCS#12 file (`.p12`/`.pfx`). `~` and `$VARS` are expanded when used. |
 | `--image FILE` | Signature image: PNG/JPEG (a transparent background works best) or a PDF, whose first page is embedded as vector graphics (see below). |
-| `--stamp-text TEXT` | Text below the image. `%(signer)s` = certificate CN, `%(ts)s` = signing time, `\n` = line break. `''` = image only. Default: `Digitally signed by %(signer)s\n%(ts)s`. |
+| `--stamp-text TEXT` | Text on the stamp, with placeholders (see [The stamp text](#the-stamp-text)); `\n` = line break, `''` = image only. Default: `Digitally signed by %(signer)s\n%(ts)s`. |
+| `--text-position POS` | Where the text goes, seen from the image: `below` (default), `above`, `left` or `right`. |
 | `--reason`, `--location`, `--contact` | Stored in the signature; shown by PDF viewers. |
 | `--timestamp-url URL` | RFC 3161 timestamp server, e.g. `http://timestamp.digicert.com`. |
 | `--ltv yes\|no` | Embed the certificate chain and revocation info (LTV), see below. |
@@ -99,10 +100,55 @@ passphrase for certificate 'work':
 Common Name: Alice Example
   issuer:  Common Name: Alice Example
   valid:   2026-10-08 .. 2026-11-08
+certificate stored in the profile
 ```
 
 `*` marks the default profile. `certs test` unlocks the key exactly like
-signing would. Use it to check a new profile or a stored passphrase.
+signing would. Use it to check a new profile or a stored passphrase. It
+also stores the (public) certificate in the profile, so that `certs show`
+lists its details without asking for the PIN:
+
+```console
+$ pdfsigner certs show work
+…
+certificate:
+  Subject:               Common Name: Alice Example
+  Issuer:                Common Name: Alice Example
+  Serial number:         1A2B3C4D
+  Valid from:            2026-10-08 09:12 UTC
+  Valid until:           2026-11-08 09:12 UTC
+  Status:                valid, 28 days left
+  Key:                   EC secp256r1
+  Key usage:             digital_signature, non_repudiation
+  SHA-256 fingerprint:   3F…
+  SHA-1 fingerprint:     9A…
+```
+
+Signing keeps the stored certificate current (for example after a card was
+renewed). The GUI reads it when a profile is created.
+
+### The stamp text
+
+The text is a template. Each `%(name)s` is replaced when signing; a line
+whose placeholders are all empty (say, `%(reason)s` without a reason) is
+left out. Write `%%` for a percent sign.
+
+| Placeholder | Value |
+|---|---|
+| `%(signer)s` | The signer's name: the certificate's common name |
+| `%(cn)s`, `%(email)s`, `%(org)s`, `%(unit)s`, `%(title)s`, `%(country)s` | Attributes of the certificate's subject |
+| `%(issuer)s` | Who issued the certificate (its common name or organization) |
+| `%(serial)s` | The certificate's serial number (hex) |
+| `%(ts)s` | Date and time of signing, e.g. `2026-10-10 14:27:38 CEST` |
+| `%(date)s`, `%(time)s` | Date (`2026-10-10`) and time (`14:27`) of signing |
+| `%(reason)s`, `%(location)s`, `%(contact)s` | The profile's reason, location and contact |
+
+```console
+$ pdfsigner certs edit work --text-position right \
+      --stamp-text '%(cn)s\n%(org)s\n%(date)s %(time)s\nReason: %(reason)s'
+```
+
+The stamp scales as a whole: a bigger box gets bigger text, too.
 
 ### Change, rename the default, remove
 
@@ -674,9 +720,10 @@ key_id = "02"
 ```
 
 All keys: `type`, `path`, `pkcs11_lib`, `token_label`, `key_label`,
-`key_id`, `cert_label`, `system_cert`, `image`, `stamp_text`, `reason`, `location`, `contact_info`,
-`timestamp_url`, `ltv`, `secret`, `keepass_db`, `keepass_keyfile`, `keepass_entry`,
-`keepass_attachment`, `keepass_yubikey`. Unknown keys are rejected, so typos don't go
-unnoticed. The file is written with mode `0600` (Linux and macOS; on
+`key_id`, `cert_label`, `system_cert`, `image`, `stamp_text`, `text_position`, `reason`,
+`location`, `contact_info`, `timestamp_url`, `ltv`, `secret`, `keepass_db`, `keepass_keyfile`,
+`keepass_entry`, `keepass_attachment`, `keepass_yubikey`, `certificate`. Unknown keys are
+rejected, so typos don't go unnoticed. `certificate` is the profile's public certificate
+(PEM), written by `certs test`, the GUI and signing; it only serves to show details. The file is written with mode `0600` (Linux and macOS; on
 Windows it inherits the permissions of your profile folder) and **never contains
 secrets**.

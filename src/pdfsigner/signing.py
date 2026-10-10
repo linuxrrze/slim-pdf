@@ -10,6 +10,7 @@ import contextlib
 import dataclasses
 import io
 import math
+from fractions import Fraction
 import os
 import tempfile
 import unicodedata
@@ -39,6 +40,7 @@ from pyhanko.sign.fields import MDPPerm
 from pyhanko.sign.general import SigningError as PyHankoSigningError
 from pyhanko.sign.validation.pdf_embedded import read_certification_data
 
+from . import certinfo
 from .config import CertProfile, expand
 from .i18n import N_, _, ngettext
 from .secretstore import Credentials
@@ -309,13 +311,58 @@ def box_from_anchor(x: float, y: float, width: float, aspect: float) -> Box:
 TEXT_SIZE = 6
 TEXT_LEADING = 7
 TEXT_MARGIN = 2
+IMAGE_HEIGHT = 40.0  # the image part of a stamp at its natural size, points
+CHAR_WIDTH = 0.6  # Courier, pyHanko's stamp font: every glyph is 0.6 em wide
+GAP = 4.0  # between image and text, points
+DEFAULT_TEXT = "%(signer)s\n%(ts)s"  # a stamp with neither image nor text
+
+
+def stamp_text(profile: CertProfile | None, params: dict[str, str],
+               with_text: bool = True) -> str:
+    """The text on the stamp, placeholders filled in ('' for none)."""
+    if not (profile and with_text):
+        return ""
+    return certinfo.fill(profile.stamp_text, params)
+
+
+def _text_block(text: str) -> tuple[float, float]:
+    """(width, height) of the stamp text at its natural size, in points."""
+    lines = text.split("\n")
+    width = max(len(line) for line in lines) * CHAR_WIDTH * TEXT_SIZE + 1  # pyHanko rounds up
+    return width + 2 * TEXT_MARGIN, TEXT_LEADING * len(lines) + 2 * TEXT_MARGIN
+
+
+def stamp_size(profile: CertProfile | None, params: dict[str, str], *,
+               with_image: bool = True, with_text: bool = True) -> tuple[float, float]:
+    """The stamp's natural (width, height) in points: its proportions, for
+    placing it. Signing scales it as a whole to the box."""
+    image = profile.image_path if (profile and with_image and profile.image) else None
+    text = stamp_text(profile, params, with_text)
+    if image is None:
+        return _text_block(text or certinfo.fill(DEFAULT_TEXT, params))
+    image_w = IMAGE_HEIGHT * image_aspect(image)
+    if not text:
+        return image_w, IMAGE_HEIGHT
+    text_w, text_h = _text_block(text)
+    if profile.text_position in ("left", "right"):
+        return image_w + GAP + text_w, max(IMAGE_HEIGHT, text_h)
+    return max(image_w, text_w), IMAGE_HEIGHT + GAP + text_h
+
+
+def _fraction(value: float) -> Fraction:
+    return Fraction(round(value * 100), 100)
 
 
 def build_stamp_style(
-    profile: CertProfile | None, *, with_image: bool = True, with_text: bool = True
+    profile: CertProfile | None, *, with_image: bool = True, with_text: bool = True,
+    params: dict[str, str] | None = None, box_size: tuple[float, float] | None = None,
 ) -> stamp.BaseStampStyle:
-    image = profile.image_path if (profile and with_image) else None
-    text = (profile.stamp_text if profile else "") if with_text else ""
+    """The stamp for ``profile``. ``params`` fills the text's placeholders
+    (default: sample values); ``box_size`` (as displayed) scales text and
+    image together, so the stamp looks the same at every size."""
+    params = params if params is not None else certinfo.text_params(None, profile)
+    image = profile.image_path if (profile and with_image and profile.image) else None
+    text = stamp_text(profile, params, with_text)
 
     background = None
     if image is not None:
@@ -330,28 +377,44 @@ def build_stamp_style(
     if background is not None and not text:
         return stamp.StaticStampStyle(background=background, border_width=0)
 
-    if background is not None:
-        # Small text in a strip at the bottom, image scaled into the space above.
-        text_height = TEXT_LEADING * (text.count("\n") + 1) + 2 * TEXT_MARGIN
-        return stamp.TextStampStyle(
-            stamp_text=text,
-            background=background,
-            background_opacity=1.0,
-            background_layout=SimpleBoxLayoutRule(
-                x_align=AxisAlignment.ALIGN_MID,
-                y_align=AxisAlignment.ALIGN_MID,
-                margins=Margins(bottom=text_height),
-            ),
-            border_width=0,
-            text_box_style=TextBoxStyle(font_size=TEXT_SIZE, leading=TEXT_LEADING),
-            inner_content_layout=SimpleBoxLayoutRule(
-                x_align=AxisAlignment.ALIGN_MIN,
-                y_align=AxisAlignment.ALIGN_MIN,
-                margins=Margins(left=TEXT_MARGIN, right=TEXT_MARGIN,
-                                top=TEXT_MARGIN, bottom=TEXT_MARGIN),
-            ),
-        )
-    return stamp.TextStampStyle(stamp_text=text or "%(signer)s\n%(ts)s", border_width=1)
+    if background is None:
+        text = text or certinfo.fill(DEFAULT_TEXT, params)
+        return stamp.TextStampStyle(stamp_text=text.replace("%", "%%"), border_width=1)
+
+    # Text in a strip beside the image (below by default); the image is
+    # scaled into the rest. Everything scales with the box.
+    natural_w, natural_h = stamp_size(profile, params, with_image=True, with_text=True)
+    box_w, box_h = box_size or (natural_w, natural_h)
+    scale = min(box_w / natural_w, box_h / natural_h)
+    text_w, text_h = ((v + GAP) * scale for v in _text_block(text))  # the image keeps away
+    position = profile.text_position
+    image_margins = {"below": Margins(bottom=text_h), "above": Margins(top=text_h),
+                     "left": Margins(left=text_w), "right": Margins(right=text_w)}[position]
+    x_align = AxisAlignment.ALIGN_MAX if position == "right" else AxisAlignment.ALIGN_MIN
+    y_align = {"below": AxisAlignment.ALIGN_MIN, "above": AxisAlignment.ALIGN_MAX}.get(
+        position, AxisAlignment.ALIGN_MID)
+    margin = TEXT_MARGIN * scale
+    return stamp.TextStampStyle(
+        stamp_text=text.replace("%", "%%"),
+        background=background,
+        background_opacity=1.0,
+        background_layout=SimpleBoxLayoutRule(
+            x_align=AxisAlignment.ALIGN_MID,
+            y_align=AxisAlignment.ALIGN_MID,
+            margins=image_margins,
+        ),
+        border_width=0,
+        # pyHanko computes text sizes as fractions: no floats here
+        text_box_style=TextBoxStyle(
+            font_size=_fraction(TEXT_SIZE * scale), leading=_fraction(TEXT_LEADING * scale),
+            box_layout_rule=SimpleBoxLayoutRule(  # no padding of its own: TEXT_MARGIN below
+                x_align=AxisAlignment.ALIGN_MIN, y_align=AxisAlignment.ALIGN_MIN,
+                margins=Margins())),
+        inner_content_layout=SimpleBoxLayoutRule(
+            x_align=x_align, y_align=y_align,
+            margins=Margins(left=margin, right=margin, top=margin, bottom=margin),
+        ),
+    )
 
 
 def upright_style(style: stamp.BaseStampStyle, rotation: int) -> stamp.BaseStampStyle:
@@ -821,8 +884,14 @@ def sign_pdf(
     if visible:
         target_page = page if existing is None else existing.page
         rotation = info.page_rotation[target_page] if target_page is not None else 0
+        rect = box if box is not None else existing.rect
+        size = (rect[2] - rect[0], rect[3] - rect[1])
+        if rotation % 180:
+            size = size[::-1]  # as displayed
+        params = certinfo.text_params(signer.signing_cert, profile)
         style = upright_style(
-            build_stamp_style(profile, with_image=with_image, with_text=with_text), rotation
+            build_stamp_style(profile, with_image=with_image, with_text=with_text,
+                              params=params, box_size=size), rotation
         )
 
     pdf_signer = signers.PdfSigner(

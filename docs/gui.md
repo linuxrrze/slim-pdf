@@ -154,13 +154,16 @@ profiles.
 ## Managing certificates
 
 *Manage…* opens the certificate manager. It edits the same config file as
-`pdfsigner certs`. It lists the profiles with their type and certificate:
+`pdfsigner certs`. It lists the profiles with their type, the certificate's
+expiry date (red when less than 30 days are left) and where the key is:
 
 ![Certificate manager](images/gui-certs.png)
 
 * **Add…** opens the editor for a new profile, **Edit…** (or a double-click)
   the editor for the selected one.
 * **Remove** and **Make default** act on the selected profile.
+* **Details…** shows the selected profile's certificate: subject, issuer,
+  validity, key type, key usage and fingerprints. No PIN is needed.
 
 Every change is written to the config file right away: the editor's **Save**
 for one profile, *Remove* and *Make default* immediately. **Cancel** in the
@@ -170,6 +173,26 @@ In the editor, the name is set when the profile is created and can't be
 changed afterwards. **Test: unlock and show certificate** unlocks the key and
 shows its subject and validity, which is a quick check that a passphrase or
 KeePass entry is right; it uses the form as it is, before saving.
+
+**The certificate is read once.** Saving a new profile unlocks the key, asking
+for the PIN or passphrase once, and keeps the (public) certificate in the
+profile; so does the test. After that, the details and the stamp preview need
+no PIN. It is read again only when the key's settings change (file, token,
+key ID, …). If it can't be read, you can save the profile without it.
+
+**Appearance.** The stamp shows the signature image and a text:
+
+* **Stamp text**: one line per line on the stamp. **Insert** adds a
+  placeholder for a certificate attribute (name, e-mail, organization,
+  issuer, serial number, …), the date and time of signing, or the reason,
+  location and contact. A line whose values are all empty is left out. The
+  placeholders are listed in [cli.md](cli.md#the-stamp-text).
+* **Text position**: below, above, left or right of the image.
+* **Preview**: the stamp exactly as signing draws it, with the values of the
+  stored certificate (sample values until it has been read).
+
+Placed on the page, the signature shows the same stamp, and the box keeps its
+proportions; the stamp scales as a whole when you resize it.
 
 PKCS#12 file, passphrase in the OS keyring (for example KeePassXC via Secret
 Service):
