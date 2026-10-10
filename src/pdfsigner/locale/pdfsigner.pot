@@ -1517,6 +1517,29 @@ msgstr[0] ""
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
+msgid ""
+"Moving pages will invalidate the signature(s) {names}.\n"
+"\n"
+"Edit pages before signing. Continue anyway?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Move pages"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Moved page {page} to position {pos}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Moved {n} page"
+msgid_plural "Moved {n} pages"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
 msgid "Saved {name}"
 msgstr ""
 
@@ -2251,6 +2274,10 @@ msgstr ""
 
 #: src/pdfsigner/pages.py
 msgid "a document can't lose all its pages"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+msgid "the pages are already in that order"
 msgstr ""
 
 #: src/pdfsigner/pages.py

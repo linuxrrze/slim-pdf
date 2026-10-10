@@ -352,3 +352,70 @@ def test_cli_delete(tmp_path, cfg_path, profile, form_pdf, capsys):
     sign_with(profile, form_pdf, signed, field_name="Applicant")
     assert run("delete", signed, "--pages", "1", "-i") == 3
     assert "'Applicant'" in capsys.readouterr().err
+
+
+# --- move --------------------------------------------------------------------------------
+
+
+def test_move_pages(tmp_path):
+    data = numbered_pdf(tmp_path / "n.pdf").read_bytes()  # widths 110..150
+    out = pages.move(data, [3], 0)  # page 4 to the front
+    assert widths(out) == [140, 110, 120, 130, 150]
+    assert out.startswith(data)  # incremental
+    assert widths(pages.move(data, [0, 2], 5)) == [120, 140, 150, 110, 130]  # to the end
+    assert widths(pages.move(data, [4, 1], 3)) == [110, 130, 120, 150, 140]  # kept in order
+    with pytest.raises(PageError, match="already in that order"):
+        pages.move(data, [1], 1)
+    with pytest.raises(PageError, match="out of range"):
+        pages.move(data, [9], 0)
+
+
+def test_move_flattens_a_nested_tree_keeping_inherited_attributes(tmp_path):
+    """Pages under an intermediate /Pages node that holds their size and
+    rotation keep both when moved out of it."""
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.generic import (ArrayObject, DictionaryObject, NameObject, NumberObject,
+                               RectangleObject)
+
+    w = PdfWriter()
+    for i in range(1, 5):
+        w.add_blank_page(100 + i * 10, 200)
+    root_pages = w._root_object["/Pages"].get_object()
+    kids = list(root_pages["/Kids"])
+    inner = DictionaryObject({NameObject("/Type"): NameObject("/Pages"),
+                              NameObject("/Kids"): ArrayObject(kids[2:]),
+                              NameObject("/Count"): NumberObject(2),
+                              NameObject("/Rotate"): NumberObject(90),
+                              NameObject("/MediaBox"): RectangleObject([0, 0, 300, 400]),
+                              NameObject("/Parent"): w._root_object.raw_get("/Pages")})
+    inner_ref = w._add_object(inner)
+    for k in kids[2:]:
+        page = k.get_object()
+        page[NameObject("/Parent")] = inner_ref
+        del page["/MediaBox"]  # from the inner node now
+    root_pages[NameObject("/Kids")] = ArrayObject([*kids[:2], inner_ref])
+    buf = io.BytesIO()
+    w.write(buf)
+
+    out = pages.move(buf.getvalue(), [3], 0)
+    reader = PdfReader(io.BytesIO(out))
+    assert [round(p.mediabox.width) for p in reader.pages] == [300, 110, 120, 300]
+    assert [p.rotation for p in reader.pages] == [90, 0, 0, 90]
+    assert len(reader.pages) == 4
+
+
+def test_move_keeps_encryption_and_fields(form_pdf, tmp_path):
+    enc = make_encrypted(form_pdf, tmp_path / "enc.pdf", "pw").read_bytes()
+    out = pages.move(enc, [1], 0, "pw")  # the fields' page first
+    with pytest.raises(PasswordRequired):
+        pages.page_count(out)
+    assert len(info(out, "pw")) == 2
+    assert {f.name: f.page for f in inspect_pdf(out, "pw").fields} == {
+        "Applicant": 0, "Supervisor": 0}
+
+
+def test_move_in_signed_document_is_detected(profile, form_pdf, tmp_path):
+    signed = tmp_path / "s.pdf"
+    sign_with(profile, form_pdf, signed, field_name="Applicant")
+    [r] = verify_pdf(pages.move(signed.read_bytes(), [1], 0))
+    assert r.status == INVALID

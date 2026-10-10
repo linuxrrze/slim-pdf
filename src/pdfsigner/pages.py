@@ -173,6 +173,47 @@ def delete(data: bytes, pages: Iterable[int], password: str | None = None) -> by
     return _finish(w)
 
 
+# Page attributes a page may inherit from its /Pages ancestors (ISO 32000-1, 7.7.3.4).
+INHERITABLE = ("/Resources", "/MediaBox", "/CropBox", "/Rotate")
+
+
+def move(data: bytes, pages: Iterable[int], to: int, password: str | None = None) -> bytes:
+    """Move ``pages`` (in their document order) so they come before page
+    ``to`` of the original numbering (``to`` = page count: to the end).
+
+    Incremental update: the page tree becomes one flat /Kids list. Pages
+    that inherited attributes (resources, page size, rotation) from an
+    intermediate /Pages node get them copied in, so they look the same.
+    """
+    w, refs = _incremental(data, password)
+    n = len(refs)
+    moved = sorted(set(_check_pages(pages, n)))
+    if not 0 <= to <= n:
+        raise PageError(_("page {page} out of range (document has {count})").format(
+            page=to + 1, count=n))
+    order = ([i for i in range(to) if i not in moved] + moved
+             + [i for i in range(to, n) if i not in moved])
+    if order == list(range(n)):
+        raise PageError(_("the pages are already in that order"))
+    root_ref = w.root.raw_get("/Pages")
+    root = root_ref.get_object()
+    for ref in refs:
+        page = ref.get_object()
+        if _key(page.raw_get("/Parent")) == _key(root_ref):
+            continue
+        for key in INHERITABLE:
+            if key not in page:
+                value = find_inherited_value_in_tree(page, key, "/Parent")
+                if value is not None:
+                    page[generic.NameObject(key)] = value
+        page[generic.NameObject("/Parent")] = root_ref
+        w.update_container(page)
+    root[generic.NameObject("/Kids")] = generic.ArrayObject(refs[i] for i in order)
+    root[generic.NameObject("/Count")] = generic.NumberObject(n)
+    w.update_container(root)
+    return _finish(w)
+
+
 def _array(value) -> list:
     """An array entry as a list, also when it is an indirect (or, in an
     encrypted file, a decryption proxy of an) array; missing -> []."""

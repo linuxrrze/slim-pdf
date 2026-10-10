@@ -36,7 +36,8 @@ guide show the English version.
   * green: already signed; a click shows the signature's details;
   * red: locked by an earlier signature.
 * **Pages panel** (left): thumbnails. Click one to go there; Ctrl- or
-  Shift-click to select several pages for the page tools.
+  Shift-click to select several pages for the page tools; drag pages to
+  reorder them.
 * **Sign panel** (right): certificate, appearance options, the current
   target, the **Place signature…** / **Sign…** button, and a list of all
   signature fields.
@@ -143,6 +144,9 @@ just that one:
 * **Crop…**: drag a rectangle around the area to keep, then choose *This
   page*, *Selected pages* or *All pages*. `Esc` cancels. **Uncrop** shows the
   whole page again; cropping only hides content.
+* **Reorder:** drag pages in the *Pages* panel to a new place; a line shows
+  where they will go. Several selected pages move together and keep their
+  order. `Alt+Up` / `Alt+Down` move the selected pages by one.
 * **Delete page / Delete N pages** (*Delete pages* in the ribbon, also the
   `Delete` key in the *Pages* panel) removes them; at least one page stays.
   Form fields on deleted pages go with them.
@@ -270,6 +274,7 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | `Ctrl+S` | Place signature, then sign |
 | `Ctrl+L` / `Ctrl+R` | Rotate the selected pages left / right |
 | `Delete` | Delete the selected pages (in the *Pages* panel) |
+| `Alt+Up` / `Alt+Down` | Move the selected pages up / down (in the *Pages* panel) |
 | `Ctrl+Z` | Undo the last page edit |
 | `Ctrl+Shift+S` | Save as |
 

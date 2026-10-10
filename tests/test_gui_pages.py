@@ -268,3 +268,140 @@ def test_delete_from_signed_document_asks(window, profile, form_pdf, tmp_path, m
     window.delete_pages()
     assert boxes.kinds() == ["warning"] and "Applicant" in boxes.text()
     assert len(window.doc) == 2
+
+
+def drop_on(panel, row, below=False):
+    """Drop the panel's selected pages (as if dragged from it) at the upper
+    (or lower) part of thumbnail ``row``."""
+    from PySide6.QtCore import QMimeData, QPointF
+
+    rect = panel.visualItemRect(panel.item(row))
+    y = rect.top() + 5 if not below else rect.bottom() - 5
+    from PySide6.QtGui import QDropEvent
+
+    panel._dragging = True  # as during startDrag()
+    try:
+        drop = QDropEvent(QPointF(rect.center().x(), y), Qt.MoveAction, QMimeData(),
+                          Qt.LeftButton, Qt.NoModifier)
+        panel.dropEvent(drop)
+        assert drop.dropAction() == Qt.IgnoreAction  # Qt must not remove the items
+    finally:
+        panel._dragging = False
+    QtWidgets.QApplication.processEvents()  # the move runs after the drag
+
+
+def test_drag_and_drop_reorders_pages(window, tmp_path):
+    window.open(numbered(tmp_path))
+    select_thumbs(window, 3)
+    assert window.thumbs.drop_row(window.thumbs.visualItemRect(
+        window.thumbs.item(0)).topLeft()) == 0
+    drop_on(window.thumbs, 0)  # page 4 to the front
+    assert page_widths(window) == [140, 110, 120, 130, 150] and window.dirty
+    assert window.thumbs.selected_pages() == [0] and window.view.page == 0
+    assert "Moved page 4 to position 1" in window.statusBar().currentMessage()
+
+    select_thumbs(window, 0, 1)
+    drop_on(window.thumbs, 4, below=True)  # two pages to the end
+    assert page_widths(window) == [120, 130, 150, 140, 110]
+    assert window.thumbs.selected_pages() == [3, 4]
+
+    window.undo()
+    window.undo()
+    assert page_widths(window) == [110, 120, 130, 140, 150]
+
+
+def test_drop_in_place_or_from_outside_changes_nothing(window, tmp_path):
+    from PySide6.QtCore import QMimeData, QPointF
+    from PySide6.QtGui import QDropEvent
+
+    window.open(numbered(tmp_path))
+    select_thumbs(window, 2)
+    drop_on(window.thumbs, 2)  # before itself
+    drop_on(window.thumbs, 3)  # = after itself
+    assert page_widths(window) == [110, 120, 130, 140, 150] and not window.dirty
+    # e.g. a file dragged in from the file manager: not ours
+    drop = QDropEvent(QPointF(10, 10), Qt.CopyAction, QMimeData(), Qt.LeftButton,
+                      Qt.NoModifier)
+    window.thumbs.dropEvent(drop)
+    QtWidgets.QApplication.processEvents()
+    assert not drop.isAccepted() and not window.dirty
+
+
+def test_alt_arrows_move_pages(window, tmp_path):
+    window.open(numbered(tmp_path))
+    select_thumbs(window, 1)
+    QTest.keyClick(window.thumbs, Qt.Key_Down, Qt.AltModifier)
+    assert page_widths(window) == [110, 130, 120, 140, 150]
+    QTest.keyClick(window.thumbs, Qt.Key_Up, Qt.AltModifier)
+    QTest.keyClick(window.thumbs, Qt.Key_Up, Qt.AltModifier)
+    assert page_widths(window) == [120, 110, 130, 140, 150]
+    QTest.keyClick(window.thumbs, Qt.Key_Up, Qt.AltModifier)  # already first
+    assert page_widths(window) == [120, 110, 130, 140, 150]
+
+
+def test_move_in_signed_document_asks(window, profile, form_pdf, tmp_path, monkeypatch):
+    signed = tmp_path / "s.pdf"
+    sign_with(profile, form_pdf, signed, field_name="Applicant")
+    window.open(signed)
+    boxes = Boxes(monkeypatch, gui_app, answer=QtWidgets.QMessageBox.No)
+    window.move_pages([1], 0)
+    assert boxes.kinds() == ["warning"] and "Applicant" in boxes.text()
+    assert not window.dirty
+
+
+REAL_DRAG = r"""
+import io, sys
+from PySide6.QtCore import QPoint, Qt, QTimer
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication
+from pypdf import PdfWriter
+
+app = QApplication([])
+from pdfsigner.config import Config
+from pdfsigner.gui.app import MainWindow
+
+w = PdfWriter()
+for i in range(1, 6):
+    w.add_blank_page(100 + i * 10, 200)
+buf = io.BytesIO()
+w.write(buf)
+path = sys.argv[1]
+open(path, "wb").write(buf.getvalue())
+
+win = MainWindow(Config())
+win.resize(900, 900)
+win.show()
+QTest.qWaitForWindowExposed(win)
+win.open(__import__("pathlib").Path(path))
+panel = win.thumbs
+vp = panel.viewport()
+src = panel.visualItemRect(panel.item(3)).center()
+dst = panel.visualItemRect(panel.item(0)).topLeft() + QPoint(20, 5)
+
+def during_drag():
+    QTest.mouseMove(vp, dst)
+    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, dst)
+
+QTimer.singleShot(200, during_drag)  # runs inside the drag's own event loop
+QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, src)
+for i in range(1, 4):
+    QTest.mouseMove(vp, src + QPoint(0, -8 * i))
+QTest.qWait(400)
+print([round(win.doc.display_size(i)[0]) for i in range(len(win.doc))], panel.count())
+win.dirty = False
+win.close()
+"""
+
+
+def test_real_mouse_drag_reorders_pages(tmp_path):
+    """A real drag, press - move - release, through Qt's drag machinery (the
+    offscreen platform has none; "minimal" has)."""
+    import os
+    import subprocess
+    import sys
+
+    env = {**os.environ, "QT_QPA_PLATFORM": "minimal"}
+    out = subprocess.run([sys.executable, "-c", REAL_DRAG, str(tmp_path / "n.pdf")],
+                         capture_output=True, text=True, timeout=60, env=env)
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip().splitlines()[-1] == "[140, 110, 120, 130, 150] 5"

@@ -1568,6 +1568,33 @@ msgstr[1] "{n} Seiten gelöscht"
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
+msgid ""
+"Moving pages will invalidate the signature(s) {names}.\n"
+"\n"
+"Edit pages before signing. Continue anyway?"
+msgstr ""
+"Das Verschieben von Seiten macht die Signatur(en) {names} ungültig.\n"
+"\n"
+"Seiten vor dem Signieren bearbeiten. Trotzdem fortfahren?"
+
+#: src/pdfsigner/gui/app.py
+msgid "Move pages"
+msgstr "Seiten verschieben"
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Moved page {page} to position {pos}"
+msgstr "Seite {page} an Position {pos} verschoben"
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Moved {n} page"
+msgid_plural "Moved {n} pages"
+msgstr[0] "{n} Seite verschoben"
+msgstr[1] "{n} Seiten verschoben"
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
 msgid "Saved {name}"
 msgstr "{name} gespeichert"
 
@@ -2328,6 +2355,10 @@ msgstr "Drehung muss ein Vielfaches von 90 Grad sein"
 #: src/pdfsigner/pages.py
 msgid "a document can't lose all its pages"
 msgstr "ein Dokument kann nicht alle Seiten verlieren"
+
+#: src/pdfsigner/pages.py
+msgid "the pages are already in that order"
+msgstr "die Seiten stehen bereits in dieser Reihenfolge"
 
 #: src/pdfsigner/pages.py
 msgid "give exactly one of box, margins or reset"

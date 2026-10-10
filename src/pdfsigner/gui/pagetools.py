@@ -6,7 +6,7 @@ import time
 
 from PIL.ImageQt import ImageQt
 from PySide6.QtCore import QItemSelectionModel, QPoint, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QIcon, QKeySequence, QPainter, QPixmap
+from PySide6.QtGui import QColor, QIcon, QKeySequence, QPainter, QPalette, QPen, QPixmap
 from PySide6.QtWidgets import QAbstractItemView, QListWidget, QListWidgetItem
 
 from .document import PdfDocument
@@ -17,11 +17,13 @@ BATCH_SECONDS = 0.03  # thumbnails are rendered in small batches between events
 
 class PagesPanel(QListWidget):
     """Page thumbnails. Click to go to a page; Ctrl/Shift-click to select
-    several; right-click for the page menu (``menuRequested``)."""
+    several; right-click for the page menu (``menuRequested``); drag pages
+    (or Alt+Up/Down) to reorder them (``moveRequested``)."""
 
     pageActivated = Signal(int)
     menuRequested = Signal(QPoint)  # global position
     deleteRequested = Signal()  # Delete key on the selected pages
+    moveRequested = Signal(list, int)  # pages, to go before this page (count: the end)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -33,6 +35,13 @@ class PagesPanel(QListWidget):
         self.setIconSize(QSize(THUMB_WIDTH, int(THUMB_WIDTH * 1.5)))
         self.setSpacing(6)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        # Qt starts the drag; the drop only asks for the edit (moveRequested),
+        # and the list is rebuilt from the edited document.
+        self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setDefaultDropAction(Qt.MoveAction)
+        self.viewport().setAcceptDrops(True)  # off with Static movement
+        self._dragging = False
+        self._drop_row: int | None = None
         self.setMinimumWidth(THUMB_WIDTH + 40)
         self.itemClicked.connect(lambda item: self.pageActivated.emit(self.row(item)))
         self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -47,7 +56,81 @@ class PagesPanel(QListWidget):
         if event.matches(QKeySequence.Delete) or event.key() == Qt.Key_Backspace:
             self.deleteRequested.emit()
             return
+        if event.modifiers() == Qt.AltModifier and event.key() in (Qt.Key_Up, Qt.Key_Down):
+            pages = self.selected_pages() or [self.currentRow()]
+            if event.key() == Qt.Key_Up and pages[0] > 0:
+                self.moveRequested.emit(pages, pages[0] - 1)
+            elif event.key() == Qt.Key_Down and pages[-1] < self.count() - 1:
+                self.moveRequested.emit(pages, pages[-1] + 2)
+            return
         super().keyPressEvent(event)
+
+    # reordering by drag and drop ---------------------------------------------------
+
+    def drop_row(self, pos: QPoint) -> int:
+        """Where pages dropped at ``pos`` (viewport) go: before this row."""
+        for row in range(self.count()):
+            if pos.y() < self.visualItemRect(self.item(row)).center().y():
+                return row
+        return self.count()
+
+    def startDrag(self, actions) -> None:
+        self._dragging = True
+        try:
+            super().startDrag(actions)
+        finally:
+            self._dragging = False
+            self._set_drop_row(None)
+
+    def dragEnterEvent(self, event) -> None:
+        if self._dragging:  # only our own pages, no files from outside
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event) -> None:
+        if not self._dragging:
+            event.ignore()
+            return
+        super().dragMoveEvent(event)  # scrolls near the edges
+        self._set_drop_row(self.drop_row(event.position().toPoint()))
+        event.acceptProposedAction()
+
+    def dragLeaveEvent(self, event) -> None:
+        self._set_drop_row(None)
+        super().dragLeaveEvent(event)
+
+    def dropEvent(self, event) -> None:
+        row = self.drop_row(event.position().toPoint())
+        self._set_drop_row(None)
+        if not self._dragging:
+            event.ignore()
+            return
+        # IgnoreAction: Qt must not move or remove the items itself
+        event.setDropAction(Qt.IgnoreAction)
+        event.accept()
+        pages = self.selected_pages()
+        if pages:
+            # after the drag has finished: the edit rebuilds this list
+            QTimer.singleShot(0, lambda: self.moveRequested.emit(pages, row))
+
+    def _set_drop_row(self, row: int | None) -> None:
+        if row != self._drop_row:
+            self._drop_row = row
+            self.viewport().update()
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        if self._drop_row is None or not self.count():
+            return
+        if self._drop_row < self.count():
+            y = self.visualItemRect(self.item(self._drop_row)).top() - self.spacing() // 2
+        else:
+            y = self.visualItemRect(self.item(self.count() - 1)).bottom() + self.spacing() // 2
+        painter = QPainter(self.viewport())
+        painter.setPen(QPen(self.palette().color(QPalette.Highlight), 3))
+        painter.drawLine(4, y, self.viewport().width() - 4, y)
+        painter.end()
 
     def _context_menu(self, pos: QPoint) -> None:
         item = self.itemAt(pos)

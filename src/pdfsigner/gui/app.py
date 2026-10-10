@@ -296,6 +296,7 @@ class MainWindow(QMainWindow):
         self.thumbs.pageActivated.connect(self.view.go_to)
         self.thumbs.menuRequested.connect(self._show_page_menu)
         self.thumbs.deleteRequested.connect(self.delete_pages)  # Delete key on thumbnails
+        self.thumbs.moveRequested.connect(self.move_pages)  # drag and drop, Alt+Up/Down
         self.view.pageChanged.connect(self.thumbs.show_page)
         dock = QDockWidget(_("Pages"))
         dock.setWidget(self.thumbs)
@@ -518,10 +519,10 @@ class MainWindow(QMainWindow):
             self, _("Existing signatures"), message.format(names=", ".join(names)),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
 
-    def apply_edit(self, new_data: bytes, message: str) -> None:
+    def apply_edit(self, new_data: bytes, message: str, page: int | None = None) -> None:
         self.undo_stack.append(self.data)
-        self._show(new_data, inspect_pdf(new_data, self.pdf_password), self.view.page,
-                   dirty=True)
+        self._show(new_data, inspect_pdf(new_data, self.pdf_password),
+                   self.view.page if page is None else page, dirty=True)
         self.statusBar().showMessage(
             _("{message} (not saved yet)").format(message=message), 10000)
 
@@ -626,6 +627,36 @@ class MainWindow(QMainWindow):
             message = ngettext("Deleted {n} page", "Deleted {n} pages",
                                len(target)).format(n=len(target))
         self.apply_edit(new, message)
+    def move_pages(self, target: list[int], to: int) -> None:
+        """Move ``target`` pages before page ``to`` (``len(doc)``: to the end)."""
+        if self.data is None:
+            return
+        moved = sorted(set(target))
+        order = ([i for i in range(to) if i not in moved] + moved
+                 + [i for i in range(to, len(self.doc)) if i not in moved])
+        if order == list(range(len(self.doc))):
+            return  # dropped where they were
+        if not self._confirm_breaking(_(
+                "Moving pages will invalidate the signature(s) {names}.\n\n"
+                "Edit pages before signing. Continue anyway?")):
+            return
+        try:
+            new = pages.move(self.data, moved, to, self.pdf_password)
+        except (pages.PageError, SigningError) as e:
+            QMessageBox.critical(self, _("Move pages"), str(e))
+            return
+        first = order.index(moved[0])  # where the moved pages are now
+        if len(moved) == 1:
+            message = _("Moved page {page} to position {pos}").format(
+                page=moved[0] + 1, pos=first + 1)
+        else:
+            message = ngettext("Moved {n} page", "Moved {n} pages", len(moved)).format(
+                n=len(moved))
+        self.apply_edit(new, message, page=first)
+        self.thumbs.clearSelection()
+        for row in range(first, first + len(moved)):  # still selected, for further moves
+            self.thumbs.item(row).setSelected(True)
+
     def save(self) -> bool:
         if self.data is None or self.path is None:
             return False
