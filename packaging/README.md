@@ -7,7 +7,7 @@ tag `v*` (or manually via *Run workflow*) and attaches them to the release:
 |---|---|
 | `PDF-Signer-<version>-setup.exe` | Windows 10/11, x64. Installs per user (no admin rights); "all users" can be chosen. Optional: `pdfsigner` on the PATH, "Open with" entry for PDFs, desktop icon. |
 | `PDF-Signer-<version>-macos-arm64.dmg` | macOS on Apple Silicon |
-| `PDF-Signer-<version>-macos-x86_64.dmg` | macOS on Intel |
+| `PDF-Signer-<version>-macos-x86_64.dmg` | macOS on Intel. Built with cryptography 48.x, the last release with Intel macOS wheels. |
 
 Each bundle contains the GUI and the `pdfsigner` command line tool with all
 optional features (PKCS#11, keyring, KeePass, page tools). On macOS the CLI
