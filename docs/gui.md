@@ -149,7 +149,7 @@ command line (see [cli.md](cli.md#page-tools-rotate-crop-delete-split-merge)).
 * **Additional trusted certificates:** your organisation's CA, or colleagues'
   self-signed certificates. Signatures that chain to one of them show as
   valid in the *Signatures* list (and in `pdfsigner verify`); Mozilla's root
-  list is always trusted. Files that aren't certificates are refused. The
+  list and the system's CA store are always trusted. Files that aren't certificates are refused. The
   open document is checked again when you press OK.
 
 Both are stored in the config file (`language`, `trust`), together with the

@@ -709,8 +709,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--trust", action="append", default=[], metavar="CERT",
                    help=_("extra trusted root certificate (PEM/DER); repeatable"))
     p.add_argument("--no-system-trust", action="store_true",
-                   help=_("don't trust the built-in Mozilla roots, only --trust and the "
-                          "config's trust list"))
+                   help=_("don't trust the built-in Mozilla roots and the system's CA "
+                          "store, only --trust and the config's trust list"))
     p.add_argument("--online", action="store_true",
                    help=_("fetch revocation info (OCSP/CRL) from the network"))
     p.add_argument("--no-download", action="store_true",

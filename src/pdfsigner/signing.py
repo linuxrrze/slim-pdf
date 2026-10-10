@@ -839,7 +839,7 @@ def sign_pdf(
     Signing is always incremental, so existing signatures stay valid.
 
     With ``profile.ltv`` the signer's chain is validated online against the
-    Mozilla roots plus ``trust``, and the chain and revocation info are
+    Mozilla and system roots plus ``trust``, and the chain and revocation info are
     embedded (PAdES B-LT, or B-LTA when a timestamp server is configured).
     """
     data = _data(src)

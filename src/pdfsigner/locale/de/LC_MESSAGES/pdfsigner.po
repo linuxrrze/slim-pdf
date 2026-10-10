@@ -890,8 +890,8 @@ msgid "extra trusted root certificate (PEM/DER); repeatable"
 msgstr "zusätzliches vertrauenswürdiges Stammzertifikat (PEM/DER); wiederholbar"
 
 #: src/pdfsigner/cli.py
-msgid "don't trust the built-in Mozilla roots, only --trust and the config's trust list"
-msgstr "den eingebauten Mozilla-Stammzertifikaten nicht vertrauen, nur --trust und der trust-Liste der Konfiguration"
+msgid "don't trust the built-in Mozilla roots and the system's CA store, only --trust and the config's trust list"
+msgstr "den eingebauten Mozilla-Stammzertifikaten und dem CA-Speicher des Systems nicht vertrauen, nur --trust und der trust-Liste der Konfiguration"
 
 #: src/pdfsigner/cli.py
 msgid "fetch revocation info (OCSP/CRL) from the network"
@@ -2156,8 +2156,8 @@ msgid "Additional trusted certificates"
 msgstr "Zusätzliche vertrauenswürdige Zertifikate"
 
 #: src/pdfsigner/gui/settings.py
-msgid "Signatures by these certificates, or by certificates they issued, are shown as valid; Mozilla's root list is always trusted. Use this for your organisation's CA or for colleagues' self-signed certificates."
-msgstr "Signaturen mit diesen Zertifikaten oder mit von ihnen ausgestellten Zertifikaten werden als gültig angezeigt; der Stammzertifikatsliste von Mozilla wird immer vertraut. Geeignet für die CA Ihrer Organisation oder selbstsignierte Zertifikate von Kollegen."
+msgid "Signatures by these certificates, or by certificates they issued, are shown as valid; Mozilla's root list and the system's CA store are always trusted. Use this for your organisation's CA or for colleagues' self-signed certificates."
+msgstr "Signaturen mit diesen Zertifikaten oder mit von ihnen ausgestellten Zertifikaten werden als gültig angezeigt; der Stammzertifikatsliste von Mozilla und dem CA-Speicher des Systems wird immer vertraut. Geeignet für die CA Ihrer Organisation oder selbstsignierte Zertifikate von Kollegen."
 
 #: src/pdfsigner/gui/settings.py
 #, python-brace-format

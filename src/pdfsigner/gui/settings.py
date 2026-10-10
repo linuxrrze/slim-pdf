@@ -54,7 +54,8 @@ class SettingsDialog(QDialog):
 
         trust_box = QGroupBox(_("Additional trusted certificates"))
         hint = QLabel(_("Signatures by these certificates, or by certificates they issued, "
-                        "are shown as valid; Mozilla's root list is always trusted. Use this "
+                        "are shown as valid; Mozilla's root list and the system's CA store "
+                        "are always trusted. Use this "
                         "for your organisation's CA or for colleagues' self-signed "
                         "certificates."))
         hint.setWordWrap(True)

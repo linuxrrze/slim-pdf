@@ -14,7 +14,8 @@ Each signature gets one of these verdicts:
   It is listed (signer, time, coverage) rather than silently skipped.
 
 Trust comes from Mozilla's root list (via ``certifi``, the same on every
-platform) plus any extra roots (``--trust`` or ``trust = [...]`` in the
+platform) and the operating system's CA store (see osroots.py), plus any
+extra roots (``--trust`` or ``trust = [...]`` in the
 config). Revocation information is
 only fetched when ``online`` is set; otherwise embedded LTV data is used.
 """
@@ -41,7 +42,7 @@ from pyhanko_certvalidator import ValidationContext
 
 from .config import expand
 from .i18n import N_, _
-from . import chain
+from . import chain, osroots
 from .signing import SigningError, _open_reader
 
 log = logging.getLogger(__name__)
@@ -106,9 +107,16 @@ def load_trust_roots(paths) -> list:
 
 @functools.cache
 def system_trust_roots() -> tuple[x509.Certificate, ...]:
+    """Mozilla's roots and the operating system's, without duplicates."""
     with open(certifi.where(), "rb") as f:
-        return tuple(x509.Certificate.load(der)
-                     for _type, _headers, der in pem.unarmor(f.read(), multiple=True))
+        roots = [x509.Certificate.load(der)
+                 for _type, _headers, der in pem.unarmor(f.read(), multiple=True)]
+    seen = {c.dump() for c in roots}
+    for cert in osroots.os_roots():
+        if cert.dump() not in seen:
+            seen.add(cert.dump())
+            roots.append(cert)
+    return tuple(roots)
 
 
 def trust_roots(trust=(), *, system_trust: bool = True) -> list:

@@ -196,7 +196,7 @@ Buyer: VALID
 
 Signing with LTV needs network access, and the chain must end in a trusted
 root: the Mozilla list (which contains the usual public CAs such as HARICA,
-Sectigo or T-TeleSec) or a root you add with `trust = [...]` in the config
+Sectigo or T-TeleSec), the system's CA store, or a root you add with `trust = [...]` in the config
 file. If the chain can't be validated, or the certificate is revoked,
 signing fails instead of producing a signature without LTV data:
 
@@ -518,10 +518,15 @@ The exit code is the worst verdict. A document without signatures is an
 error (`1`).
 
 **Trust:** by default, pdfsigner trusts the Mozilla root list (the same list
-on every platform, shipped with the `certifi` package). Add your own roots
+on every platform, shipped with the `certifi` package) and the operating
+system's CA store: on Linux the distribution's bundle (e.g.
+`/etc/ssl/certs/ca-certificates.crt`, so roots installed with
+`update-ca-certificates` / `update-ca-trust` count), the Windows "Trusted Root
+Certification Authorities" store, the macOS system keychains, and
+`$SSL_CERT_FILE` if set. Add your own roots
 with `--trust CERT` (PEM or DER, repeatable) or permanently in the config
 file (`trust = ["~/certs/my-ca.pem"]`, or *Settings…* in the GUI). `--no-system-trust` trusts only
-those.
+those (neither Mozilla's nor the system's roots).
 
 ```console
 $ pdfsigner verify final.pdf --trust ~/certs/alice.pem --trust ~/certs/supervisor-ca.pem

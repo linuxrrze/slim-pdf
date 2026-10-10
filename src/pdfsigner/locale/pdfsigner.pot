@@ -864,7 +864,7 @@ msgid "extra trusted root certificate (PEM/DER); repeatable"
 msgstr ""
 
 #: src/pdfsigner/cli.py
-msgid "don't trust the built-in Mozilla roots, only --trust and the config's trust list"
+msgid "don't trust the built-in Mozilla roots and the system's CA store, only --trust and the config's trust list"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -2082,7 +2082,7 @@ msgid "Additional trusted certificates"
 msgstr ""
 
 #: src/pdfsigner/gui/settings.py
-msgid "Signatures by these certificates, or by certificates they issued, are shown as valid; Mozilla's root list is always trusted. Use this for your organisation's CA or for colleagues' self-signed certificates."
+msgid "Signatures by these certificates, or by certificates they issued, are shown as valid; Mozilla's root list and the system's CA store are always trusted. Use this for your organisation's CA or for colleagues' self-signed certificates."
 msgstr ""
 
 #: src/pdfsigner/gui/settings.py
