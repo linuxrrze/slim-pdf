@@ -743,6 +743,9 @@ class MainWindow(QMainWindow):
         try:
             creds = secretstore.resolve_credentials(
                 profile, lambda prompt: self._ask_unbusy(prompt))
+            if profile.type in HARDWARE_TYPES:  # may wait for a touch or a PIN pad
+                self.statusBar().showMessage(_(TOKEN_HINT))
+                QApplication.processEvents()
             with open_signer(profile, creds) as signer:
                 name = sign_pdf(
                     self.data, out, signer, profile,
@@ -774,6 +777,9 @@ class MainWindow(QMainWindow):
 
 
 ICON = Path(__file__).with_name("icon.png")
+HARDWARE_TYPES = ("pkcs11", "system")
+TOKEN_HINT = N_("Signing… If your card reader asks for the PIN or your security key "
+                "blinks, confirm there.")
 
 
 def setup_language(app: QApplication, configured: str | None) -> str:

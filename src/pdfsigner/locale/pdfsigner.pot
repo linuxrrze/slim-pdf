@@ -435,6 +435,10 @@ msgid "no such file: {path}"
 msgstr ""
 
 #: src/pdfsigner/cli.py
+msgid "signing… if your card reader asks for the PIN or your security key blinks, confirm there"
+msgstr ""
+
+#: src/pdfsigner/cli.py
 #, python-brace-format
 msgid "signed field {name} -> {path}"
 msgstr ""
@@ -1396,6 +1400,10 @@ msgstr ""
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid "Signed '{field}' → {file}. You can add further signatures."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Signing… If your card reader asks for the PIN or your security key blinks, confirm there."
 msgstr ""
 
 #: src/pdfsigner/gui/app.py

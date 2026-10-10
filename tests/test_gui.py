@@ -965,3 +965,24 @@ def test_dialog_choose_token_key_searches_modules(dialog, monkeypatch):
     dialog._choose_token_key()
     assert (dialog.e["pkcs11_lib"].text(), dialog.e["token_label"].text(),
             dialog.e["key_id"].text()) == ("/b/ykcs11.so", "YubiKey PIV #2", "02")
+
+
+def test_signing_with_a_token_shows_a_hint(window, form_pdf, monkeypatch):
+    from pdfsigner.signing import SigningError
+
+    window.config.certs["card"] = CertProfile(name="card", type="pkcs11", pkcs11_lib="/x.so",
+                                              secret="none")
+    window._reload_certs("card")
+    window.open(form_pdf)
+    window.view.select_field("Applicant")
+    seen = []
+
+    def open_signer(profile, creds):
+        seen.append(window.statusBar().currentMessage())
+        raise SigningError("no token")
+
+    monkeypatch.setattr(gui_app, "open_signer", open_signer)
+    boxes = Boxes(monkeypatch, gui_app)
+    window.sign()
+    assert seen and "security key blinks" in seen[0]
+    assert boxes.kinds() == ["critical"]

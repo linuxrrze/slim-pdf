@@ -455,6 +455,10 @@ msgid "no such file: {path}"
 msgstr "Datei nicht gefunden: {path}"
 
 #: src/pdfsigner/cli.py
+msgid "signing… if your card reader asks for the PIN or your security key blinks, confirm there"
+msgstr "Signieren… wenn das Kartenlesegerät nach der PIN fragt oder der Sicherheitsschlüssel blinkt, dort bestätigen"
+
+#: src/pdfsigner/cli.py
 #, python-brace-format
 msgid "signed field {name} -> {path}"
 msgstr "Feld {name} signiert -> {path}"
@@ -1467,6 +1471,10 @@ msgstr "Signieren fehlgeschlagen"
 #, python-brace-format
 msgid "Signed '{field}' → {file}. You can add further signatures."
 msgstr "'{field}' signiert → {file}. Weitere Signaturen können hinzugefügt werden."
+
+#: src/pdfsigner/gui/app.py
+msgid "Signing… If your card reader asks for the PIN or your security key blinks, confirm there."
+msgstr "Signieren… Wenn das Kartenlesegerät nach der PIN fragt oder der Sicherheitsschlüssel blinkt, dort bestätigen."
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format

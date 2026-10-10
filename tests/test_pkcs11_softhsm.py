@@ -241,6 +241,7 @@ def test_cli_certs_test_and_sign(token, tok_profile, form_pdf, cfg_path, monkeyp
     assert cli.main(["certs", "test", "tok"]) == 0
     assert "Token Signer" in capsys.readouterr().out
     assert cli.main(["sign", str(form_pdf), "--field", "Applicant"]) == 0
+    assert "if your card reader asks for the PIN" in capsys.readouterr().err
     assert inspect_pdf(form_pdf.with_name(f"{form_pdf.stem}-signed.pdf")).field("Applicant").filled
 
 

@@ -360,6 +360,9 @@ def cmd_sign(cfg: Config, args) -> int:
                  allow_breaking=args.force)
 
     creds = resolve_credentials(profile, _ask)
+    if profile.type in ("pkcs11", "system"):  # may wait for a touch or a PIN pad
+        print(_("signing… if your card reader asks for the PIN or your security key blinks, "
+                "confirm there"), file=sys.stderr)
     with open_signer(profile, creds) as signer:
         name = sign_pdf(
             src, dst, signer, profile,
