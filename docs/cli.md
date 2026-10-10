@@ -379,6 +379,11 @@ the earlier signature.
 **"No changes" certification:** a document certified this way can't get
 another signature at all, so `--force` doesn't help here.
 
+**Other certifications** (form filling allowed) accept further signatures in
+existing empty fields and invisible ones. A new *visible* field (`--box`,
+`--at`) would break the certification, so it exits with code `3` and names
+the empty fields; `--force` signs anyway.
+
 On Windows a file can't be replaced while another program has it open. If
 the output (or the input, with `-i`) is open in Acrobat, close it first:
 

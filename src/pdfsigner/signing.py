@@ -81,14 +81,22 @@ class DocInfo:
         """Certified with 'no changes allowed': no further signature is possible."""
         return self.certification == MDPPerm.NO_CHANGES
 
-    def blocker(self, target: str | None = None) -> str | None:
-        """Why adding a signature (to ``target``) would break existing ones.
+    def blocker(self, target: str | None = None, new_visible: bool = False) -> str | None:
+        """Why adding a signature (to ``target``, or as a new visible field)
+        would break existing ones.
 
         Unlike :attr:`frozen` this can be overridden (``allow_breaking``).
         """
         f = self.field(target) if target else None
         if f is not None and f.locked:
             return f"field {target!r} is locked by an existing signature"
+        if new_visible and self.certification is not None:
+            # Validators (pyHanko, ours) reject new visible signature fields
+            # after a certification signature, whatever its permissions.
+            empty = ", ".join(repr(f.name) for f in self.empty_fields if not f.locked)
+            hint = f"sign an existing empty field ({empty})" if empty else "sign invisibly"
+            return ("the document is certified, and a new visible signature field breaks "
+                    f"the certification; {hint} instead")
         return None
 
 
@@ -583,7 +591,8 @@ def check_target(
             raise SigningError(f"page out of range (document has {info.page_count})")
         if box[2] <= box[0] or box[3] <= box[1]:
             raise SigningError("box needs x1 < x2 and y1 < y2")
-    if not allow_breaking and (reason := info.blocker(field_name)):
+    new_visible = existing is None and box is not None
+    if not allow_breaking and (reason := info.blocker(field_name, new_visible)):
         raise SigningBlocked(f"signing would invalidate an existing signature: {reason}")
 
 

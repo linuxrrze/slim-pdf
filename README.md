@@ -9,8 +9,8 @@ share the same certificate profiles.
   resize; the aspect ratio is kept).
 * **Sign multiple times.** Every signature is an incremental update, so
   earlier signatures stay valid. Before asking for any passphrase, pdfsigner
-  checks for fields locked by earlier signatures and for documents certified
-  as "no changes".
+  checks for fields locked by earlier signatures and for certified documents
+  (no changes allowed, or no new visible fields).
 * **Multiple certificate profiles:** PKCS#12 files, PKCS#11 tokens, or the
   Windows certificate store / macOS keychain, each
   with its own image, stamp text, reason, location and timestamp server.

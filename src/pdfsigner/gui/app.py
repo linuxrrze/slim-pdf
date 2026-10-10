@@ -611,7 +611,7 @@ class MainWindow(QMainWindow):
         except SigningError as e:
             QMessageBox.critical(self, "Cannot sign", str(e))
             return
-        if reason := self.info.blocker(field_name):
+        if reason := self.info.blocker(field_name, new_visible=box is not None):
             if QMessageBox.warning(
                 self, "Existing signature will break",
                 f"Signing will invalidate an existing signature:\n{reason}\n\nSign anyway?",

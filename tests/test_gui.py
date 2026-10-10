@@ -414,6 +414,35 @@ def test_frozen_document_refused(window, blank_pdf, tmp_path, save_to, monkeypat
     assert not save_to["path"].exists()
 
 
+def test_new_box_on_certified_document_warns(window, form_pdf, tmp_path, save_to, monkeypatch,
+                                             profile):
+    import io
+
+    from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+    from pyhanko.sign import signers
+
+    from pdfsigner.secretstore import Credentials
+    from pdfsigner.signing import open_signer
+
+    certified = tmp_path / "cert.pdf"
+    with open_signer(profile, Credentials(PASSPHRASE)) as s:
+        w = IncrementalPdfFileWriter(io.BytesIO(form_pdf.read_bytes()))
+        meta = signers.PdfSignatureMetadata(field_name="Author", certify=True,
+                                            docmdp_permissions=fields.MDPPerm.FILL_FORMS)
+        with open(certified, "wb") as f:
+            signers.PdfSigner(meta, s).sign_pdf(w, output=f)
+    window.open(certified)
+    boxes = Boxes(monkeypatch, gui_app, answer=gui_app.QMessageBox.No)
+    click_scene(window.view, 200, 300)
+    window.sign()
+    assert boxes.kinds() == ["warning"] and "breaks the certification" in boxes.text()
+    assert not save_to["path"].exists()
+    window.view.select_field("Applicant")  # an existing empty field is fine
+    window.sign()
+    assert boxes.kinds() == ["warning"]
+    assert save_to["path"].exists()
+
+
 def test_open_encrypted_asks_password(window, form_pdf, tmp_path, monkeypatch, save_to):
     enc = make_encrypted(form_pdf, tmp_path / "enc.pdf", "docpw")
     answers = iter(["wrong", "docpw"])

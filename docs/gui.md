@@ -62,7 +62,10 @@ In this example only Alice's certificate is in the trust list, so the
 untrusted (see [Checking signatures](#checking-signatures)).
 
 If the target field is locked by an earlier signature, pdfsigner warns you
-that signing will invalidate that signature, and you can still go ahead.
+that signing will invalidate that signature, and you can still go ahead. The
+same warning appears when you place a new signature box on a certified
+document: that breaks the certification, while signing one of its empty
+fields doesn't.
 Documents certified as "no changes allowed" can't be signed again; the status
 bar points this out when you open one.
 

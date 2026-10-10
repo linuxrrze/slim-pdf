@@ -235,6 +235,25 @@ def test_certified_fill_forms_allows_signing(profile, form_pdf, p12, tmp_path):
     assert all(st.bottom_line for _, st in validate_all(out, p12[1]))
 
 
+def test_certified_new_visible_field_is_blocked(profile, form_pdf, p12, tmp_path):
+    """A new visible field breaks any certification (pyHanko's diff policy);
+    an invisible signature doesn't."""
+    certified = certify(form_pdf, tmp_path / "cert.pdf", profile, fields.MDPPerm.FILL_FORMS)
+    info = inspect_pdf(certified)
+    reason = info.blocker(None, new_visible=True)
+    assert "certified" in reason and "'Applicant'" in reason
+    with signer_for(profile) as s:
+        with pytest.raises(SigningBlocked, match="breaks the certification"):
+            sign_pdf(certified, tmp_path / "x.pdf", s, profile, page=0, box=(50, 50, 200, 100))
+        assert not (tmp_path / "x.pdf").exists()
+        # with --force it is signed, and the certification is indeed broken
+        sign_pdf(certified, tmp_path / "forced.pdf", s, profile, page=0, box=(50, 50, 200, 100),
+                 allow_breaking=True)
+        sign_pdf(certified, tmp_path / "invisible.pdf", s, profile)
+    assert not all(st.bottom_line for _, st in validate_all(tmp_path / "forced.pdf", p12[1]))
+    assert all(st.bottom_line for _, st in validate_all(tmp_path / "invisible.pdf", p12[1]))
+
+
 @pytest.mark.parametrize("action, names, locked", [
     (fields.FieldMDPAction.INCLUDE, ["Second"], {"Second"}),
     (fields.FieldMDPAction.EXCLUDE, ["Second"], {"Third"}),
