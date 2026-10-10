@@ -53,8 +53,13 @@ def extract() -> dict[tuple[str, str | None], Entry]:
                   and _literal(args[0]) is not None and _literal(args[1]) is not None):
                 key = (_literal(args[0]), _literal(args[1]))
             else:
-                if node.func.id in ("_", "N_", "ngettext"):
-                    sys.exit(f"{rel}:{node.lineno}: {node.func.id}() needs literal strings")
+                # _(CONSTANT) translates a string marked with N_() elsewhere;
+                # f-strings, concatenation etc. inside _() can't be looked up.
+                dynamic = (ast.JoinedStr, ast.BinOp, ast.Call)
+                if node.func.id in ("_", "N_", "ngettext") and any(
+                        isinstance(a, dynamic) for a in args):
+                    sys.exit(f"{rel}:{node.lineno}: {node.func.id}() needs literal strings; "
+                             "use _('... {name}').format(name=...)")
                 continue
             e = entries.setdefault(key, Entry(*key))
             e.order = min(getattr(e, "order", (rel, node.lineno)), (rel, node.lineno))
