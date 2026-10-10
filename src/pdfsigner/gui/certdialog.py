@@ -41,7 +41,7 @@ from ..config import (
 from ..i18n import N_, _
 from ..signing import SigningError, describe_signer, open_signer
 from .dialogs import ask_secret
-from .screen import fit_to_screen, scrollable
+from .screen import ElidedLabel, fit_to_screen, scrollable
 from .document import signature_pixmap
 
 SECRET_LABELS = {
@@ -229,7 +229,7 @@ class CertManagerDialog(QDialog):
         main.addWidget(scrollable(self.form), 3)  # the form is taller than small screens
         outer = QVBoxLayout(self)
         outer.addLayout(main)
-        hint = QLabel(_("Config file: {path}").format(path=self.config.path))
+        hint = ElidedLabel(_("Config file: {path}").format(path=self.config.path))
         hint.setTextInteractionFlags(Qt.TextSelectableByMouse)
         hint.setStyleSheet("color: gray")
         outer.addWidget(hint)

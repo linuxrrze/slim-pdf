@@ -1032,7 +1032,8 @@ def test_windows_fit_small_screens(qapp, p12, lang, tmp_path, monkeypatch):
     from pdfsigner.gui.settings import SettingsDialog
 
     i18n.set_language(lang)
-    cfg = Config(path=tmp_path / "c.toml")
+    # a long config path (as in CI's temp folders) must not widen the dialogs
+    cfg = Config(path=tmp_path / ("x" * 120) / ("y" * 120) / "c.toml")
     # the tallest profile form: KeePassXC with all its rows
     cfg.put(CertProfile(name="w", path=str(p12[0]), secret="keepassxc", keepass_db="d.kdbx",
                         keepass_entry="e"))

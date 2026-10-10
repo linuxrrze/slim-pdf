@@ -7,9 +7,9 @@ more than the screen's available area; tall content scrolls instead.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QFrame, QScrollArea, QWidget
+from PySide6.QtWidgets import QFrame, QLabel, QScrollArea, QSizePolicy, QWidget
 
 SCREEN_FRACTION = 0.9  # leave room for window decorations and the desktop
 
@@ -40,3 +40,24 @@ def scrollable(content: QWidget) -> QScrollArea:
     area.setFrameShape(QFrame.NoFrame)
     area.setMinimumSize(QSize(200, 120))
     return area
+
+
+class ElidedLabel(QLabel):
+    """One line (e.g. a file path) that is shortened with "…" in the middle
+    when space is short, instead of making the window wider than the screen.
+    The full text is in the tooltip."""
+
+    def __init__(self, text: str, parent: QWidget | None = None):
+        super().__init__(parent)
+        self._full = text
+        self.setToolTip(text)
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.setMinimumWidth(40)
+        self.setText(text)
+
+    def full_text(self) -> str:
+        return self._full
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.setText(self.fontMetrics().elidedText(self._full, Qt.ElideMiddle, self.width()))

@@ -30,7 +30,7 @@ from ..config import Config, default_config_path
 from ..i18n import _
 from ..signing import SigningError
 from ..validation import load_trust_roots
-from .screen import fit_to_screen
+from .screen import ElidedLabel, fit_to_screen
 
 
 class SettingsDialog(QDialog):
@@ -79,7 +79,7 @@ class SettingsDialog(QDialog):
             self._add_item(path)
         self.remove_btn.setEnabled(False)
 
-        where = QLabel(_("Configuration file: {path}").format(
+        where = ElidedLabel(_("Configuration file: {path}").format(
             path=self.config.path or default_config_path()))
         where.setStyleSheet("color: gray")
         where.setTextInteractionFlags(Qt.TextSelectableByMouse)
