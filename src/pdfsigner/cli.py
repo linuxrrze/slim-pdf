@@ -22,6 +22,9 @@ import sys
 from dataclasses import fields as dc_fields
 from pathlib import Path
 
+from pyhanko.pdf_utils.misc import PdfError
+from pypdf.errors import PyPdfError
+
 from . import pages, secretstore
 from .config import CERT_TYPES, PKCS11_EXAMPLE, SECRET_SOURCES, CertProfile, Config, load_config
 from .secretstore import Cancelled, SecretError, resolve_credentials
@@ -583,6 +586,9 @@ def main(argv: list[str] | None = None) -> int:
     except (SigningError, SecretError, KeyError, ValueError, OSError) as e:
         msg = e.args[0] if isinstance(e, KeyError) and e.args else e
         print(f"error: {msg}", file=sys.stderr)
+        return 1
+    except (PdfError, PyPdfError) as e:  # malformed PDF (pyHanko / pypdf)
+        print(f"error: cannot read the PDF: {e}", file=sys.stderr)
         return 1
 
 

@@ -124,7 +124,10 @@ def printable(text: str, keep_newlines: bool = False) -> str:
 
 def _open_reader(data: bytes | io.BufferedIOBase, password: str | None) -> PdfFileReader:
     stream = io.BytesIO(data) if isinstance(data, bytes) else data
-    reader = PdfFileReader(stream, strict=False)
+    try:
+        reader = PdfFileReader(stream, strict=False)
+    except PdfError as e:
+        raise SigningError(f"cannot read the PDF: {e}") from None
     if reader.encrypted:
         if password is None:
             raise SigningError("PDF is encrypted, a password is required")

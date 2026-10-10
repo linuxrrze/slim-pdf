@@ -282,3 +282,20 @@ def test_help_lists_commands(capsys):
     out = capsys.readouterr().out
     for cmd in ("certs", "fields", "sign", "gui"):
         assert cmd in out
+
+
+@pytest.mark.parametrize("content", [b"not a pdf", b"%PDF-1.7\ngarbage\n", "truncated"])
+@pytest.mark.parametrize("cmd", [["fields"], ["verify"], ["rotate", "-i", "--angle", "90"],
+                                 ["split", "--every", "1"], ["merge", "-o", "m.pdf"]])
+def test_malformed_pdf_is_an_error_not_a_traceback(cfg_path, blank_pdf, tmp_path, capsys,
+                                                    content, cmd):
+    bad = tmp_path / "bad.pdf"
+    if content == "truncated":
+        data = blank_pdf.read_bytes()
+        content = data[: len(data) // 2]
+    bad.write_bytes(content)
+    argv = [*cmd, str(bad)]
+    if cmd[0] == "split":
+        argv += ["-o", str(tmp_path / "p{n}.pdf")]
+    assert run(*argv) == 1
+    assert capsys.readouterr().err.startswith("error: cannot read the PDF: ")
