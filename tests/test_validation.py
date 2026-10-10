@@ -197,6 +197,22 @@ def test_ca_issued_but_untrusted_root(form_pdf, tmp_path):
     assert r.status == VALID
 
 
+def test_digital_signature_key_usage_is_enough(form_pdf, tmp_path):
+    """S/MIME certificates (e.g. GEANT Personal CA 4) have digitalSignature
+    but not nonRepudiation; Adobe accepts either, and so must we."""
+    from conftest import PASSPHRASE
+    from pki import MiniPKI
+
+    ca = MiniPKI(port=1)
+    data, _cert = ca.issue("Dave S/MIME", PASSPHRASE.encode(), non_repudiation=False)
+    p12 = tmp_path / "dave.p12"
+    p12.write_bytes(data)
+    out = tmp_path / "s.pdf"
+    sign_with(CertProfile(name="dave", path=str(p12)), form_pdf, out, field_name="Applicant")
+    [r] = verify_pdf(out, trust=[write_pem(ca.root, tmp_path / "root.pem")])
+    assert (r.status, r.problems) == (VALID, [])
+
+
 def test_untrusted_timestamp_authority(profile, blank_pdf, alice_pem, tmp_path, monkeypatch):
     """A timestamp from an unknown TSA: not invalid, but not trusted either,
     and its time isn't presented as the signing time."""

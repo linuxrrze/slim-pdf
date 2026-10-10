@@ -51,9 +51,12 @@ class MiniPKI:
         return f"http://127.0.0.1:{self.port}/root.crl"
 
     def issue(self, cn: str, passphrase: bytes, *, key=None, chain: bool = True,
-              legacy: bool = False) -> tuple[bytes, x509.Certificate]:
+              legacy: bool = False, non_repudiation: bool = True
+              ) -> tuple[bytes, x509.Certificate]:
         """PKCS#12 with a new leaf. ``legacy`` uses 3DES/SHA-1 encryption, which
-        every Windows and macOS importer understands."""
+        every Windows and macOS importer understands. Without
+        ``non_repudiation`` the key usage is digitalSignature + keyEncipherment,
+        as in typical S/MIME certificates (e.g. GEANT Personal CA 4)."""
         key = key or ec.generate_private_key(ec.SECP256R1())
         cert = (
             x509.CertificateBuilder().subject_name(_name(cn)).issuer_name(self.root.subject)
@@ -61,8 +64,8 @@ class MiniPKI:
             .not_valid_before(NOW - datetime.timedelta(days=1))
             .not_valid_after(NOW + datetime.timedelta(days=365))
             .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
-            .add_extension(x509.KeyUsage(True, True, False, False, False, False, False,
-                                         False, False), critical=True)
+            .add_extension(x509.KeyUsage(True, non_repudiation, not non_repudiation, False,
+                                         False, False, False, False, False), critical=True)
             .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.EMAIL_PROTECTION]),
                            critical=False)
             .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(

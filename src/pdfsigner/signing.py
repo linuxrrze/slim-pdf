@@ -908,6 +908,7 @@ def sign_pdf(
         location=(profile.location or None) if profile else None,
         contact_info=(profile.contact_info or None) if profile else None,
         subfilter=fields.SigSeedSubFilter.PADES,
+        signer_key_usage=_signer_key_usage(signer.signing_cert),
     )
     visible = box is not None or (existing is not None and existing.rect is not None)
     style = None
@@ -949,6 +950,15 @@ def sign_pdf(
 
     _atomic_write(Path(dst), out.getvalue())
     return field_name
+
+
+def _signer_key_usage(cert) -> set[str]:
+    """What LTV's check of the signer's certificate requires (pyHanko wants
+    all of them): digitalSignature or nonRepudiation, whichever the
+    certificate has, as validation.SIGNER_KEY_USAGE. pyHanko's default is
+    nonRepudiation, which S/MIME certificates (e.g. GEANT's) lack."""
+    usage = set(cert.key_usage_value.native) if cert.key_usage_value is not None else set()
+    return (usage & {"digital_signature", "non_repudiation"}) or {"non_repudiation"}
 
 
 def _embed_chain(signer: signers.Signer, trust: Sequence[str], *, fetch: bool) -> None:

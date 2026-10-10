@@ -151,3 +151,18 @@ def test_cli_ltv(ca_files, form_pdf, cfg_path, capsys, monkeypatch):
     assert cli.main(["certs", "edit", "carol", "--ltv", "no"]) == 0
     assert load_config().certs["carol"].ltv is False
     assert "ltv" not in Config.__dataclass_fields__  # profile option, not global
+
+
+def test_ltv_with_smime_certificate(ca, form_pdf, tmp_path):
+    """digitalSignature without nonRepudiation (as GEANT Personal CA 4
+    issues them) must be accepted for LTV signing and validation."""
+    ca.revoked.clear()
+    data, _cert = ca.issue("Erin S/MIME", PASSPHRASE.encode(), non_repudiation=False)
+    p12 = tmp_path / "erin.p12"
+    p12.write_bytes(data)
+    root_pem = write_pem(ca.root, tmp_path / "root.pem")
+    profile = CertProfile(name="erin", path=str(p12), secret="none", ltv=True)
+    out = tmp_path / "ltv.pdf"
+    sign_with(profile, form_pdf, out, field_name="Applicant", trust=[str(root_pem)])
+    [rep] = verify_pdf(out, trust=[root_pem])
+    assert (rep.status, rep.ltv) == (VALID, True)

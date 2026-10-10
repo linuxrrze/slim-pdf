@@ -35,6 +35,7 @@ from pyhanko.pdf_utils import generic
 from pyhanko.sign.fields import SigSeedSubFilter, enumerate_sig_fields
 from pyhanko.sign.diff_analysis import ModificationLevel
 from pyhanko.sign.validation.errors import SignatureValidationError
+from pyhanko.sign.validation.settings import KeyUsageConstraints
 from pyhanko.sign.validation import validate_pdf_signature
 from pyhanko.sign.validation.dss import DocumentSecurityStore, NoDSSFoundError
 from pyhanko.sign.validation.status import SignatureCoverageLevel
@@ -48,6 +49,10 @@ from .signing import SigningError, _open_reader
 log = logging.getLogger(__name__)
 
 VALID, UNTRUSTED, INVALID = "valid", "untrusted", "invalid"
+# Key usages that make a certificate fit for signing documents: either, as
+# Adobe Reader accepts. pyHanko's default is nonRepudiation only, which
+# rejects common S/MIME certificates (e.g. GEANT Personal CA 4).
+SIGNER_KEY_USAGE = {"digital_signature", "non_repudiation"}
 UNSUPPORTED = "unsupported"
 SUPPORTED_SUBFILTERS = {s.value for s in SigSeedSubFilter}
 
@@ -348,7 +353,8 @@ def verify_pdf(path: Path | str | bytes, *, trust=(), system_trust: bool = True,
         vc = validation_context(trust, system_trust=system_trust, online=online, dss=dss,
                                 other_certs=missing)
         try:
-            st = validate_pdf_signature(sig, vc)
+            st = validate_pdf_signature(
+                sig, vc, key_usage_settings=KeyUsageConstraints(key_usage=SIGNER_KEY_USAGE))
         except SignatureValidationError as e:
             results.append((_signed_end(sig.sig_object),
                             SignatureReport(field=sig.field_name, status=INVALID,
