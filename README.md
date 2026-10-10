@@ -22,6 +22,7 @@ share the same certificate profiles.
   info are embedded (PAdES B-LT, or B-LTA with a timestamp server).
 * Signature images can be PNG/JPEG or **PDF (vector)**.
 * Stamps are drawn upright on rotated pages (`/Rotate`).
+* **Page tools:** rotate, crop, split and merge (CLI and GUI).
 * **Verify** signatures (`pdfsigner verify`, and a *Signatures* list in the
   GUI): valid, untrusted or invalid, with what changed after each signature.
 
@@ -107,6 +108,8 @@ pdfsigner fields contract.pdf                        # what can be signed?
 pdfsigner sign contract.pdf --field Applicant        # -> contract-signed.pdf
 pdfsigner sign letter.pdf --page 2 --at 350,80 --width 160
 pdfsigner verify contract-signed.pdf                # valid / untrusted / invalid
+pdfsigner rotate scan.pdf --pages even --angle 180 -i    # page tools
+pdfsigner merge -o all.pdf cover.pdf scan.pdf@2-
 pdfsigner gui contract.pdf
 ```
 
@@ -126,6 +129,7 @@ pytest --cov=pdfsigner       # ~200 tests, ~95 % line coverage
 | `test_validation.py` | Verdicts valid/untrusted/invalid, trust roots from options and config, tampered bytes, disallowed later changes, encrypted PDFs, `verify` exit codes. |
 | `test_keepassxc.py` | `keepassxc-cli` source against the real binary (binary-exact attachments via named pipe and temp file, key files, wrong password, missing entry/attachment) and a fake CLI (argument protocol, YubiKey option, no hang when the CLI fails). |
 | `test_systemstore.py`, `test_systemstore_native.py` | Windows store / macOS keychain: selection by thumbprint or subject, RSA and ECDSA signing through a fake backend; the native backends against a throwaway store (CI on Windows and macOS only). |
+| `test_pages.py` | Page specs; rotate and crop as incremental updates (encryption kept, signatures reported invalid afterwards); crop margins follow the screen on all four rotations; split/merge drop signed fields but keep empty ones; CLI refuses signed input without `--force`. |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |
 | `test_gui.py`, `test_gui_coords.py` | Click to place, drag, resize with fixed aspect ratio (handle and Ctrl+wheel), clamping, page navigation, prepared fields, signing twice, error dialogs, encrypted PDFs, certificate manager. Screen-to-PDF mapping for all rotations. |

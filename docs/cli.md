@@ -7,6 +7,10 @@ pdfsigner [--config FILE] [--verbose] <command> ...
   fields FILE
   sign FILE [target] [options]
   verify FILE [--trust CERT]
+  rotate FILE --angle 90|180|270|-90 [--pages SPEC]
+  crop FILE (--margins M | --box X1,Y1,X2,Y2 | --reset) [--pages SPEC]
+  split FILE [--every N | --part SPEC ...]
+  merge -o OUT FILE[@SPEC] ...
   gui [FILE]
 ```
 
@@ -27,7 +31,7 @@ example about self-signed certificates).
   `` ` `` instead of `\`, and quote with `"…"`. `~` and `$VARS`/`%VARS%` in
   profile paths are expanded on all platforms.
 * **Exit codes:** `0` OK, `1` error, `3` refused because it would invalidate
-  an existing signature (overridable with `--force`), `4`/`5` signatures
+  an existing signature (overridable with `--force`; also for page tools), `4`/`5` signatures
   untrusted/invalid (`verify`), `130` cancelled at a prompt.
 
 All outputs below come from real runs. Paths are shortened to `~`.
@@ -419,6 +423,85 @@ Applicant: VALID
   means the document carries such data.
 * `--details` appends pyHanko's full report for each signature.
 * `--password` for encrypted PDFs (otherwise you are asked).
+
+---
+
+## Page tools: rotate, crop, split, merge
+
+**Page specs** (`--pages`, `--part`, `FILE@…`) are 1-based: `3`, `1-3`,
+`5-` (to the end), `-2` (from the start), lists like `1-3,5,8-`, and `odd`
+or `even`. Default: all pages.
+
+**Signatures:** any page change invalidates existing signatures, so these
+commands refuse signed documents (exit code `3`) unless you add `--force`:
+
+```console
+$ pdfsigner rotate final.pdf -i --angle 90
+error: rotating pages would invalidate the signature(s) 'Applicant', 'Supervisor', 'Signature1', 'Signature2' (use --force to continue anyway)
+```
+
+Edit first, sign afterwards.
+
+### Rotate
+
+```console
+$ pdfsigner rotate expense-claim.pdf --pages 2 --angle 90
+rotated 1 page by 90° -> expense-claim-rotated.pdf
+```
+
+`--angle` is clockwise and adds to the current rotation (`-90` turns back).
+Like `sign`, rotate and crop take `-o`/`--output` or `-i`/`--in-place`
+(default output: `<name>-rotated.pdf` / `<name>-cropped.pdf`) and
+`--password` for encrypted PDFs. Both are saved as an incremental update,
+so encryption is kept and earlier revisions stay untouched.
+
+### Crop
+
+```console
+$ pdfsigner crop expense-claim.pdf --margins 40,30
+cropped 2 pages -> expense-claim-cropped.pdf
+$ pdfsigner crop expense-claim-cropped.pdf -i --reset
+cropped 2 pages -> expense-claim-cropped.pdf
+```
+
+* `--margins` cuts off points **as seen on screen**: one value for all
+  sides, `VERTICAL,HORIZONTAL`, or `TOP,RIGHT,BOTTOM,LEFT`. "Top" is the
+  top of the displayed page, also on rotated pages. Margins are taken off
+  the current visible area, so repeating the command crops further.
+* `--box X1,Y1,X2,Y2` sets the visible area in PDF points (same coordinates
+  as `sign --box`).
+* `--reset` shows the whole page again. Cropping only hides content (it sets
+  the PDF's `/CropBox`); nothing is deleted.
+
+### Split
+
+```console
+$ pdfsigner split expense-claim.pdf
+expense-claim-part1.pdf  (1 page)
+expense-claim-part2.pdf  (1 page)
+$ pdfsigner split expense-claim.pdf --part 1 --part 2 -o claim-{n}.pdf
+claim-1.pdf  (1 page)
+claim-2.pdf  (1 page)
+```
+
+`--every N` puts N pages in each file (default 1). `--part SPEC` defines one
+output file; repeat it for more, in any order and overlapping if you like.
+`-o` is a name pattern with `{n}` for the part number.
+
+### Merge
+
+```console
+$ pdfsigner merge -o both.pdf expense-claim.pdf@1 expense-claim-part2.pdf expense-claim.pdf
+merged 3 files (4 pages) -> both.pdf
+```
+
+Files are combined in the order given; `FILE@SPEC` takes only some pages.
+You are asked for the password of each encrypted input.
+
+Split and merge create **new documents**: the output isn't encrypted, and
+signatures can't be carried over, so signed signature fields are removed
+(with `--force`; otherwise these commands refuse signed input). Empty
+signature fields are kept and can still be signed.
 
 ---
 

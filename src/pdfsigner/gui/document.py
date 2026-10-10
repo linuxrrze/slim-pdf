@@ -46,12 +46,16 @@ def signature_pixmap(path):
 
 
 class PdfDocument:
-    def __init__(self, path: str, password: str | None = None):
-        self.path = path
+    def __init__(self, source: str | bytes, password: str | None = None):
+        """``source`` is a path or the PDF bytes."""
         # Load into memory so the file isn't held open: Windows would otherwise
         # refuse to overwrite it when signing in place.
-        with open(path, "rb") as f:
-            self._pdf = pdfium.PdfDocument(f.read(), password=password)
+        if isinstance(source, bytes):
+            data = source
+        else:
+            with open(source, "rb") as f:
+                data = f.read()
+        self._pdf = pdfium.PdfDocument(data, password=password)
         self._pdf.init_forms()  # needed to render signature widget appearances
 
     def close(self) -> None:

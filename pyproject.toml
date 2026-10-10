@@ -10,6 +10,7 @@ dependencies = [
     "platformdirs>=4",
     "tomli-w>=1.0",
     "certifi",
+    "pypdf>=5",
 ]
 
 [project.optional-dependencies]

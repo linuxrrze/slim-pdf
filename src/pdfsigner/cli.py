@@ -4,6 +4,9 @@
     pdfsigner fields FILE
     pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]
     pdfsigner verify FILE
+    pdfsigner rotate|crop FILE [--pages SPEC] ...
+    pdfsigner split FILE [--every N | --part SPEC ...]
+    pdfsigner merge -o OUT FILE[@SPEC] ...
     pdfsigner gui [FILE]
 
 Pages are 1-based on the command line; coordinates are PDF points with the
@@ -19,12 +22,13 @@ import sys
 from dataclasses import fields as dc_fields
 from pathlib import Path
 
-from . import secretstore
+from . import pages, secretstore
 from .config import CERT_TYPES, PKCS11_EXAMPLE, SECRET_SOURCES, CertProfile, Config, load_config
 from .secretstore import Cancelled, SecretError, resolve_credentials
 from .signing import (
     SigningBlocked,
     SigningError,
+    _atomic_write,
     check_target,
     box_from_anchor,
     describe_signer,
@@ -305,6 +309,107 @@ def cmd_verify(cfg: Config, args) -> int:
     return EXIT_UNTRUSTED if UNTRUSTED in statuses else 0
 
 
+# --- page tools ----------------------------------------------------------------
+
+
+def _read_pdf(path: Path, password: str | None) -> tuple[bytes, str | None]:
+    if not path.is_file():
+        raise SigningError(f"no such file: {path}")
+    data = path.read_bytes()
+    if password is None and inspect_needs_password(path):
+        password = _ask(f"PDF password for {path.name}")
+    return data, password
+
+
+def _guard_signatures(data: bytes, password: str | None, force: bool, what: str,
+                      effect: str = "invalidate") -> None:
+    names = pages.signature_names(data, password)
+    if names and not force:
+        raise pages.EditBlocked(f"{what} would {effect} the signature(s) "
+                                f"{', '.join(repr(n) for n in names)}")
+
+
+def _edit_output(src: Path, args, suffix: str) -> Path:
+    return src if args.in_place else Path(args.output or src.with_name(f"{src.stem}-{suffix}.pdf"))
+
+
+def _margins(s: str) -> tuple[float, ...]:
+    values = [float(v) for v in s.replace(";", ",").split(",")]
+    if len(values) == 1:
+        return tuple(values * 4)
+    if len(values) == 2:  # vertical, horizontal
+        return (values[0], values[1], values[0], values[1])
+    if len(values) == 4:
+        return tuple(values)
+    raise SigningError("--margins takes 1, 2 or 4 values (top,right,bottom,left)")
+
+
+def cmd_rotate(cfg: Config, args) -> int:
+    src = Path(args.file)
+    data, pw = _read_pdf(src, args.password)
+    selected = pages.parse_pages(args.pages, pages.page_count(data, pw))
+    _guard_signatures(data, pw, args.force, "rotating pages")
+    dst = _edit_output(src, args, "rotated")
+    _atomic_write(dst, pages.rotate(data, selected, args.angle, pw))
+    print(f"rotated {len(selected)} page{'s' * (len(selected) != 1)} by {args.angle}° -> {dst}")
+    return 0
+
+
+def cmd_crop(cfg: Config, args) -> int:
+    src = Path(args.file)
+    data, pw = _read_pdf(src, args.password)
+    selected = pages.parse_pages(args.pages, pages.page_count(data, pw))
+    _guard_signatures(data, pw, args.force, "cropping pages")
+    dst = _edit_output(src, args, "cropped")
+    out = pages.crop(data, selected, box=args.box, reset=args.reset, password=pw,
+                     margins=_margins(args.margins) if args.margins else None)
+    _atomic_write(dst, out)
+    print(f"cropped {len(selected)} page{'s' * (len(selected) != 1)} -> {dst}")
+    return 0
+
+
+def cmd_split(cfg: Config, args) -> int:
+    src = Path(args.file)
+    data, pw = _read_pdf(src, args.password)
+    n = pages.page_count(data, pw)
+    _guard_signatures(data, pw, args.force, "splitting", "remove")
+    if args.part:
+        parts = [pages.parse_pages(spec, n) for spec in args.part]
+    else:
+        parts = pages.chunks(n, args.every)
+    pattern = args.output or str(src.with_name(f"{src.stem}-part{{n}}.pdf"))
+    if "{n}" not in pattern:
+        raise SigningError("-o needs {n} in the name, e.g. part-{n}.pdf")
+    for i, part in enumerate(pages.split(data, parts, pw), 1):
+        dst = Path(pattern.replace("{n}", str(i)))
+        _atomic_write(dst, part)
+        print(f"{dst}  ({len(parts[i - 1])} page{'s' * (len(parts[i - 1]) != 1)})")
+    return 0
+
+
+def _merge_input(arg: str) -> tuple[Path, str | None]:
+    """FILE or FILE@PAGES (the @ split only applies if FILE exists)."""
+    if "@" in arg and not Path(arg).exists():
+        file, spec = arg.rsplit("@", 1)
+        return Path(file), spec
+    return Path(arg), None
+
+
+def cmd_merge(cfg: Config, args) -> int:
+    inputs = []
+    total = 0
+    for arg in args.files:
+        path, spec = _merge_input(arg)
+        data, pw = _read_pdf(path, None)
+        _guard_signatures(data, pw, args.force, f"merging {path.name}", "remove")
+        sel = None if spec is None else pages.parse_pages(spec, pages.page_count(data, pw))
+        total += pages.page_count(data, pw) if sel is None else len(sel)
+        inputs.append((data, sel, pw))
+    _atomic_write(Path(args.output), pages.merge(inputs))
+    print(f"merged {len(inputs)} files ({total} pages) -> {args.output}")
+    return 0
+
+
 def cmd_gui(cfg: Config, args) -> int:
     from .gui.app import main as gui_main
 
@@ -374,6 +479,51 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--password", help="PDF password")
     p.set_defaults(func=cmd_verify)
 
+    def edit_opts(p, suffix):
+        p.add_argument("file")
+        p.add_argument("-o", "--output", help=f"output file (default: <name>-{suffix}.pdf)")
+        p.add_argument("-i", "--in-place", action="store_true", help="overwrite the input")
+        p.add_argument("--pages", help="pages, e.g. 1-3,5,8- or odd/even (default: all)")
+        p.add_argument("--password", help="PDF password")
+        p.add_argument("--force", action="store_true",
+                       help="go ahead even if this invalidates existing signatures")
+
+    p = sub.add_parser("rotate", help="rotate pages")
+    edit_opts(p, "rotated")
+    p.add_argument("--angle", type=int, required=True, choices=(90, 180, 270, -90),
+                   help="clockwise degrees")
+    p.set_defaults(func=cmd_rotate)
+
+    p = sub.add_parser("crop", help="crop pages (sets the visible area)")
+    edit_opts(p, "cropped")
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("--margins", help="points to cut off as seen on screen: ALL, "
+                   "VERTICAL,HORIZONTAL or TOP,RIGHT,BOTTOM,LEFT")
+    g.add_argument("--box", type=lambda s: _floats(s, 4), help="x1,y1,x2,y2 in PDF points")
+    g.add_argument("--reset", action="store_true", help="show the whole page again")
+    p.set_defaults(func=cmd_crop)
+
+    p = sub.add_parser("split", help="split into several PDFs")
+    p.add_argument("file")
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("--every", type=int, default=1, help="pages per file (default: 1)")
+    g.add_argument("--part", action="append", metavar="SPEC",
+                   help="pages of one output file; repeat for more files")
+    p.add_argument("-o", "--output", metavar="PATTERN",
+                   help="output names with {n} for the part number "
+                   "(default: <name>-part{n}.pdf)")
+    p.add_argument("--password", help="PDF password")
+    p.add_argument("--force", action="store_true", help="split even signed documents "
+                   "(the signatures are removed)")
+    p.set_defaults(func=cmd_split)
+
+    p = sub.add_parser("merge", help="combine PDFs (or some of their pages)")
+    p.add_argument("files", nargs="+", metavar="FILE[@PAGES]")
+    p.add_argument("-o", "--output", required=True, help="output file")
+    p.add_argument("--force", action="store_true", help="merge even signed documents "
+                   "(the signatures are removed)")
+    p.set_defaults(func=cmd_merge)
+
     p = sub.add_parser("gui", help="start the GUI")
     p.add_argument("file", nargs="?")
     p.set_defaults(func=cmd_gui)
@@ -392,7 +542,8 @@ def main(argv: list[str] | None = None) -> int:
         print("cancelled", file=sys.stderr)
         return 130
     except SigningBlocked as e:
-        print(f"error: {e} (use --force to sign anyway)", file=sys.stderr)
+        verb = "continue" if isinstance(e, pages.EditBlocked) else "sign"
+        print(f"error: {e} (use --force to {verb} anyway)", file=sys.stderr)
         return 3
     except (SigningError, SecretError, KeyError, ValueError, OSError) as e:
         msg = e.args[0] if isinstance(e, KeyError) and e.args else e
