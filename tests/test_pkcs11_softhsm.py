@@ -59,7 +59,7 @@ def token(tmp_path_factory):
     os.environ["SOFTHSM2_CONF"] = str(conf)
     # SoftHSM reads its token list when the module is first loaded, so both
     # tokens (this one and the PIV-style one, see `piv`) are created now.
-    for label in (TOKEN, PIV_TOKEN):
+    for label in (TOKEN, PIV_TOKEN, TYPES_TOKEN):
         subprocess.run([util, "--module", lib, "--init-token", "--free", "--label", label,
                         "--so-pin", "12345678", "--pin", PIN], check=True, capture_output=True)
 
@@ -106,6 +106,7 @@ def token(tmp_path_factory):
 # A second token laid out like a YubiKey through Yubico's ykcs11 module:
 # keys and certificates carry different labels but share the slot's ID.
 PIV_TOKEN = "YubiKey PIV #12345678"
+TYPES_TOKEN = "key types"
 # Slot 9c asks for the PIN before every signature (YubiKey's default PIN
 # policy for 9c; ykcs11 reports it as CKA_ALWAYS_AUTHENTICATE).
 PIV_SLOTS = {  # slot: (ID, key label, certificate label)
@@ -354,7 +355,7 @@ def test_list_token_with_login(piv):
     lib, _, _ = piv
     asked = []
     found = tokens.list_tokens(lib, ask_pin=lambda label: asked.append(label) or PIN)
-    assert sorted(asked) == sorted([TOKEN, PIV_TOKEN])  # initialised tokens, not the empty slot
+    assert sorted(asked) == sorted([TOKEN, PIV_TOKEN, TYPES_TOKEN])  # not the empty slot
     t = next(t for t in found if t.label == PIV_TOKEN)
     assert [(e.id_hex, e.key_label, e.key_type, e.always_auth) for e in t.entries] == [
         ("01", "Private key for PIV Authentication", "EC", False),
@@ -383,3 +384,80 @@ def test_cli_certs_pkcs11(piv, cfg_path, monkeypatch, capsys):
     assert cli.main(["certs", "pkcs11", lib, "--token-label", "nope"]) == 0
     assert "no token found" in capsys.readouterr().out
     assert cli.main(["certs", "pkcs11", "/no/such/module.so"]) == 1
+
+
+# --- key types cards use ------------------------------------------------------------------
+
+
+KEY_TYPES = {  # ID: (description, always authenticate)
+    b"\x01": ("Ed25519", False),
+    b"\x02": ("EC P-384", False),
+    b"\x03": ("RSA 2048", False),
+    b"\x04": ("RSA 2048, PIN for every signature", True),
+}
+
+
+@pytest.fixture(scope="module")
+def typed_keys(token):
+    """Keys generated on the token (as on a card), certificates from a software CA."""
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    from pkcs11 import Attribute, CertificateType, KeyType, ObjectClass
+    from pkcs11.util.ec import encode_ec_public_key, encode_named_curve_parameters
+    from pkcs11.util.rsa import encode_rsa_public_key
+
+    lib, _ = token
+    ca_key = ec.generate_private_key(ec.SECP256R1())
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Types CA")])
+    now = datetime.datetime.now(datetime.UTC)
+    ca_cert = (
+        x509.CertificateBuilder().subject_name(ca_name).issuer_name(ca_name)
+        .public_key(ca_key.public_key()).serial_number(x509.random_serial_number())
+        .not_valid_before(now - datetime.timedelta(days=1))
+        .not_valid_after(now + datetime.timedelta(days=30))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .sign(ca_key, hashes.SHA256())
+    )
+    with pkcs11.lib(lib).get_token(token_label=TYPES_TOKEN).open(rw=True, user_pin=PIN) as s:
+        for oid, (what, always) in KEY_TYPES.items():
+            private = {Attribute.ID: oid, Attribute.LABEL: what,
+                       Attribute.ALWAYS_AUTHENTICATE: always}
+            public = {Attribute.ID: oid, Attribute.LABEL: what}
+            if what == "Ed25519":
+                params = s.create_domain_parameters(KeyType.EC_EDWARDS, {
+                    Attribute.EC_PARAMS: encode_named_curve_parameters("1.3.101.112")},
+                    local=True)
+                pub, _ = params.generate_keypair(store=True, public_template=public,
+                                                 private_template=private)
+                point = pub[Attribute.EC_POINT]
+                public_key = Ed25519PublicKey.from_public_bytes(point[-32:])
+            elif what == "EC P-384":
+                params = s.create_domain_parameters(KeyType.EC, {
+                    Attribute.EC_PARAMS: encode_named_curve_parameters("secp384r1")}, local=True)
+                pub, _ = params.generate_keypair(store=True, public_template=public,
+                                                 private_template=private)
+                public_key = serialization.load_der_public_key(encode_ec_public_key(pub))
+            else:
+                pub, _ = s.generate_keypair(KeyType.RSA, 2048, store=True,
+                                            public_template=public, private_template=private)
+                public_key = serialization.load_der_public_key(encode_rsa_public_key(pub))
+            cert = _issue(ca_key, ca_cert, what, public_key)
+            s.create_object({
+                Attribute.CLASS: ObjectClass.CERTIFICATE,
+                Attribute.CERTIFICATE_TYPE: CertificateType.X_509,
+                Attribute.TOKEN: True, Attribute.LABEL: what, Attribute.ID: oid,
+                Attribute.SUBJECT: cert.subject.public_bytes(),
+                Attribute.VALUE: cert.public_bytes(serialization.Encoding.DER),
+            })
+    return lib, ca_cert
+
+
+@pytest.mark.parametrize("oid", list(KEY_TYPES), ids=[v[0] for v in KEY_TYPES.values()])
+def test_sign_with_key_types_cards_use(typed_keys, oid, blank_pdf, tmp_path):
+    lib, ca = typed_keys
+    profile = CertProfile(name="t", type="pkcs11", pkcs11_lib=lib, token_label=TYPES_TOKEN,
+                          key_id=oid.hex())
+    out = tmp_path / "out.pdf"
+    with open_signer(profile, Credentials(secret=PIN)) as s:
+        sign_pdf(blank_pdf, out, s, profile, page=0, box=(50, 50, 250, 110))
+    [(_, st)] = validate_all(out, ca)
+    assert st.bottom_line
