@@ -35,8 +35,9 @@ def test_ssl_cert_file_root_is_trusted(profile, form_pdf, p12, tmp_path, monkeyp
 def test_system_roots_include_mozilla_without_duplicates(monkeypatch, fresh_roots):
     roots = validation.system_trust_roots()
     assert len({c.dump() for c in roots}) == len(roots)
-    names = {c.subject.native.get("common_name") for c in roots}
-    assert "USERTrust RSA Certification Authority" in names
+    # (some Windows roots have several common names: compare the text)
+    assert any("Common Name: USERTrust RSA Certification Authority," in c.subject.human_friendly
+               for c in roots)
 
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="Linux/BSD bundle")

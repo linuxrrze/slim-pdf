@@ -180,8 +180,13 @@ def _trust_problem(indic, cert) -> str:
     return _no_chain(cert)
 
 
+def _common_name(name) -> str:
+    cn = name.native.get("common_name")  # a list when there are several
+    return (", ".join(cn) if isinstance(cn, list) else cn) or name.human_friendly
+
+
 def _issuer_name(cert) -> str:
-    return cert.issuer.native.get("common_name") or cert.issuer.human_friendly
+    return _common_name(cert.issuer)
 
 
 def _no_chain(cert) -> str:
@@ -229,7 +234,7 @@ def report(sig, st, revision: int, revisions: int) -> SignatureReport:
             if t is not None and not t.trusted:
                 tsa = t.signing_cert
                 problems.append(what.format(
-                    tsa=tsa.subject.native.get("common_name") or tsa.subject.human_friendly,
+                    tsa=_common_name(tsa.subject),
                     issuer=_issuer_name(tsa)))
         if not problems:
             problems.append(_("the signature could not be fully validated"))
