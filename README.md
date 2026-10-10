@@ -112,7 +112,8 @@ pytest --cov=pdfsigner       # ~200 tests, ~95 % line coverage
 
 | File | Covers |
 |---|---|
-| `test_signing.py` | New and prepared fields, chains of 2–3 signers (each validated with pyHanko's diff analysis), certification and FieldMDP locks (Include/Exclude/All) and `--force`, encrypted PDFs, timestamps (dummy TSA), PKCS#11 wiring (fake module), stamp variants. **Visual regressions:** stamp upright on all four page rotations; text never overlapping the image. |
+| `test_signing.py` | New and prepared fields, chains of 2–3 signers (each validated with pyHanko's diff analysis), certification and FieldMDP locks (Include/Exclude/All) and `--force`, encrypted PDFs, timestamps (dummy TSA), stamp variants. **Visual regressions:** stamp upright on all four page rotations; text never overlapping the image. |
+| `test_pkcs11_softhsm.py` | Signing with a real PKCS#11 token (SoftHSM 2): token + PKCS#12 chain, wrong PIN, unknown token/key/module. Skipped if SoftHSM isn't installed. |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |
 | `test_gui.py`, `test_gui_coords.py` | Click to place, drag, resize with fixed aspect ratio (handle and Ctrl+wheel), clamping, page navigation, prepared fields, signing twice, error dialogs, encrypted PDFs, certificate manager. Screen-to-PDF mapping for all rotations. |
@@ -126,7 +127,7 @@ Screenshots are regenerated with
 
 ## Known gaps / next steps
 
-* **PKCS#11 is untested.** It needs a SoftHSM or real-token test.
+* **PKCS#11** is tested against SoftHSM, not yet with a physical token.
 * **No LTV yet.** Adding `embed_validation_info` plus a validation context
   would give PAdES B-LT. Without it, signatures become hard to validate once
   the certificate expires. A timestamp server can already be configured per

@@ -14,7 +14,7 @@ pdfsigner implements.
 | `keepass` (pykeepass, `.kdbx`) | ✅ | **no** (`.p12` as attachment) | yes | Works without KeePassXC running. No YubiKey challenge-response. |
 | `keepassxc-cli` subprocess | ❌ (easy to add) | no | yes | Supports `--yubikey` challenge-response, unlike pykeepass. |
 | KeePassXC browser protocol | ❌ (medium effort) | no | no | Native-messaging protocol, built around URL lookups. |
-| PKCS#11 token (YubiKey PIV, Nitrokey, smartcard) | ✅ (not tested on hardware) | **key can't be exported** | – | Strongest option. The PIN can come from any of the sources above. |
+| PKCS#11 token (YubiKey PIV, Nitrokey, smartcard) | ✅ (tested with SoftHSM, not yet with hardware) | **key can't be exported** | – | Strongest option. The PIN can come from any of the sources above. |
 
 ## 1. OS keyring (`secret = "keyring"`)
 
@@ -126,8 +126,8 @@ example a certificate installed through the browser) can't be used directly,
 because pyHanko only signs with PKCS#12 files and PKCS#11 modules. Export the
 certificate with its private key as `.p12` (on Windows: *certmgr.msc → Export
 → Yes, export the private key*; on macOS: Keychain Access → *Export* as
-`.p12`), then store it on disk or as a KeePass attachment. **This code path has not
-been tested against real hardware or SoftHSM yet.**
+`.p12`), then store it on disk or as a KeePass attachment. The test suite signs with a SoftHSM 2 software token
+(`tests/test_pkcs11_softhsm.py`); it hasn't been tried with a physical token yet.
 
 ## General notes
 

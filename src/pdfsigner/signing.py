@@ -343,17 +343,33 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
             from pyhanko.sign import pkcs11
         except ImportError as e:
             raise SigningError("PKCS#11 support needs 'pyhanko[pkcs11]'") from e
-        session = pkcs11.open_pkcs11_session(
-            profile.pkcs11_lib,
-            token_criteria=TokenCriteria(label=profile.token_label or None),
-            user_pin=creds.secret,
-        )
+        from pkcs11.exceptions import PinIncorrect, PinLenRange, PKCS11Error
+
+        def token_error(e: Exception) -> SigningError:
+            if isinstance(e, (PinIncorrect, PinLenRange)):
+                return SigningError(f"wrong PIN for token of '{profile.name}'")
+            msg = str(e) or type(e).__name__
+            return SigningError(f"PKCS#11 ({profile.pkcs11_lib}): {msg}")
+
         try:
-            yield pkcs11.PKCS11Signer(
+            session = pkcs11.open_pkcs11_session(
+                profile.pkcs11_lib,
+                token_criteria=TokenCriteria(label=profile.token_label or None),
+                user_pin=creds.secret,
+            )
+        except PKCS11Error as e:
+            raise token_error(e) from None
+        try:
+            signer = pkcs11.PKCS11Signer(
                 session,
                 key_label=profile.key_label or None,
                 cert_label=profile.cert_label or profile.key_label or None,
             )
+            try:
+                signer.signing_cert  # loads certificate and key now, not mid-signing
+            except PKCS11Error as e:
+                raise token_error(e) from None
+            yield signer
         finally:
             session.close()
         return

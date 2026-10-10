@@ -314,7 +314,7 @@ def test_p12_from_bytes_ignores_path(p12):
 
 
 def test_pkcs11_session_is_opened_and_closed(monkeypatch, p12):
-    """No token available in CI: check the wiring against a fake pyHanko module."""
+    """Wiring check without a token (test_pkcs11_softhsm.py uses a real one)."""
     calls = {}
 
     class FakeSession:
@@ -328,6 +328,8 @@ def test_pkcs11_session_is_opened_and_closed(monkeypatch, p12):
         return FakeSession()
 
     class FakeSigner:
+        signing_cert = None
+
         def __init__(self, session, key_label=None, cert_label=None):
             calls["signer"] = (key_label, cert_label)
 
