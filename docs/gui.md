@@ -91,9 +91,14 @@ is opened:
 * red: **invalid**, i.e. the content was modified or changed in a way the
   signature doesn't allow.
 
+A signature followed by allowed changes, such as filled-in form fields or
+further signatures, gets a third line *then changed (allowed)*: what you
+see now is not exactly what was signed. The tooltip says which changes.
+
 Click a signature to jump to its page. Double-click it for the full report.
 The tooltip shows what the signature covers. Extra trusted roots come from
-`trust = [...]` in the config file (see [cli.md](cli.md#check-signatures-pdfsigner-verify)).
+*Settings…* (or `trust = [...]` in the config file, see
+[cli.md](cli.md#check-signatures-pdfsigner-verify)).
 
 ## Page tools
 

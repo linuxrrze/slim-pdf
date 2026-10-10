@@ -1254,6 +1254,10 @@ msgid ""
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+msgid "then changed (allowed): see tooltip"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid "{n} signature: {counts}"
 msgid_plural "{n} signatures: {counts}"

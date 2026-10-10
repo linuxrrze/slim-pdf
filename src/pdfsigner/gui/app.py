@@ -607,6 +607,8 @@ class MainWindow(QMainWindow):
             else:
                 text = _("{field}: {status}\n   {signer}").format(
                     field=printable(r.field), status=_status_text(r.status), signer=signer)
+            if r.changed_later and r.status != validation.INVALID:
+                text += "\n   " + _("then changed (allowed): see tooltip")
             item = QListWidgetItem(_dot(STATUS_COLORS[r.status]), text)
             item.setData(Qt.UserRole, r.field)
             item.setToolTip("\n".join(map(printable, [r.coverage, *r.problems])))

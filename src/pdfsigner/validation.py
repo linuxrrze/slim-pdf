@@ -63,6 +63,9 @@ class SignatureReport:
     reason: str = ""
     location: str = ""
     ltv: bool = False  # document carries validation data (DSS)
+    # allowed changes after this signature that alter what is shown (form
+    # values, annotations, further signatures); validation data doesn't count
+    changed_later: bool = False
     problems: list[str] = field(default_factory=list)
     details: str = ""  # pyHanko's full report
 
@@ -190,6 +193,8 @@ def report(sig, st, revision: int, revisions: int) -> SignatureReport:
         signed_at=st.signer_reported_dt,
         timestamp=ts.timestamp if ts is not None and ts.trusted else None,
         coverage=_coverage(st, revision, revisions),
+        changed_later=st.modification_level in (ModificationLevel.FORM_FILLING,
+                                                ModificationLevel.ANNOTATIONS),
         reason=_str(sig.sig_object, "/Reason"),
         location=_str(sig.sig_object, "/Location"),
         problems=problems,

@@ -56,6 +56,7 @@ def test_two_signers_and_later_changes(profile, p12_bob, signed, alice_pem, tmp_
     first, second = verify_pdf(signed, trust=[alice_pem, bob_pem])
     assert (first.field, first.status) == ("Applicant", VALID)
     assert (second.field, second.status) == ("Supervisor", VALID)
+    assert first.changed_later and not second.changed_later
     assert first.coverage.startswith("revision ")
     assert "later changes: form filling and signatures" in first.coverage
     assert second.coverage == "entire document"

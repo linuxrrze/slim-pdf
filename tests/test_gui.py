@@ -898,3 +898,16 @@ def test_settings_cancel_changes_nothing(window, tmp_path, monkeypatch):
     window.settings_dialog()
     assert window.config.language == ""
     assert not (tmp_path / "config.toml").exists()
+
+
+def test_signature_followed_by_changes_is_marked(window, form_pdf, p12_bob, tmp_path):
+    from conftest import sign_with
+
+    out = tmp_path / "two.pdf"
+    sign_with(window.config.certs["alice"], form_pdf, out, field_name="Applicant")
+    bob = CertProfile(name="bob", path=str(p12_bob[0]), secret="none")
+    sign_with(bob, out, out, field_name="Supervisor")
+    window.open(out)
+    first, second = sig_rows(window)
+    assert first.endswith("then changed (allowed): see tooltip")
+    assert "then changed" not in second
