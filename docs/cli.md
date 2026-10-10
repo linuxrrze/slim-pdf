@@ -450,7 +450,7 @@ error (`1`).
 **Trust:** by default, pdfsigner trusts the Mozilla root list (the same list
 on every platform, shipped with the `certifi` package). Add your own roots
 with `--trust CERT` (PEM or DER, repeatable) or permanently in the config
-file (`trust = ["~/certs/my-ca.pem"]`). `--no-system-trust` trusts only
+file (`trust = ["~/certs/my-ca.pem"]`, or *Settings…* in the GUI). `--no-system-trust` trusts only
 those.
 
 ```console
@@ -600,8 +600,8 @@ pdfsigner --config ./signing.toml sign report.pdf
 
 ## Config file format
 
-Both `pdfsigner certs` and the GUI's *Manage…* dialog write this file. You
-can also edit it by hand:
+`pdfsigner certs` and the GUI's *Manage…* and *Settings…* dialogs write
+this file. You can also edit it by hand:
 
 ```toml
 default = "work"

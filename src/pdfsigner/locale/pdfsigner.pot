@@ -929,6 +929,10 @@ msgid "Clear placement"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+msgid "Settings…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 msgid "Pages"
 msgstr ""
 
@@ -1029,6 +1033,15 @@ msgstr ""
 
 #: src/pdfsigner/gui/app.py
 msgid "Sign"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/settings.py
+msgid "Settings"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "The new language is used after restarting PDF Signer."
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1357,6 +1370,7 @@ msgid "system"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
+#: src/pdfsigner/gui/settings.py
 msgid "Certificates"
 msgstr ""
 
@@ -1366,6 +1380,7 @@ msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 #: src/pdfsigner/gui/pagetools.py
+#: src/pdfsigner/gui/settings.py
 msgid "Remove"
 msgstr ""
 
@@ -1390,6 +1405,7 @@ msgid "~/certs/me.p12 (empty if stored in KeePass)"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
+#: src/pdfsigner/gui/settings.py
 msgid "All files"
 msgstr ""
 
@@ -1793,6 +1809,42 @@ msgstr ""
 #: src/pdfsigner/gui/pageview.py
 #, python-brace-format
 msgid "{name}: empty - click to sign this field"
+msgstr ""
+
+#: src/pdfsigner/gui/settings.py
+msgid "System default"
+msgstr ""
+
+#: src/pdfsigner/gui/settings.py
+msgid "Language"
+msgstr ""
+
+#: src/pdfsigner/gui/settings.py
+msgid "Additional trusted certificates"
+msgstr ""
+
+#: src/pdfsigner/gui/settings.py
+msgid "Signatures by these certificates, or by certificates they issued, are shown as valid; Mozilla's root list is always trusted. Use this for your organisation's CA or for colleagues' self-signed certificates."
+msgstr ""
+
+#: src/pdfsigner/gui/settings.py
+msgid "Add…"
+msgstr ""
+
+#: src/pdfsigner/gui/settings.py
+#, python-brace-format
+msgid "Configuration file: {path}"
+msgstr ""
+
+#: src/pdfsigner/gui/settings.py
+msgid "Trusted certificates"
+msgstr ""
+
+#: src/pdfsigner/gui/settings.py
+#, python-brace-format
+msgid ""
+"Cannot save the configuration:\n"
+"{error}"
 msgstr ""
 
 #: src/pdfsigner/pages.py

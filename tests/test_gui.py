@@ -833,3 +833,68 @@ def test_dialog_choose_token_key_errors(dialog, monkeypatch):
     monkeypatch.setattr(certdialog.tokens, "list_tokens", lambda *a, **k: [])
     dialog._choose_token_key()
     assert boxes.kinds()[-1] == "information" and "No token found" in boxes.text()
+
+
+# --- settings ---------------------------------------------------------------------------
+
+
+def test_settings_trust_and_language(window, form_pdf, p12, tmp_path, monkeypatch):
+    from conftest import sign_with, write_pem
+
+    from pdfsigner.gui import settings as gui_settings
+
+    window.config.path = tmp_path / "config.toml"
+    signed = tmp_path / "s.pdf"
+    sign_with(window.config.certs["alice"], form_pdf, signed, field_name="Applicant")
+    window.open(signed)
+    assert sig_rows(window)[0].startswith("Applicant: untrusted")
+
+    pem = write_pem(p12[1], tmp_path / "alice.pem")
+    junk = tmp_path / "junk.pem"
+    junk.write_text("not a certificate", encoding="utf-8")
+    monkeypatch.setattr(gui_settings.QFileDialog, "getOpenFileNames",
+                        staticmethod(lambda *a, **k: ([str(junk), str(pem), str(pem)], "")))
+    boxes = Boxes(monkeypatch, gui_settings)  # the same QMessageBox class as gui_app's
+
+    def edit(dlg):
+        dlg._add_trust()
+        assert boxes.kinds() == ["warning"] and "junk.pem" in boxes.text()
+        assert dlg.trust_paths() == [str(pem)]  # junk refused, duplicate ignored
+        assert "Alice Example" in dlg.trust_list.item(0).text()
+        dlg.language_combo.setCurrentIndex(dlg.language_combo.findData("de"))
+        dlg._save()
+        return dlg.result()
+
+    monkeypatch.setattr(gui_settings.SettingsDialog, "exec", edit)
+    window.settings_dialog()
+    assert sig_rows(window)[0].startswith("Applicant: valid")  # re-checked right away
+    assert boxes.kinds() == ["warning", "information"] and "restart" in boxes.text()
+    saved = load_config(tmp_path / "config.toml")
+    assert (saved.trust, saved.language) == ([str(pem)], "de")
+
+    def remove(dlg):
+        dlg.trust_list.setCurrentRow(0)
+        dlg._remove_trust()
+        dlg._save()
+        return dlg.result()
+
+    monkeypatch.setattr(gui_settings.SettingsDialog, "exec", remove)
+    window.settings_dialog()
+    assert sig_rows(window)[0].startswith("Applicant: untrusted")
+    assert load_config(tmp_path / "config.toml").trust == []
+
+
+def test_settings_cancel_changes_nothing(window, tmp_path, monkeypatch):
+    from pdfsigner.gui import settings as gui_settings
+
+    window.config.path = tmp_path / "config.toml"
+
+    def cancel(dlg):
+        dlg.language_combo.setCurrentIndex(dlg.language_combo.findData("de"))
+        dlg.reject()
+        return dlg.result()
+
+    monkeypatch.setattr(gui_settings.SettingsDialog, "exec", cancel)
+    window.settings_dialog()
+    assert window.config.language == ""
+    assert not (tmp_path / "config.toml").exists()

@@ -44,6 +44,7 @@ from ..signing import (
     sign_pdf,
 )
 from .certdialog import CertManagerDialog
+from .settings import SettingsDialog
 from .dialogs import ask_secret
 from .document import PdfDocument, signature_pixmap
 from .pageview import PageView
@@ -145,6 +146,9 @@ class MainWindow(QMainWindow):
         tb.addSeparator()
         tb.addAction(QAction(_("Clear placement"), self, shortcut=Qt.Key_Escape,
                              triggered=self._escape))
+        tb.addSeparator()
+        tb.addAction(QAction(_("Settings…"), self, shortcut=QKeySequence.Preferences,
+                             triggered=self.settings_dialog))
 
     def _build_pages_toolbar(self) -> None:
         tb = QToolBar(_("Pages"))
@@ -287,6 +291,18 @@ class MainWindow(QMainWindow):
                 pixmap, aspect = pm, image_aspect(p.image_path)
         self.view.set_signature_appearance(pixmap, aspect)
         self._update_target()
+
+    def settings_dialog(self) -> None:
+        dlg = SettingsDialog(self.config, self)
+        if not dlg.exec():
+            return
+        trust_changed = dlg.config.trust != self.config.trust
+        self.config = dlg.config
+        if trust_changed and self.data is not None:
+            self.statusBar().showMessage(self._verify() or _(HINT))
+        if dlg.language_changed:
+            QMessageBox.information(self, _("Settings"),
+                                    _("The new language is used after restarting PDF Signer."))
 
     def manage_certs(self) -> None:
         dlg = CertManagerDialog(self.config, self)

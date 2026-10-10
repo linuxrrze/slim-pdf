@@ -958,6 +958,10 @@ msgid "Clear placement"
 msgstr "Platzierung entfernen"
 
 #: src/pdfsigner/gui/app.py
+msgid "Settings…"
+msgstr "Einstellungen…"
+
+#: src/pdfsigner/gui/app.py
 msgid "Pages"
 msgstr "Seiten"
 
@@ -1059,6 +1063,15 @@ msgstr "Doppelklick für den vollständigen Prüfbericht"
 #: src/pdfsigner/gui/app.py
 msgid "Sign"
 msgstr "Signieren"
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/settings.py
+msgid "Settings"
+msgstr "Einstellungen"
+
+#: src/pdfsigner/gui/app.py
+msgid "The new language is used after restarting PDF Signer."
+msgstr "Die neue Sprache wird nach einem Neustart von PDF Signer verwendet."
 
 #: src/pdfsigner/gui/app.py
 msgid "Open PDF"
@@ -1420,6 +1433,7 @@ msgid "system"
 msgstr "System"
 
 #: src/pdfsigner/gui/certdialog.py
+#: src/pdfsigner/gui/settings.py
 msgid "Certificates"
 msgstr "Zertifikate"
 
@@ -1429,6 +1443,7 @@ msgstr "Hinzufügen"
 
 #: src/pdfsigner/gui/certdialog.py
 #: src/pdfsigner/gui/pagetools.py
+#: src/pdfsigner/gui/settings.py
 msgid "Remove"
 msgstr "Entfernen"
 
@@ -1453,6 +1468,7 @@ msgid "~/certs/me.p12 (empty if stored in KeePass)"
 msgstr "~/certs/me.p12 (leer, wenn in KeePass gespeichert)"
 
 #: src/pdfsigner/gui/certdialog.py
+#: src/pdfsigner/gui/settings.py
 msgid "All files"
 msgstr "Alle Dateien"
 
@@ -1861,6 +1877,44 @@ msgstr "{name}: gesperrt"
 #, python-brace-format
 msgid "{name}: empty - click to sign this field"
 msgstr "{name}: leer – klicken, um dieses Feld zu signieren"
+
+#: src/pdfsigner/gui/settings.py
+msgid "System default"
+msgstr "Systemeinstellung"
+
+#: src/pdfsigner/gui/settings.py
+msgid "Language"
+msgstr "Sprache"
+
+#: src/pdfsigner/gui/settings.py
+msgid "Additional trusted certificates"
+msgstr "Zusätzliche vertrauenswürdige Zertifikate"
+
+#: src/pdfsigner/gui/settings.py
+msgid "Signatures by these certificates, or by certificates they issued, are shown as valid; Mozilla's root list is always trusted. Use this for your organisation's CA or for colleagues' self-signed certificates."
+msgstr "Signaturen mit diesen Zertifikaten oder mit von ihnen ausgestellten Zertifikaten werden als gültig angezeigt; der Stammzertifikatsliste von Mozilla wird immer vertraut. Geeignet für die CA Ihrer Organisation oder selbstsignierte Zertifikate von Kollegen."
+
+#: src/pdfsigner/gui/settings.py
+msgid "Add…"
+msgstr "Hinzufügen…"
+
+#: src/pdfsigner/gui/settings.py
+#, python-brace-format
+msgid "Configuration file: {path}"
+msgstr "Konfigurationsdatei: {path}"
+
+#: src/pdfsigner/gui/settings.py
+msgid "Trusted certificates"
+msgstr "Vertrauenswürdige Zertifikate"
+
+#: src/pdfsigner/gui/settings.py
+#, python-brace-format
+msgid ""
+"Cannot save the configuration:\n"
+"{error}"
+msgstr ""
+"Die Konfiguration kann nicht gespeichert werden:\n"
+"{error}"
 
 #: src/pdfsigner/pages.py
 #, python-brace-format
