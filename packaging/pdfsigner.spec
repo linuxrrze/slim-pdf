@@ -30,15 +30,13 @@ datas = (
     + collect_data_files("pdfsigner", includes=["gui/icon.png", "locale/*/LC_MESSAGES/*.mo"])
     + [(str(ICONS / "pdfsigner.png"), ".")]
 )
+# Metadata the bundle can't work without (keyring finds its backends through
+# entry points, others read their own version). A missing one fails the build
+# instead of shipping an app without, e.g., keyring support.
 for dist in ("keyring", "pyhanko", "pyhanko-certvalidator", "pypdf", "pykeepass", "pdfsigner"):
-    try:
-        datas += copy_metadata(dist)  # keyring finds its backends via entry points
-    except Exception:
-        pass
-try:
-    datas += collect_data_files("tzdata")  # zoneinfo on Windows
-except Exception:
-    pass
+    datas += copy_metadata(dist)
+if sys.platform == "win32":
+    datas += collect_data_files("tzdata")  # zoneinfo has no system database on Windows
 
 excludes = ["tkinter", "PySide6.Qt3DCore", "PySide6.QtWebEngineCore", "PySide6.QtQuick",
             "PySide6.QtQml", "PySide6.QtMultimedia", "PySide6.QtCharts",

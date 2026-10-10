@@ -2,10 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- Python (ctypes, cffi) needs these under the hardened runtime -->
+    <!-- ctypes/cffi callbacks (keychain backend) may need writable+executable
+         memory under the hardened runtime; untested whether today's libffi
+         still does, so it stays until a signed build proves otherwise -->
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
-    <!-- Qt plugins and Python extension modules are signed ad hoc by PyInstaller -->
+    <!-- PKCS#11 profiles dlopen() vendor modules (OpenSC, Yubico ykcs11,
+         smartcard middleware) that are not signed with our team ID -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
 </dict>

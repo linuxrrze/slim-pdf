@@ -8,3 +8,13 @@ dist/
 packaging/build-icons/
 *.spec.bak
 .claude/
+# key material and local configuration must never be committed
+*.p12
+*.pfx
+*.pem
+*.key
+*.kdbx
+*.crt
+*.cer
+*.der
+config.toml

@@ -14,6 +14,9 @@ APP="dist/PDF Signer.app"
 ARCH="$(uname -m)"
 DMG="dist/PDF-Signer-${VERSION}-macos-${ARCH}.dmg"
 
+# --deep is deprecated by Apple for signing (signing each nested binary
+# inside-out is preferred), but it still produces a valid, notarizable
+# signature for a PyInstaller bundle.
 if [ -n "${MACOS_SIGN_IDENTITY:-}" ]; then
   codesign --force --deep --options runtime --timestamp \
     --entitlements packaging/macos/entitlements.plist \
@@ -24,11 +27,11 @@ fi
 codesign --verify --deep --strict "$APP"
 
 staging="$(mktemp -d)"
-cp -R "$APP" "$staging/"
+trap 'rm -rf "$staging"' EXIT
+ditto "$APP" "$staging/PDF Signer.app"  # keeps signatures, symlinks and metadata
 ln -s /Applications "$staging/Applications"
 rm -f "$DMG"
 hdiutil create -volname "PDF Signer" -srcfolder "$staging" -ov -format UDZO "$DMG"
-rm -rf "$staging"
 
 if [ -n "${MACOS_SIGN_IDENTITY:-}" ] && [ -n "${APPLE_ID:-}" ]; then
   codesign --sign "$MACOS_SIGN_IDENTITY" --timestamp "$DMG"
