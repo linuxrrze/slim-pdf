@@ -122,3 +122,42 @@ def test_keepass_keyfile(tmp_path):
                           keepass_keyfile=str(keyfile), keepass_entry="Cert")
     # key file only: an empty master password means "no password"
     assert resolve_credentials(profile, lambda p: "").secret == "pin"
+
+
+@pytest.fixture
+def no_keyring(monkeypatch):
+    """No usable backend, as on a headless Linux box."""
+    import keyring
+    from keyring.backends import fail
+
+    old = keyring.get_keyring()
+    keyring.set_keyring(fail.Keyring())
+    yield
+    keyring.set_keyring(old)
+
+
+def test_no_keyring_backend_is_a_clean_error(no_keyring):
+
+    profile = CertProfile(name="k", path="a.p12", secret="keyring")
+    with pytest.raises(SecretError, match="no OS keyring available"):
+        resolve_credentials(profile, lambda p: None)
+    with pytest.raises(SecretError, match="no OS keyring available"):
+        secretstore.keyring_set("k", "x")
+    with pytest.raises(SecretError, match="no OS keyring available"):
+        secretstore.keyring_delete("k")
+
+
+def test_cli_no_keyring_backend(no_keyring, p12, cfg_path, capsys, monkeypatch):
+    from pdfsigner import cli
+
+    assert cli.main(["certs", "add", "k", "--p12", str(p12[0]), "--secret", "keyring"]) == 0
+    assert cli.main(["certs", "test", "k"]) == 1
+    assert "error: no OS keyring available" in capsys.readouterr().err
+    monkeypatch.setattr(cli.getpass, "getpass", lambda prompt: "x")
+    assert cli.main(["certs", "set-secret", "k"]) == 1
+    assert cli.main(["certs", "remove", "k", "--purge-secret"]) == 1
+
+
+def test_keyring_delete_missing_is_fine(mem_keyring):
+
+    secretstore.keyring_delete("never-stored")

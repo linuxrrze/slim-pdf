@@ -84,26 +84,46 @@ def _ask(ask: AskFn, prompt: str) -> str:
 # --- keyring -----------------------------------------------------------------
 
 
-def keyring_get(profile_name: str) -> str | None:
-    import keyring
+def _keyring():
+    try:
+        import keyring
+    except ImportError as e:
+        raise SecretError("keyring support needs the 'keyring' package") from e
+    return keyring
 
-    return keyring.get_password(KEYRING_SERVICE, profile_name)
+
+def _keyring_call(fn, *args):
+    """Run a keyring call; backend problems become SecretErrors, not tracebacks."""
+    from keyring.errors import KeyringError, NoKeyringError
+
+    try:
+        return fn(*args)
+    except NoKeyringError:
+        raise SecretError(
+            "no OS keyring available (on Linux: start a Secret Service provider such as "
+            "GNOME Keyring, KWallet or KeePassXC, or use another secret source)") from None
+    except KeyringError as e:
+        raise SecretError(f"keyring: {e}") from None
+
+
+def keyring_get(profile_name: str) -> str | None:
+    return _keyring_call(_keyring().get_password, KEYRING_SERVICE, profile_name)
 
 
 def keyring_set(profile_name: str, secret: str) -> None:
-    import keyring
-
-    keyring.set_password(KEYRING_SERVICE, profile_name, secret)
+    _keyring_call(_keyring().set_password, KEYRING_SERVICE, profile_name, secret)
 
 
 def keyring_delete(profile_name: str) -> None:
-    import keyring
     from keyring.errors import PasswordDeleteError
 
-    try:
-        keyring.delete_password(KEYRING_SERVICE, profile_name)
-    except PasswordDeleteError:
-        pass
+    def delete(*args):
+        try:
+            _keyring().delete_password(*args)
+        except PasswordDeleteError:
+            pass  # nothing stored: fine
+
+    _keyring_call(delete, KEYRING_SERVICE, profile_name)
 
 
 def keyring_backend_name() -> str:
