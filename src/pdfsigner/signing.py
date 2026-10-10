@@ -40,6 +40,7 @@ from pyhanko.sign.general import SigningError as PyHankoSigningError
 from pyhanko.sign.validation.pdf_embedded import read_certification_data
 
 from .config import CertProfile, expand
+from .i18n import _, ngettext
 from .secretstore import Credentials
 
 Box = tuple[float, float, float, float]
@@ -51,6 +52,18 @@ class SigningError(Exception):
 
 class SigningBlocked(SigningError):
     """Signing would invalidate an existing signature."""
+
+
+class PasswordError(SigningError):
+    """The PDF is encrypted and the password is missing or wrong."""
+
+
+class PasswordRequired(PasswordError):
+    """The PDF is encrypted and no password was given."""
+
+
+class WrongPassword(PasswordError):
+    """The password given for an encrypted PDF is wrong."""
 
 
 @dataclass
@@ -90,14 +103,17 @@ class DocInfo:
         """
         f = self.field(target) if target else None
         if f is not None and f.locked:
-            return f"field {target!r} is locked by an existing signature"
+            return _("field {name!r} is locked by an existing signature").format(name=target)
         if new_visible and self.certification is not None:
             # Validators (pyHanko, ours) reject new visible signature fields
             # after a certification signature, whatever its permissions.
             empty = ", ".join(repr(f.name) for f in self.empty_fields if not f.locked)
-            hint = f"sign an existing empty field ({empty})" if empty else "sign invisibly"
-            return ("the document is certified, and a new visible signature field breaks "
-                    f"the certification; {hint} instead")
+            if empty:
+                return _("the document is certified, and a new visible signature field "
+                         "breaks the certification; sign an existing empty field ({fields}) "
+                         "instead").format(fields=empty)
+            return _("the document is certified, and a new visible signature field breaks "
+                     "the certification; sign invisibly instead")
         return None
 
 
@@ -127,17 +143,17 @@ def _open_reader(data: bytes | io.BufferedIOBase, password: str | None) -> PdfFi
     try:
         reader = PdfFileReader(stream, strict=False)
     except PdfError as e:
-        raise SigningError(f"cannot read the PDF: {e}") from None
+        raise SigningError(_("cannot read the PDF: {error}").format(error=e)) from None
     if reader.encrypted:
         if password is None:
-            raise SigningError("PDF is encrypted, a password is required")
+            raise PasswordRequired(_("PDF is encrypted, a password is required"))
         try:
             # decrypt() returns an AuthResult, which is always truthy
             ok = reader.decrypt(password).status != AuthStatus.FAILED
         except PdfKeyNotAvailableError:
             ok = False
         if not ok:
-            raise SigningError("wrong PDF password")
+            raise WrongPassword(_("wrong PDF password"))
     return reader
 
 
@@ -183,7 +199,7 @@ def _locked_field_names(reader: PdfFileReader) -> tuple[set[str], bool]:
     """
     locked: set[str] = set()
     all_locked = False
-    for _, sig_value, _ in fields.enumerate_sig_fields(reader, filled_status=True):
+    for _name, sig_value, _filled in fields.enumerate_sig_fields(reader, filled_status=True):
         for ref in _get(sig_value.get_object(), "/Reference", ()):
             ref = ref.get_object()
             if _get(ref, "/TransformMethod") != "/FieldMDP":
@@ -211,9 +227,9 @@ def inspect_pdf(path: str | os.PathLike | bytes, password: str | None = None) ->
     reader = _open_reader(_data(path), password)
 
     pages = list(_walk_pages(reader.root.raw_get("/Pages")))
-    page_index = {pid: i for i, (_, pid, _) in enumerate(pages) if pid is not None}
+    page_index = {pid: i for i, (_page, pid, _rot) in enumerate(pages) if pid is not None}
     annot_page: dict[int, int] = {}
-    for i, (page, _, _) in enumerate(pages):
+    for i, (page, _pid, _rot) in enumerate(pages):
         annots = _get(page, "/Annots")
         if annots is None:
             continue
@@ -228,7 +244,7 @@ def inspect_pdf(path: str | os.PathLike | bytes, password: str | None = None) ->
 
     info = DocInfo(
         page_count=len(pages),
-        page_rotation=[rot for _, _, rot in pages],
+        page_rotation=[rot for _page, _pid, rot in pages],
         certification=(cd.permission if (cd := read_certification_data(reader)) else None),
         encrypted=reader.encrypted,
     )
@@ -270,7 +286,8 @@ def _pdf_image_size(path: str | os.PathLike) -> tuple[float, float]:
             x1, y1, x2, y2 = (float(v) for v in
                               find_inherited_value_in_tree(page, "/MediaBox", "/Parent"))
     except (OSError, PdfError, TypeError, ValueError, IndexError) as e:
-        raise SigningError(f"cannot read signature PDF {path}: {e}") from None
+        raise SigningError(_("cannot read signature PDF {path}: {error}").format(
+            path=path, error=e)) from None
     return abs(x2 - x1), abs(y2 - y1)
 
 
@@ -303,7 +320,7 @@ def build_stamp_style(
     background = None
     if image is not None:
         if not image.exists():
-            raise SigningError(f"signature image not found: {image}")
+            raise SigningError(_("signature image not found: {path}").format(path=image))
         if is_pdf_image(image):
             _pdf_image_size(image)  # fail early on unreadable files
             background = ImportedPdfPage(str(image), page_ix=0)
@@ -390,8 +407,8 @@ def _describe_token_objects(objs) -> str:
 
     found = sorted(((_p11_attr(o, Attribute.ID) or b"", _p11_attr(o, Attribute.LABEL) or "")
                     for o in objs))  # tokens return objects in no particular order
-    return ", ".join(f"'{label}'" + (f" (ID {oid.hex()})" if oid else "")
-                     for oid, label in found) or "none"
+    return ", ".join(_("'{label}' (ID {id})").format(label=label, id=oid.hex()) if oid
+                     else f"'{label}'" for oid, label in found) or _("none")
 
 
 def _find_token_key(session, profile: CertProfile):
@@ -420,12 +437,21 @@ def _find_token_key(session, profile: CertProfile):
         available = _describe_token_objects(
             session.get_objects({Attribute.CLASS: ObjectClass.PRIVATE_KEY}))
         if not keys:
-            criteria = " and ".join(f"{k} {v!r}" for k, v in
-                                    (("label", profile.key_label), ("ID", profile.key_id)) if v)
-            what = f"with {criteria} " if criteria else ""
-            raise PKCS11Error(f"no private key {what}on the token (keys: {available})")
-        raise PKCS11Error(f"{len(keys)} private keys match, set key_label or key_id "
-                          f"(keys: {available})")
+            if profile.key_label and profile.key_id:
+                msg = _("no private key with label {label!r} and ID {id!r} on the token "
+                        "(keys: {keys})")
+            elif profile.key_label:
+                msg = _("no private key with label {label!r} on the token (keys: {keys})")
+            elif profile.key_id:
+                msg = _("no private key with ID {id!r} on the token (keys: {keys})")
+            else:
+                msg = _("no private key on the token (keys: {keys})")
+            raise PKCS11Error(msg.format(label=profile.key_label, id=profile.key_id,
+                                         keys=available))
+        raise PKCS11Error(ngettext(
+            "{n} private key matches, set key_label or key_id (keys: {keys})",
+            "{n} private keys match, set key_label or key_id (keys: {keys})",
+            len(keys)).format(n=len(keys), keys=available))
     key = keys[0]
     key_label = _p11_attr(key, Attribute.LABEL)
     key_id = _p11_attr(key, Attribute.ID)
@@ -445,11 +471,25 @@ def _find_token_key(session, profile: CertProfile):
     if len(certs) != 1:
         available = _describe_token_objects(
             session.get_objects({Attribute.CLASS: ObjectClass.CERTIFICATE}))
-        what = (f"with label {profile.cert_label!r}" if profile.cert_label
-                else "for key " + _describe_token_objects([key]))
-        n = "no certificate" if not certs else f"{len(certs)} certificates"
-        raise PKCS11Error(f"{n} {what} on the token, set cert_label "
-                          f"(certificates: {available})")
+        n = len(certs)
+        if profile.cert_label and not certs:
+            msg = _("no certificate with label {label!r} on the token, set cert_label "
+                    "(certificates: {certs})")
+        elif profile.cert_label:
+            msg = ngettext("{n} certificate with label {label!r} on the token, set cert_label "
+                           "(certificates: {certs})",
+                           "{n} certificates with label {label!r} on the token, set "
+                           "cert_label (certificates: {certs})", n)
+        elif not certs:
+            msg = _("no certificate for key {key} on the token, set cert_label "
+                    "(certificates: {certs})")
+        else:
+            msg = ngettext("{n} certificate for key {key} on the token, set cert_label "
+                           "(certificates: {certs})",
+                           "{n} certificates for key {key} on the token, set cert_label "
+                           "(certificates: {certs})", n)
+        raise PKCS11Error(msg.format(n=n, label=profile.cert_label,
+                                     key=_describe_token_objects([key]), certs=available))
     return key, asn1_x509.Certificate.load(certs[0][Attribute.VALUE])
 
 
@@ -487,7 +527,8 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
             try:
                 data = p.read_bytes()
             except OSError as e:
-                raise SigningError(f"cannot read {p}: {e.strerror}") from None
+                raise SigningError(_("cannot read {path}: {error}").format(
+                    path=p, error=e.strerror)) from None
         passphrase = creds.secret.encode() if creds.secret else None
         try:
             signer = signers.SimpleSigner.load_pkcs12_data(
@@ -496,7 +537,8 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
         except ValueError as e:
             # cryptography raises ValueError for a wrong passphrase.
             raise SigningError(
-                f"cannot load PKCS#12 for '{profile.name}' (wrong passphrase?): {e}"
+                _("cannot load PKCS#12 for '{name}' (wrong passphrase?): {error}").format(
+                    name=profile.name, error=e)
             ) from None
         yield signer  # outside the try: errors while signing are not load errors
         return
@@ -506,19 +548,23 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
             from pyhanko.config.pkcs11 import TokenCriteria
             from pyhanko.sign import pkcs11
         except ImportError as e:
-            raise SigningError("PKCS#11 support needs 'pyhanko[pkcs11]'") from e
+            raise SigningError(_("PKCS#11 support needs 'pyhanko[pkcs11]'")) from e
         from pkcs11 import Attribute
         from pkcs11.exceptions import PinIncorrect, PinLenRange, PKCS11Error, UserNotLoggedIn
 
         def token_error(e: Exception, signing: bool = False) -> SigningError:
             if isinstance(e, (PinIncorrect, PinLenRange)):
-                return SigningError(f"wrong PIN for token of '{profile.name}'")
+                return SigningError(_("wrong PIN for token of '{name}'").format(
+                    name=profile.name))
             if signing and isinstance(e, UserNotLoggedIn):
-                return SigningError(f"the key of '{profile.name}' needs the PIN for every "
-                                    "signature, but none was given")
+                return SigningError(_("the key of '{name}' needs the PIN for every "
+                                      "signature, but none was given").format(name=profile.name))
             msg = str(e) or type(e).__name__
-            what = "the token refused to sign: " if signing else ""
-            return SigningError(f"PKCS#11 ({profile.pkcs11_lib}): {what}{msg}")
+            if signing:
+                return SigningError(_("PKCS#11 ({module}): the token refused to sign: "
+                                      "{error}").format(module=profile.pkcs11_lib, error=msg))
+            return SigningError(_("PKCS#11 ({module}): {error}").format(
+                module=profile.pkcs11_lib, error=msg))
 
         try:
             session = pkcs11.open_pkcs11_session(
@@ -541,7 +587,7 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
                     use_raw_mechanism=_use_raw_mechanism(session, key),
                     base_sign_kwargs={"pin": creds.secret}
                     if always_auth and creds.secret else None)
-                _ = signer.signing_cert  # loads the key handle now, not mid-signing
+                signer.signing_cert  # loads the key handle now, not mid-signing
             except PKCS11Error as e:
                 raise token_error(e) from None
             try:
@@ -563,16 +609,14 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
             backend.close()
         return
 
-    raise SigningError(f"unknown certificate type {profile.type!r}")
+    raise SigningError(_("unknown certificate type {type!r}").format(type=profile.type))
 
 
 def describe_signer(signer: signers.Signer) -> str:
     cert = signer.signing_cert
-    return (
-        f"{cert.subject.human_friendly}\n"
-        f"  issuer:  {cert.issuer.human_friendly}\n"
-        f"  valid:   {cert.not_valid_before:%Y-%m-%d} .. {cert.not_valid_after:%Y-%m-%d}"
-    )
+    return _("{subject}\n  issuer:  {issuer}\n  valid:   {start} .. {end}").format(
+        subject=cert.subject.human_friendly, issuer=cert.issuer.human_friendly,
+        start=f"{cert.not_valid_before:%Y-%m-%d}", end=f"{cert.not_valid_after:%Y-%m-%d}")
 
 
 # --- signing -----------------------------------------------------------------
@@ -600,22 +644,25 @@ def check_target(
     """
     if info.frozen:
         raise SigningError(
-            "document is certified with 'no changes allowed'; it cannot be signed again"
+            _("document is certified with 'no changes allowed'; it cannot be signed again")
         )
     existing = info.field(field_name) if field_name else None
     if existing is not None:
         if box is not None:
-            raise SigningError(f"field {field_name!r} already exists; omit the box")
+            raise SigningError(_("field {name!r} already exists; omit the box").format(
+                name=field_name))
         if existing.filled:
-            raise SigningError(f"field {field_name!r} is already signed")
+            raise SigningError(_("field {name!r} is already signed").format(name=field_name))
     elif box is not None:
         if page is None or not 0 <= page < info.page_count:
-            raise SigningError(f"page out of range (document has {info.page_count})")
+            raise SigningError(_("page out of range (document has {count})").format(
+                count=info.page_count))
         if box[2] <= box[0] or box[3] <= box[1]:
-            raise SigningError("box needs x1 < x2 and y1 < y2")
+            raise SigningError(_("box needs x1 < x2 and y1 < y2"))
     new_visible = existing is None and box is not None
     if not allow_breaking and (reason := info.blocker(field_name, new_visible)):
-        raise SigningBlocked(f"signing would invalidate an existing signature: {reason}")
+        raise SigningBlocked(_("signing would invalidate an existing signature: "
+                               "{reason}").format(reason=reason))
 
 
 def sign_pdf(
@@ -712,9 +759,9 @@ def sign_pdf(
             raise
         cause = e.__cause__ or e.__context__ or e  # e.g. PathBuildingError, RevokedError
         raise SigningError(
-            f"LTV: cannot validate the signer's certificate chain: {cause}. LTV needs a "
-            "chain to a trusted root (add it with `trust` in the config) and reachable "
-            "revocation info (OCSP/CRL)") from None
+            _("LTV: cannot validate the signer's certificate chain: {error}. LTV needs a "
+              "chain to a trusted root (add it with `trust` in the config) and reachable "
+              "revocation info (OCSP/CRL)").format(error=cause)) from None
 
     _atomic_write(Path(dst), out.getvalue())
     return field_name
@@ -729,8 +776,9 @@ def _atomic_write(path: Path, data: bytes) -> None:
             os.replace(tmp, path)
         except PermissionError as e:
             # Windows refuses to replace a file another program has open.
-            raise SigningError(f"cannot write {path}: {e.strerror} "
-                               "(is it open in another program?)") from e
+            raise SigningError(_("cannot write {path}: {error} "
+                                 "(is it open in another program?)").format(
+                path=path, error=e.strerror)) from e
     except BaseException:
         with contextlib.suppress(FileNotFoundError):
             os.unlink(tmp)

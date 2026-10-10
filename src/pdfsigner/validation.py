@@ -35,6 +35,7 @@ from pyhanko.sign.validation.status import SignatureCoverageLevel
 from pyhanko_certvalidator import ValidationContext
 
 from .config import expand
+from .i18n import N_, _
 from .signing import SigningError, _open_reader
 
 log = logging.getLogger(__name__)
@@ -42,11 +43,11 @@ log = logging.getLogger(__name__)
 VALID, UNTRUSTED, INVALID = "valid", "untrusted", "invalid"
 
 _LATER = {
-    ModificationLevel.NONE: "none",
-    ModificationLevel.LTA_UPDATES: "validation data and timestamps only",
-    ModificationLevel.FORM_FILLING: "form filling and signatures",
-    ModificationLevel.ANNOTATIONS: "annotations, form filling and signatures",
-    ModificationLevel.OTHER: "changes the signature doesn't allow",
+    ModificationLevel.NONE: N_("none"),
+    ModificationLevel.LTA_UPDATES: N_("validation data and timestamps only"),
+    ModificationLevel.FORM_FILLING: N_("form filling and signatures"),
+    ModificationLevel.ANNOTATIONS: N_("annotations, form filling and signatures"),
+    ModificationLevel.OTHER: N_("changes the signature doesn't allow"),
 }
 
 
@@ -76,14 +77,16 @@ def load_trust_roots(paths) -> list:
         try:
             roots.append(load_cert_from_pemder(str(expand(p))))
         except (OSError, ValueError) as e:
-            raise SigningError(f"cannot load trust root {p}: {e}") from None
+            raise SigningError(_("cannot load trust root {path}: {error}").format(
+                path=p, error=e)) from None
     return roots
 
 
 @functools.cache
 def system_trust_roots() -> tuple[x509.Certificate, ...]:
     with open(certifi.where(), "rb") as f:
-        return tuple(x509.Certificate.load(der) for _, _, der in pem.unarmor(f.read(), multiple=True))
+        return tuple(x509.Certificate.load(der)
+                     for _type, _headers, der in pem.unarmor(f.read(), multiple=True))
 
 
 def validation_context(trust=(), *, system_trust: bool = True, online: bool = False,
@@ -107,27 +110,29 @@ def _str(d, key) -> str:
 
 def _coverage(st, revision: int, revisions: int) -> str:
     if st.coverage == SignatureCoverageLevel.ENTIRE_FILE:
-        return "entire document"
+        return _("entire document")
     if st.coverage == SignatureCoverageLevel.ENTIRE_REVISION:
-        later = _LATER.get(st.modification_level, str(st.modification_level))
-        return f"revision {revision} of {revisions}; later changes: {later}"
-    return "only part of the document"
+        level = st.modification_level
+        later = _(_LATER[level]) if level in _LATER else str(level)
+        return _("revision {revision} of {revisions}; later changes: {later}").format(
+            revision=revision, revisions=revisions, later=later)
+    return _("only part of the document")
 
 
 def report(sig, st, revision: int, revisions: int) -> SignatureReport:
     cert = st.signing_cert
     problems = []
     if not st.intact:
-        problems.append("the signed content was modified")
+        problems.append(_("the signed content was modified"))
     elif not st.valid:
-        problems.append("the signature value doesn't match the certificate")
+        problems.append(_("the signature value doesn't match the certificate"))
     if st.revoked:
-        problems.append("the signer's certificate is revoked")
+        problems.append(_("the signer's certificate is revoked"))
     if not st.docmdp_ok or st.modification_level == ModificationLevel.OTHER:
-        problems.append("the document was changed in a way this signature doesn't allow")
+        problems.append(_("the document was changed in a way this signature doesn't allow"))
     if st.coverage not in (SignatureCoverageLevel.ENTIRE_FILE,
                            SignatureCoverageLevel.ENTIRE_REVISION):
-        problems.append("the signature doesn't cover a complete revision")
+        problems.append(_("the signature doesn't cover a complete revision"))
 
     if problems:
         status = INVALID
@@ -135,7 +140,7 @@ def report(sig, st, revision: int, revisions: int) -> SignatureReport:
         status = VALID
     else:
         status = UNTRUSTED
-        problems.append("the certificate doesn't chain to a trusted root")
+        problems.append(_("the certificate doesn't chain to a trusted root"))
 
     ts = st.timestamp_validity
     return SignatureReport(

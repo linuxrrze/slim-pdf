@@ -22,7 +22,14 @@ from pyhanko.pdf_utils import generic
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.pdf_utils.rw_common import find_inherited_value_in_tree
 
-from .signing import SigningBlocked, SigningError, _open_reader, _walk_pages
+from .i18n import _
+from .signing import (
+    PasswordRequired,
+    SigningBlocked,
+    WrongPassword,
+    _open_reader,
+    _walk_pages,
+)
 
 Box = tuple[float, float, float, float]
 
@@ -52,9 +59,11 @@ def parse_pages(spec: str | None, page_count: int) -> list[int]:
             else:
                 start = end = int(part)
         except ValueError:
-            raise PageError(f"invalid page spec {part!r} (use e.g. 1-3,5,8-)") from None
+            raise PageError(_("invalid page spec {spec!r} (use e.g. 1-3,5,8-)").format(
+                spec=part)) from None
         if not (1 <= start <= end <= page_count):
-            raise PageError(f"pages {part} out of range (document has {page_count})")
+            raise PageError(_("pages {pages} out of range (document has {count})").format(
+                pages=part, count=page_count))
         result.update(range(start - 1, end))
     return sorted(result)
 
@@ -77,9 +86,9 @@ def _incremental(data: bytes, password: str | None):
     w = IncrementalPdfFileWriter(io.BytesIO(data), strict=False)
     if w.prev.encrypted:
         if password is None:
-            raise SigningError("PDF is encrypted, a password is required")
+            raise PasswordRequired(_("PDF is encrypted, a password is required"))
         w.encrypt(password)
-    pages = [ref for ref, _ in _page_refs(w)]
+    pages = [ref for ref, _page in _page_refs(w)]
     return w, pages
 
 
@@ -108,17 +117,18 @@ def _finish(w) -> bytes:
 def _check_pages(pages: Iterable[int], n: int) -> list[int]:
     pages = list(pages)
     if not pages:
-        raise PageError("no pages selected")
+        raise PageError(_("no pages selected"))
     bad = [p + 1 for p in pages if not 0 <= p < n]
     if bad:
-        raise PageError(f"page {bad[0]} out of range (document has {n})")
+        raise PageError(_("page {page} out of range (document has {count})").format(
+            page=bad[0], count=n))
     return pages
 
 
 def rotate(data: bytes, pages: Iterable[int], angle: int, password: str | None = None) -> bytes:
     """Rotate pages clockwise by ``angle`` (a multiple of 90, may be negative)."""
     if angle % 90:
-        raise PageError("rotation must be a multiple of 90 degrees")
+        raise PageError(_("rotation must be a multiple of 90 degrees"))
     w, refs = _incremental(data, password)
     for i in _check_pages(pages, len(refs)):
         page = refs[i].get_object()
@@ -159,7 +169,7 @@ def crop(data: bytes, pages: Iterable[int], *, box: Box | None = None,
     * ``reset``: show the whole page again (CropBox = MediaBox).
     """
     if sum(x is not None and x is not False for x in (box, margins, reset or None)) != 1:
-        raise PageError("give exactly one of box, margins or reset")
+        raise PageError(_("give exactly one of box, margins or reset"))
     w, refs = _incremental(data, password)
     for i in _check_pages(pages, len(refs)):
         page = refs[i].get_object()
@@ -177,7 +187,7 @@ def crop(data: bytes, pages: Iterable[int], *, box: Box | None = None,
         new = (max(new[0], media[0]), max(new[1], media[1]),
                min(new[2], media[2]), min(new[3], media[3]))
         if new[2] - new[0] < 1 or new[3] - new[1] < 1:
-            raise PageError(f"crop leaves nothing of page {i + 1}")
+            raise PageError(_("crop leaves nothing of page {page}").format(page=i + 1))
         page[generic.NameObject("/CropBox")] = generic.ArrayObject(
             generic.FloatObject(round(v, 3)) for v in new)
         w.update_container(page)
@@ -192,8 +202,10 @@ def _reader(data: bytes, password: str | None):
 
     r = PdfReader(io.BytesIO(data), strict=False)
     if r.is_encrypted:
-        if password is None or not r.decrypt(password):
-            raise SigningError("PDF is encrypted, a (correct) password is required")
+        if password is None:
+            raise PasswordRequired(_("PDF is encrypted, a (correct) password is required"))
+        if not r.decrypt(password):
+            raise WrongPassword(_("PDF is encrypted, a (correct) password is required"))
     return r
 
 
@@ -250,7 +262,7 @@ def split(data: bytes, parts: Sequence[Sequence[int]], password: str | None = No
 
 def chunks(n_pages: int, every: int) -> list[list[int]]:
     if every < 1:
-        raise PageError("--every needs a positive number")
+        raise PageError(_("--every needs a positive number"))
     return [list(range(i, min(i + every, n_pages))) for i in range(0, n_pages, every)]
 
 
@@ -259,7 +271,7 @@ def merge(inputs: Sequence[tuple[bytes, Sequence[int] | None, str | None]]) -> b
     from pypdf import PdfWriter
 
     if not inputs:
-        raise PageError("nothing to merge")
+        raise PageError(_("nothing to merge"))
     writer = PdfWriter()
     for data, pages, password in inputs:
         reader = _reader(data, password)

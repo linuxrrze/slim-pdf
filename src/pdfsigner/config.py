@@ -17,7 +17,7 @@ from pathlib import Path
 import tomli_w
 from platformdirs import user_config_dir
 
-from .i18n import LANGUAGES
+from .i18n import LANGUAGES, _
 
 CERT_TYPES = ("pkcs12", "pkcs11", "system")
 
@@ -90,31 +90,38 @@ class CertProfile:
 
     def validate(self) -> None:
         if not self.name:
-            raise ValueError("certificate profile needs a name")
+            raise ValueError(_("certificate profile needs a name"))
         if self.type not in CERT_TYPES:
-            raise ValueError(f"{self.name}: unknown type {self.type!r}")
+            raise ValueError(_("{name}: unknown type {type!r}").format(
+                name=self.name, type=self.type))
         if self.secret not in SECRET_SOURCES:
-            raise ValueError(f"{self.name}: unknown secret source {self.secret!r}")
+            raise ValueError(_("{name}: unknown secret source {secret!r}").format(
+                name=self.name, secret=self.secret))
         if self.type == "pkcs12" and not (self.path or self.keepass_attachment):
-            raise ValueError(f"{self.name}: pkcs12 needs a path or a KeePass attachment")
+            raise ValueError(_("{name}: pkcs12 needs a path or a KeePass attachment").format(
+                name=self.name))
         if self.keepass_attachment and self.secret not in KEEPASS_SOURCES:
-            raise ValueError(f"{self.name}: keepass_attachment requires secret = "
-                             "'keepass' or 'keepassxc'")
+            raise ValueError(_("{name}: keepass_attachment requires secret = "
+                               "'keepass' or 'keepassxc'").format(name=self.name))
         if self.keepass_yubikey and self.secret != "keepassxc":
-            raise ValueError(f"{self.name}: keepass_yubikey requires secret = 'keepassxc'")
+            raise ValueError(_("{name}: keepass_yubikey requires secret = 'keepassxc'").format(
+                name=self.name))
         if self.type == "system" and not self.system_cert:
-            raise ValueError(f"{self.name}: system needs system_cert (thumbprint or subject)")
+            raise ValueError(_("{name}: system needs system_cert (thumbprint or subject)").format(
+                name=self.name))
         if self.type == "pkcs11" and not self.pkcs11_lib:
-            raise ValueError(f"{self.name}: pkcs11 needs pkcs11_lib")
+            raise ValueError(_("{name}: pkcs11 needs pkcs11_lib").format(name=self.name))
         if self.key_id:
             try:
                 bytes.fromhex(normalize_hex(self.key_id))
             except ValueError:
-                raise ValueError(f"{self.name}: key_id must be hex, e.g. 02") from None
+                raise ValueError(_("{name}: key_id must be hex, e.g. 02").format(
+                    name=self.name)) from None
         if not isinstance(self.ltv, bool):
-            raise ValueError(f"{self.name}: ltv must be true or false")
+            raise ValueError(_("{name}: ltv must be true or false").format(name=self.name))
         if self.secret in KEEPASS_SOURCES and not (self.keepass_db and self.keepass_entry):
-            raise ValueError(f"{self.name}: {self.secret} needs keepass_db and keepass_entry")
+            raise ValueError(_("{name}: {secret} needs keepass_db and keepass_entry").format(
+                name=self.name, secret=self.secret))
 
     @property
     def image_path(self) -> Path | None:
@@ -132,13 +139,16 @@ class CertProfile:
         known = {f.name for f in fields(cls)} - {"name"}
         unknown = set(d) - known
         if unknown:
-            raise ValueError(f"{name}: unknown keys {sorted(unknown)}")
+            raise ValueError(_("{name}: unknown keys {keys}").format(
+                name=name, keys=sorted(unknown)))
         defaults = cls(name=name)
         for key, value in d.items():
             expected = type(getattr(defaults, key))
             if not isinstance(value, expected) or (expected is str and isinstance(value, bool)):
-                kind = "true or false" if expected is bool else "a string"
-                raise ValueError(f"{name}: {key} must be {kind}, not {value!r}")
+                msg = (_("{name}: {key} must be true or false, not {value!r}")
+                       if expected is bool else
+                       _("{name}: {key} must be a string, not {value!r}"))
+                raise ValueError(msg.format(name=name, key=key, value=value))
         profile = cls(name=name, **d)
         profile.validate()  # e.g. a hand-edited secret = "foo"
         return profile
@@ -157,11 +167,11 @@ class Config:
         if not name:
             if len(self.certs) == 1:
                 return next(iter(self.certs.values()))
-            raise KeyError("no certificate given and no default configured")
+            raise KeyError(_("no certificate given and no default configured"))
         try:
             return self.certs[name]
         except KeyError:
-            raise KeyError(f"unknown certificate {name!r}") from None
+            raise KeyError(_("unknown certificate {name!r}").format(name=name)) from None
 
     def put(self, profile: CertProfile) -> None:
         profile.validate()
@@ -212,15 +222,17 @@ def load_config(path: Path | None = None) -> Config:
     }
     unknown = set(data) - {"default", "trust", "language", "certs"}
     if unknown:
-        raise ValueError(f"{path}: unknown keys {sorted(unknown)}")
+        raise ValueError(_("{path}: unknown keys {keys}").format(path=path, keys=sorted(unknown)))
     default, trust = data.get("default", ""), data.get("trust", [])
     if not isinstance(default, str) or (default and default not in certs):
-        raise ValueError(f"{path}: default {default!r} is not a certificate profile")
+        raise ValueError(_("{path}: default {default!r} is not a certificate profile").format(
+            path=path, default=default))
     if not (isinstance(trust, list) and all(isinstance(t, str) for t in trust)):
-        raise ValueError(f"{path}: trust must be a list of file names")
+        raise ValueError(_("{path}: trust must be a list of file names").format(path=path))
     language = data.get("language", "")
     if language not in ("", *LANGUAGES):
-        raise ValueError(f"{path}: language must be one of {', '.join(LANGUAGES)}")
+        raise ValueError(_("{path}: language must be one of {languages}").format(
+            path=path, languages=", ".join(LANGUAGES)))
     return Config(certs=certs, default=default, trust=list(trust), language=language,
                   path=path)
 
