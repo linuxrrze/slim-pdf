@@ -204,6 +204,8 @@ def test_sign_no_image_no_text(work, blank_pdf, tmp_path, prompts):
     (["--page", "1", "--at", "1,1"], "--at needs --width"),
     (["--page", "1", "--box", "50,50,10,10"], "x1 < x2"),
     (["--field", "Applicant", "--page", "1", "--box", "1,1,9,9"], "already exists"),
+    (["--page", "1"], "--page needs --box or --at"),
+    (["--page", "1", "--box", "1,1,90,90", "--width", "50"], "--width only applies to --at"),
 ])
 def test_sign_errors_before_prompt(work, form_pdf, tmp_path, monkeypatch, capsys,
                                    extra, message):
@@ -299,3 +301,9 @@ def test_malformed_pdf_is_an_error_not_a_traceback(cfg_path, blank_pdf, tmp_path
         argv += ["-o", str(tmp_path / "p{n}.pdf")]
     assert run(*argv) == 1
     assert capsys.readouterr().err.startswith("error: cannot read the PDF: ")
+
+
+def test_sign_box_and_at_exclusive(work, blank_pdf, capsys):
+    with pytest.raises(SystemExit):
+        run("sign", blank_pdf, "--page", "1", "--box", "1,1,90,90", "--at", "1,1")
+    assert "not allowed with argument" in capsys.readouterr().err

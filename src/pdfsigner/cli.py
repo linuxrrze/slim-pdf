@@ -257,6 +257,10 @@ def cmd_sign(cfg: Config, args) -> int:
     dst = src if args.in_place else Path(args.output or src.with_name(f"{src.stem}-signed.pdf"))
 
     page = box = None
+    if args.page is not None and not (args.box or args.at):
+        raise SigningError("--page needs --box or --at (an existing field is chosen with --field)")
+    if args.width is not None and not args.at:
+        raise SigningError("--width only applies to --at")
     if args.box or args.at:
         if args.page is None:
             raise SigningError("--box/--at need --page")
@@ -495,9 +499,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-c", "--cert", help="certificate profile (default: configured default)")
     p.add_argument("-f", "--field", help="existing field to sign, or name for the new field")
     p.add_argument("-p", "--page", type=int, help="page for a new field (1-based)")
-    p.add_argument("--box", type=lambda s: _floats(s, 4), help="x1,y1,x2,y2 in points")
-    p.add_argument("--at", type=lambda s: _floats(s, 2),
-                   help="x,y of lower-left corner; height follows the image aspect ratio")
+    where = p.add_mutually_exclusive_group()
+    where.add_argument("--box", type=lambda s: _floats(s, 4), help="x1,y1,x2,y2 in points")
+    where.add_argument("--at", type=lambda s: _floats(s, 2),
+                       help="x,y of lower-left corner; height follows the image aspect ratio")
     p.add_argument("--width", type=float, help="width in points (with --at)")
     p.add_argument("--no-image", action="store_true")
     p.add_argument("--no-text", action="store_true")
