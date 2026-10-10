@@ -12,7 +12,7 @@ pdfsigner implements.
 | `prompt` | ✅ | `.p12` file | – | Default. Nothing is stored. |
 | `keyring` (Secret Service / KWallet, macOS Keychain, Windows Credential Manager) | ✅ | `.p12` file | no | On Linux, **KeePassXC can be the Secret Service provider** (see below). |
 | `keepass` (pykeepass, `.kdbx`) | ✅ | **no** (`.p12` as attachment) | yes | Works without KeePassXC running. No YubiKey challenge-response. |
-| `keepassxc-cli` subprocess | ❌ (easy to add) | no | yes | Supports `--yubikey` challenge-response, unlike pykeepass. |
+| `keepassxc` (`keepassxc-cli` subprocess) | ✅ | **no** (`.p12` as attachment) | yes | Supports YubiKey challenge-response, unlike pykeepass. Needs KeePassXC installed. |
 | KeePassXC browser protocol | ❌ (medium effort) | no | no | Native-messaging protocol, built around URL lookups. |
 | PKCS#11 token (YubiKey PIV, Nitrokey, smartcard) | ✅ (tested with SoftHSM, not yet with hardware) | **key can't be exported** | – | Strongest option. The PIN can come from any of the sources above. |
 
@@ -45,7 +45,8 @@ Integration*, enable it, and pick a group to expose in the database settings.
   encrypted with that passphrase.
 
 KeePassXC has no Secret Service on Windows or macOS. There, use a `keepass`
-profile (section 2) to keep using your KeePass database.
+or `keepassxc` profile (sections 2 and 3) to keep using your KeePass
+database.
 
 ## 2. KeePass database directly (`secret = "keepass"`)
 
@@ -73,17 +74,35 @@ Trade-offs:
   pykeepass.** If you need it, use the `keepassxc-cli` variant below.
 * It works while KeePassXC is closed, and also on machines without KeePassXC.
 
-## 3. `keepassxc-cli` (not implemented)
+## 3. `keepassxc-cli` (`secret = "keepassxc"`)
+
+The same as option 2, but the database is opened by KeePassXC's own
+command-line tool, so KeePassXC's unlock methods work, in particular
+**YubiKey challenge-response**:
 
 ```bash
-keepassxc-cli show -s -a Password ~/Passwords.kdbx "Certificates/FAU S/MIME"
-keepassxc-cli attachment-export --stdout ~/Passwords.kdbx "Certificates/FAU S/MIME" fau.p12
+pdfsigner certs add vault-yk --secret keepassxc --keepass-db ~/Passwords.kdbx \
+    --keepass-entry "Certificates/FAU S/MIME" --keepass-attachment fau-smime.p12 \
+    --keepass-yubikey 2
 ```
 
-It behaves the same as option 2, but it inherits KeePassXC's unlock features
-(`--yubikey slot`, `--key-file`). The master password goes to the
-subprocess's stdin. It would be about 40 lines as another `secret` source.
-Worth adding if a YubiKey protects the database.
+* pdfsigner asks for the master password once and hands it to
+  `keepassxc-cli` on stdin (twice: once for the passphrase, once for the
+  attachment). With a YubiKey, touch it when it blinks.
+* `--keepass-yubikey` takes KeePassXC's `slot[:serial]` syntax, e.g. `2` or
+  `2:7370001`. `--keepass-keyfile` works as well.
+* Entries are paths from the database root (`Group/Sub/Title`); unlike
+  option 2, a bare title only finds entries in the root group.
+* The attachment is passed back through a named pipe, so it never touches
+  the disk. On Windows, which has no named pipes for this, it goes to a
+  private temporary directory that is deleted right away (the `.p12` itself
+  is still encrypted with its passphrase). `attachment-export --stdout` isn't
+  used because it corrupts binary files.
+* `keepassxc-cli` is found on the `PATH`, in the default install location
+  (`/Applications/KeePassXC.app/…` on macOS, `C:\Program Files\KeePassXC\`
+  on Windows), or via `$PDFSIGNER_KEEPASSXC_CLI`.
+* It is slower than option 2 (two process starts, each deriving the database
+  key).
 
 ## 4. KeePassXC browser protocol (not implemented)
 
@@ -116,8 +135,8 @@ pdfsigner certs add token --pkcs11-lib /usr/lib/x86_64-linux-gnu/opensc-pkcs11.s
 A GÉANT/DFN S/MIME certificate obtained as a `.p12` can be imported into PIV
 slot 9c, for example with `ykman piv keys import` and `ykman piv
 certificates import`. Then you can delete the `.p12`, or keep it in KeePass
-as a backup. The PIN source is independent (`prompt`, `keyring` or
-`keepass`).
+as a backup. The PIN source is independent (`prompt`, `keyring`,
+`keepass` or `keepassxc`).
 
 Install with `pip install 'pdfsigner[pkcs11]'`.
 

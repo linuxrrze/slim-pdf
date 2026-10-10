@@ -8,6 +8,8 @@ Sources (``CertProfile.secret``):
 * ``keepass`` - open a .kdbx file with pykeepass. The entry's password is the
                 passphrase/PIN; optionally an attachment holds the .p12 itself,
                 so the key never lies around unencrypted on disk.
+* ``keepassxc`` - same, but through KeePassXC's ``keepassxc-cli``. Slower,
+                but supports YubiKey challenge-response on the database.
 * ``none``    - no secret.
 
 See docs/secret-storage.md for the trade-offs.
@@ -15,8 +17,15 @@ See docs/secret-storage.md for the trade-offs.
 
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from .config import CertProfile, expand
 
@@ -57,6 +66,8 @@ def resolve_credentials(profile: CertProfile, ask: AskFn) -> Credentials:
             return Credentials(secret=secret)
         case "keepass":
             return _from_keepass(profile, ask)
+        case "keepassxc":
+            return _from_keepassxc_cli(profile, ask)
         case other:
             raise SecretError(f"unknown secret source {other!r}")
 
@@ -154,3 +165,100 @@ def find_keepass_entry(kp, spec: str):
         if entry is not None:
             return entry
     return kp.find_entries(title=spec, first=True)
+
+
+# --- keepassxc-cli -------------------------------------------------------------
+
+KEEPASSXC_CLI_CANDIDATES = {
+    "darwin": ["/Applications/KeePassXC.app/Contents/MacOS/keepassxc-cli"],
+    "win32": [r"C:\Program Files\KeePassXC\keepassxc-cli.exe"],
+}
+CLI_TIMEOUT = 120  # seconds; leaves time to touch a YubiKey
+
+
+def keepassxc_cli() -> str:
+    """Path of keepassxc-cli: $PDFSIGNER_KEEPASSXC_CLI, PATH, or the default install."""
+    env = os.environ.get("PDFSIGNER_KEEPASSXC_CLI")
+    if env:
+        return env
+    found = shutil.which("keepassxc-cli")
+    if found:
+        return found
+    for p in KEEPASSXC_CLI_CANDIDATES.get(sys.platform, []):
+        if Path(p).exists():
+            return p
+    raise SecretError("keepassxc-cli not found (install KeePassXC, or set "
+                      "PDFSIGNER_KEEPASSXC_CLI to its path)")
+
+
+def _cli_error(db: Path, stderr: str) -> SecretError:
+    msg = stderr.strip().splitlines()
+    # With -q a wrong password produces no message at all.
+    if not msg or "Invalid credentials" in stderr:
+        return SecretError(f"wrong master password, key file or YubiKey for {db}")
+    return SecretError(f"keepassxc-cli: {msg[-1]}")
+
+
+def _from_keepassxc_cli(profile: CertProfile, ask: AskFn) -> Credentials:
+    cli = keepassxc_cli()
+    db = expand(profile.keepass_db)
+    if not db.is_file():
+        raise SecretError(f"KeePass database not found: {db}")
+    opts = ["-q"]
+    if profile.keepass_keyfile:
+        opts += ["-k", str(expand(profile.keepass_keyfile))]
+    if profile.keepass_yubikey:
+        opts += ["-y", profile.keepass_yubikey]
+    entry = profile.keepass_entry
+    entry = entry if entry.startswith("/") else "/" + entry
+    hint = " (then touch your YubiKey)" if profile.keepass_yubikey else ""
+    master = _ask(ask, f"KeePass master password for {db.name}{hint}")
+    stdin = (master + "\n").encode()
+
+    r = subprocess.run([cli, "show", *opts, "-a", "Password", str(db), entry],
+                       input=stdin, capture_output=True, timeout=CLI_TIMEOUT)
+    if r.returncode != 0:
+        raise _cli_error(db, r.stderr.decode(errors="replace"))
+    # keepassxc-cli prints the attribute followed by a newline
+    creds = Credentials(secret=r.stdout.decode().removesuffix("\n").removesuffix("\r") or None)
+
+    if profile.keepass_attachment:
+        creds.pkcs12_data = _export_attachment(
+            cli, opts, db, entry, profile.keepass_attachment, stdin)
+    return creds
+
+
+def _export_attachment(cli, opts, db, entry, name, stdin) -> bytes:
+    """Export an attachment byte-exactly.
+
+    ``attachment-export --stdout`` writes the data as text and mangles binary
+    files, so it goes to a named pipe instead (never touching the disk), or,
+    on Windows, to a file in a private temporary directory.
+    """
+    with tempfile.TemporaryDirectory(prefix="pdfsigner-") as tmp:
+        target = Path(tmp) / "attachment"
+        argv = [cli, "attachment-export", *opts, str(db), entry, name, str(target)]
+        if not hasattr(os, "mkfifo"):
+            r = subprocess.run(argv, input=stdin, capture_output=True, timeout=CLI_TIMEOUT)
+            if r.returncode != 0:
+                raise _cli_error(db, r.stderr.decode(errors="replace"))
+            return target.read_bytes()
+
+        os.mkfifo(target, 0o600)
+        result: dict = {}
+
+        def reader():
+            with open(target, "rb") as f:  # blocks until keepassxc-cli opens it
+                result["data"] = f.read()
+
+        t = threading.Thread(target=reader, daemon=True)
+        t.start()
+        r = subprocess.run(argv, input=stdin, capture_output=True, timeout=CLI_TIMEOUT)
+        if t.is_alive():
+            t.join(0.5)
+        if t.is_alive():  # the writer never opened the pipe: release the reader
+            os.close(os.open(target, os.O_WRONLY | os.O_NONBLOCK))
+            t.join(5)
+        if r.returncode != 0:
+            raise _cli_error(db, r.stderr.decode(errors="replace"))
+        return result.get("data", b"")

@@ -28,15 +28,23 @@ from PySide6.QtWidgets import (
 )
 
 from .. import secretstore
-from ..config import CERT_TYPES, PKCS11_EXAMPLE, SECRET_SOURCES, CertProfile, Config
+from ..config import (
+    CERT_TYPES,
+    KEEPASS_SOURCES,
+    PKCS11_EXAMPLE,
+    SECRET_SOURCES,
+    CertProfile,
+    Config,
+)
 from ..signing import SigningError, describe_signer, open_signer
 from .dialogs import ask_secret
 from .document import signature_pixmap
 
 SECRET_LABELS = {
     "prompt": "Ask every time",
-    "keyring": "OS keyring (Secret Service / KWallet / KeePassXC)",
+    "keyring": "OS keyring",
     "keepass": "KeePass database (.kdbx)",
+    "keepassxc": "KeePassXC (keepassxc-cli, YubiKey)",
     "none": "No passphrase",
 }
 
@@ -159,6 +167,8 @@ class CertManagerDialog(QDialog):
             ("Entry", line("keepass_entry", "Group/Title")),
             ("Attachment", line("keepass_attachment", "optional: .p12 stored on the entry")),
         ]
+        self.yubikey_row = line("keepass_yubikey", "optional: slot[:serial], e.g. 2")
+        self.kp_widgets.append(("YubiKey", self.yubikey_row))
         for label, w in self.kp_widgets:
             f.addRow(label, w)
         self._secret_form = f
@@ -285,7 +295,8 @@ class CertManagerDialog(QDialog):
         source = self.secret_combo.currentData()
         self.keyring_btn.setVisible(source == "keyring")
         for _, w in self.kp_widgets:
-            self._secret_form.setRowVisible(w, source == "keepass")
+            self._secret_form.setRowVisible(w, source in KEEPASS_SOURCES)
+        self._secret_form.setRowVisible(self.yubikey_row, source == "keepassxc")
 
     def _update_preview(self) -> None:
         path = self.e["image"].text().strip()

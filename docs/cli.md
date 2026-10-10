@@ -61,7 +61,7 @@ saved to ~/.config/pdfsigner/config.toml
 | `--reason`, `--location`, `--contact` | Stored in the signature; shown by PDF viewers. |
 | `--timestamp-url URL` | RFC 3161 timestamp server, e.g. `http://timestamp.digicert.com`. |
 | `--ltv yes\|no` | Embed the certificate chain and revocation info (LTV), see below. |
-| `--secret SOURCE` | `prompt` (default), `keyring`, `keepass` or `none`. See [secret-storage.md](secret-storage.md). |
+| `--secret SOURCE` | `prompt` (default), `keyring`, `keepass`, `keepassxc` or `none`. See [secret-storage.md](secret-storage.md). |
 | `--default` | Make this the default profile. |
 
 ### List, inspect and test
@@ -178,6 +178,23 @@ Common Name: Alice Example
 
 `--keepass-keyfile FILE` adds a key file. Entry paths are `Group/Sub/Title`.
 A title may itself contain `/`.
+
+If the database is protected with a YubiKey, use `--secret keepassxc`
+instead: the same options, but the database is opened by KeePassXC's
+`keepassxc-cli` (KeePassXC must be installed). `--keepass-yubikey SLOT`
+selects the YubiKey slot (`slot[:serial]`):
+
+```console
+$ pdfsigner certs add vault-yk --secret keepassxc --keepass-db ~/Passwords.kdbx \
+      --keepass-entry "Certificates/FAU S/MIME" --keepass-attachment fau-smime.p12 \
+      --keepass-yubikey 2
+$ pdfsigner certs test vault-yk
+```
+
+The prompt then reads *KeePass master password for Passwords.kdbx (then
+touch your YubiKey)*.
+
+See [secret-storage.md](secret-storage.md#3-keepassxc-cli-secret--keepassxc) for details.
 
 ### Smartcard / token (PKCS#11)
 
@@ -482,6 +499,6 @@ key_label = "SIGN key"
 All keys: `type`, `path`, `pkcs11_lib`, `token_label`, `key_label`,
 `cert_label`, `image`, `stamp_text`, `reason`, `location`, `contact_info`,
 `timestamp_url`, `ltv`, `secret`, `keepass_db`, `keepass_keyfile`, `keepass_entry`,
-`keepass_attachment`. Unknown keys are rejected, so typos don't go
+`keepass_attachment`, `keepass_yubikey`. Unknown keys are rejected, so typos don't go
 unnoticed. The file is written with mode `0600` and **never contains
 secrets**.

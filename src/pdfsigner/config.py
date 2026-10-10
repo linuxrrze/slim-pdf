@@ -23,8 +23,10 @@ CERT_TYPES = ("pkcs12", "pkcs11")
 #   keyring - OS keyring: Secret Service / KWallet on Linux (KeePassXC can serve
 #             this), Keychain on macOS, Credential Manager on Windows
 #   keepass - read from a .kdbx database via pykeepass
+#   keepassxc - read via KeePassXC's keepassxc-cli (supports YubiKey challenge-response)
 #   none    - no secret needed (unencrypted PKCS#12, PIN pad readers)
-SECRET_SOURCES = ("prompt", "keyring", "keepass", "none")
+SECRET_SOURCES = ("prompt", "keyring", "keepass", "keepassxc", "none")
+KEEPASS_SOURCES = ("keepass", "keepassxc")
 
 DEFAULT_STAMP_TEXT = "Digitally signed by %(signer)s\n%(ts)s"
 
@@ -69,6 +71,7 @@ class CertProfile:
     keepass_keyfile: str = ""
     keepass_entry: str = ""  # "Group/Sub/Title" or just "Title"
     keepass_attachment: str = ""  # attachment filename holding the .p12
+    keepass_yubikey: str = ""  # keepassxc only: YubiKey "slot[:serial]", e.g. "2"
 
     def validate(self) -> None:
         if not self.name:
@@ -79,14 +82,17 @@ class CertProfile:
             raise ValueError(f"{self.name}: unknown secret source {self.secret!r}")
         if self.type == "pkcs12" and not (self.path or self.keepass_attachment):
             raise ValueError(f"{self.name}: pkcs12 needs a path or a KeePass attachment")
-        if self.keepass_attachment and self.secret != "keepass":
-            raise ValueError(f"{self.name}: keepass_attachment requires secret = 'keepass'")
+        if self.keepass_attachment and self.secret not in KEEPASS_SOURCES:
+            raise ValueError(f"{self.name}: keepass_attachment requires secret = "
+                             "'keepass' or 'keepassxc'")
+        if self.keepass_yubikey and self.secret != "keepassxc":
+            raise ValueError(f"{self.name}: keepass_yubikey requires secret = 'keepassxc'")
         if self.type == "pkcs11" and not self.pkcs11_lib:
             raise ValueError(f"{self.name}: pkcs11 needs pkcs11_lib")
         if not isinstance(self.ltv, bool):
             raise ValueError(f"{self.name}: ltv must be true or false")
-        if self.secret == "keepass" and not (self.keepass_db and self.keepass_entry):
-            raise ValueError(f"{self.name}: keepass needs keepass_db and keepass_entry")
+        if self.secret in KEEPASS_SOURCES and not (self.keepass_db and self.keepass_entry):
+            raise ValueError(f"{self.name}: {self.secret} needs keepass_db and keepass_entry")
 
     @property
     def image_path(self) -> Path | None:

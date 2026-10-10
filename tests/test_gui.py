@@ -662,3 +662,15 @@ def test_dialog_pdf_image_preview(dialog, tmp_path):
     bad = tmp_path / "bad.pdf"
     bad.write_bytes(b"nope")
     dialog.e["image"].setText(str(bad))  # no crash, just no preview
+
+
+def test_dialog_keepassxc_rows(dialog):
+    combo = dialog.secret_combo
+    form = dialog._secret_form
+    combo.setCurrentIndex(combo.findData("keepass"))
+    assert form.isRowVisible(dialog.e["keepass_db"].parentWidget())
+    assert not form.isRowVisible(dialog.yubikey_row)
+    combo.setCurrentIndex(combo.findData("keepassxc"))
+    assert form.isRowVisible(dialog.yubikey_row)
+    combo.setCurrentIndex(combo.findData("prompt"))
+    assert not form.isRowVisible(dialog.yubikey_row)

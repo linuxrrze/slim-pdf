@@ -14,8 +14,9 @@ share the same certificate profiles.
 * **Multiple certificate profiles:** PKCS#12 files or PKCS#11 tokens, each
   with its own image, stamp text, reason, location and timestamp server.
 * **Secrets** come from a prompt, the OS keyring (including KeePassXC via
-  Secret Service), or a KeePass database. The `.p12` can live inside KeePass
-  as an attachment. See [docs/secret-storage.md](docs/secret-storage.md).
+  Secret Service), or a KeePass database (directly, or via `keepassxc-cli` for
+  YubiKey-protected databases). The `.p12` can live inside KeePass as an
+  attachment. See [docs/secret-storage.md](docs/secret-storage.md).
 * **Long-term validation** (`ltv = true`): certificate chain and revocation
   info are embedded (PAdES B-LT, or B-LTA with a timestamp server).
 * Signature images can be PNG/JPEG or **PDF (vector)**.
@@ -122,6 +123,7 @@ pytest --cov=pdfsigner       # ~200 tests, ~95 % line coverage
 | `test_pkcs11_softhsm.py` | Signing with a real PKCS#11 token (SoftHSM 2): token + PKCS#12 chain, wrong PIN, unknown token/key/module. Skipped if SoftHSM isn't installed. |
 | `test_ltv.py` | LTV against a local test CA serving a CRL: data is embedded and verifiable offline with revocation checks *required*; B-LTA with a document timestamp; refuses untrusted, revoked and unreachable cases. |
 | `test_validation.py` | Verdicts valid/untrusted/invalid, trust roots from options and config, tampered bytes, disallowed later changes, encrypted PDFs, `verify` exit codes. |
+| `test_keepassxc.py` | `keepassxc-cli` source against the real binary (binary-exact attachments via named pipe and temp file, key files, wrong password, missing entry/attachment) and a fake CLI (argument protocol, YubiKey option, no hang when the CLI fails). |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |
 | `test_gui.py`, `test_gui_coords.py` | Click to place, drag, resize with fixed aspect ratio (handle and Ctrl+wheel), clamping, page navigation, prepared fields, signing twice, error dialogs, encrypted PDFs, certificate manager. Screen-to-PDF mapping for all rotations. |
@@ -139,5 +141,3 @@ Screenshots are regenerated with
 * The Windows certificate store and the macOS Keychain can't be used as key
   sources (pyHanko has no backend for them), so certificates must be exported
   as `.p12`.
-* There is no `keepassxc-cli` secret source, which would allow YubiKey
-  challenge-response on the database (see docs).

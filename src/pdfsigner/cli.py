@@ -71,6 +71,7 @@ PROFILE_OPTS = {
     "--keepass-keyfile": ("keepass_keyfile", "KeePass key file"),
     "--keepass-entry": ("keepass_entry", "entry as Group/Title or Title"),
     "--keepass-attachment": ("keepass_attachment", "attachment name holding the .p12"),
+    "--keepass-yubikey": ("keepass_yubikey", "YubiKey slot[:serial] for the database (keepassxc only)"),
 }
 
 
