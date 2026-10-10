@@ -35,6 +35,7 @@ from ..config import (
     SECRET_SOURCES,
     CertProfile,
     Config,
+    new_profile,
 )
 from ..i18n import N_, _
 from ..signing import SigningError, describe_signer, open_signer
@@ -278,7 +279,7 @@ class CertManagerDialog(QDialog):
             return
         if self._current:
             self._store_form()
-        self.config.certs[name] = CertProfile(name=name)
+        self.config.certs[name] = new_profile(name)
         if not self.config.default:
             self.config.default = name
         self._current = name

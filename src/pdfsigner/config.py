@@ -17,7 +17,7 @@ from pathlib import Path
 import tomli_w
 from platformdirs import user_config_dir
 
-from .i18n import LANGUAGES, _
+from .i18n import LANGUAGES, N_, _
 
 CERT_TYPES = ("pkcs12", "pkcs11", "system")
 
@@ -31,7 +31,9 @@ CERT_TYPES = ("pkcs12", "pkcs11", "system")
 SECRET_SOURCES = ("prompt", "keyring", "keepass", "keepassxc", "none")
 KEEPASS_SOURCES = ("keepass", "keepassxc")
 
-DEFAULT_STAMP_TEXT = "Digitally signed by %(signer)s\n%(ts)s"
+# The stored default stays English, so existing profiles keep their stamp;
+# new profiles start with the text in the current language (new_profile()).
+DEFAULT_STAMP_TEXT = N_("Digitally signed by %(signer)s\n%(ts)s")
 
 # Where OpenSC installs its PKCS#11 module; shown as an example in CLI help and GUI.
 PKCS11_EXAMPLE = {
@@ -152,6 +154,11 @@ class CertProfile:
         profile = cls(name=name, **d)
         profile.validate()  # e.g. a hand-edited secret = "foo"
         return profile
+
+
+def new_profile(name: str) -> CertProfile:
+    """A fresh profile whose stamp text is in the current language."""
+    return CertProfile(name=name, stamp_text=_(DEFAULT_STAMP_TEXT))
 
 
 @dataclass

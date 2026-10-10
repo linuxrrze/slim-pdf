@@ -13,7 +13,15 @@ from pyhanko.pdf_utils.misc import PdfError
 from pypdf.errors import PyPdfError
 
 from . import i18n, pages, secretstore
-from .config import CERT_TYPES, PKCS11_EXAMPLE, SECRET_SOURCES, CertProfile, Config, load_config
+from .config import (
+    CERT_TYPES,
+    PKCS11_EXAMPLE,
+    SECRET_SOURCES,
+    CertProfile,
+    Config,
+    load_config,
+    new_profile,
+)
 from .i18n import N_, _, ngettext
 from .secretstore import Cancelled, SecretError, resolve_credentials
 from .signing import (
@@ -180,7 +188,7 @@ def cmd_certs_add(cfg: Config, args) -> int:
         print(_("certificate {name} exists, use 'certs edit'").format(name=repr(args.name)),
               file=sys.stderr)
         return 1
-    profile = _apply_profile_opts(CertProfile(name=args.name), args)
+    profile = _apply_profile_opts(new_profile(args.name), args)
     cfg.put(profile)
     if args.default:
         cfg.default = profile.name

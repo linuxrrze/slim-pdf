@@ -99,3 +99,101 @@ def test_set_language_switches_and_falls_back():
     assert i18n._("no such message") == "no such message"
     i18n.set_language("fr")
     assert i18n.current() == "en"
+
+
+# --- German output ----------------------------------------------------------------------
+
+
+@pytest.fixture
+def german(monkeypatch):
+    monkeypatch.setenv("PDFSIGNER_LANG", "de")
+    i18n.set_language("de")
+
+
+def test_cli_help_and_errors_in_german(german, cfg_path, tmp_path, capsys):
+    from pdfsigner import cli
+
+    with pytest.raises(SystemExit):
+        cli.main(["sign", "--help"])
+    out = capsys.readouterr().out
+    assert out.startswith("Aufruf: pdfsigner sign")
+    assert "Optionen:" in out and "diese Hilfe anzeigen und beenden" in out
+    assert cli.main(["fields", str(tmp_path / "missing.pdf")]) == 1
+    assert capsys.readouterr().err.startswith("Fehler: ")
+    with pytest.raises(SystemExit):
+        cli.main(["rotate"])
+    assert "Fehler: die folgenden Argumente sind erforderlich" in capsys.readouterr().err
+
+
+def test_cli_verify_in_german(german, profile, form_pdf, tmp_path, cfg_path, capsys):
+    from pdfsigner import cli
+
+    from conftest import sign_with
+
+    signed = tmp_path / "s.pdf"
+    sign_with(profile, form_pdf, signed, field_name="Applicant")
+    assert cli.main(["verify", str(signed)]) == 4
+    out = capsys.readouterr().out
+    assert out.startswith("Applicant: NICHT VERTRAUENSWÜRDIG")
+    assert "Unterzeichner:" in out and "signer:" not in out
+
+
+def test_language_from_config_for_cli(cfg_path, monkeypatch, capsys):
+    from pdfsigner import cli
+
+    monkeypatch.delenv("PDFSIGNER_LANG")
+    Config(path=cfg_path, language="de").save()
+    assert cli.main(["certs", "list"]) == 0
+    assert capsys.readouterr().out.startswith("keine Zertifikate konfiguriert")
+
+
+def test_new_profiles_get_the_stamp_text_in_the_current_language(german, cfg_path, p12):
+    from pdfsigner import cli
+    from pdfsigner.config import DEFAULT_STAMP_TEXT
+
+    assert cli.main(["certs", "add", "w", "--p12", str(p12[0])]) == 0
+    saved = load_config(cfg_path).certs["w"]
+    assert saved.stamp_text == "Digital signiert von %(signer)s\n%(ts)s"
+    assert DEFAULT_STAMP_TEXT.startswith("Digitally signed")  # stored default unchanged
+
+
+def test_gui_in_german(german, qapp_de):
+    from PySide6.QtWidgets import QDialogButtonBox
+
+    from pdfsigner.gui import app as gui_app
+    from pdfsigner.gui.pagetools import SplitDialog
+
+    win = gui_app.MainWindow(Config())
+    dlg = None
+    try:
+        assert win.sign_btn.text() == "Signieren…"
+        assert win.save_as_act.text() == "Speichern unter…"
+        # Qt's own strings come from its German catalog
+        dlg = SplitDialog(3, Path("doc.pdf"))
+        box = dlg.findChild(QDialogButtonBox)
+        assert box.button(QDialogButtonBox.Cancel).text().replace("&", "") == "Abbrechen"
+        # page tools wrap to a second toolbar row when they don't fit
+        win.resize(700, 600)
+        win._arrange_toolbars()
+        assert win.toolBarBreak(win.pages_toolbar)
+        win.resize(2400, 600)
+        win._arrange_toolbars()
+        assert not win.toolBarBreak(win.pages_toolbar)
+    finally:
+        win.close()
+        from shiboken6 import delete
+
+        delete(win)  # not after the QApplication at exit
+        if dlg is not None:
+            delete(dlg)
+
+
+@pytest.fixture
+def qapp_de():
+    QtWidgets = pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
+    from pdfsigner.gui.app import setup_language
+
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    assert setup_language(app, None) == "de"
+    yield app
+    setup_language(app, "en")

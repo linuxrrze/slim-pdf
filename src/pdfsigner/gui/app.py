@@ -120,6 +120,7 @@ class MainWindow(QMainWindow):
         tb = QToolBar(_("Main"))
         tb.setMovable(False)
         self.addToolBar(tb)
+        self.main_toolbar = tb
 
         open_act = QAction(_("Open…"), self, shortcut=QKeySequence.Open, triggered=self.open_dialog)
         tb.addAction(open_act)
@@ -149,6 +150,7 @@ class MainWindow(QMainWindow):
         tb = QToolBar(_("Pages"))
         tb.setMovable(False)
         self.addToolBar(tb)
+        self.pages_toolbar = tb
 
         def act(text, slot, shortcut=None, tip=""):
             a = QAction(text, self, triggered=slot)
@@ -547,6 +549,21 @@ class MainWindow(QMainWindow):
         if answer == QMessageBox.Save:
             return self.save()
         return answer == QMessageBox.Discard
+
+    def _arrange_toolbars(self) -> None:
+        """Page tools go to a second row when both toolbars don't fit
+        (longer labels in German, narrow windows)."""
+        need = (self.main_toolbar.sizeHint().width()
+                + self.pages_toolbar.sizeHint().width() + 16)
+        wrapped = self.toolBarBreak(self.pages_toolbar)
+        if need > self.width() and not wrapped:
+            self.insertToolBarBreak(self.pages_toolbar)
+        elif need <= self.width() and wrapped:
+            self.removeToolBarBreak(self.pages_toolbar)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._arrange_toolbars()
 
     def closeEvent(self, event) -> None:
         if self._maybe_save():

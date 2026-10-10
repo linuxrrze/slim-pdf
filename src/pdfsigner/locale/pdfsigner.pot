@@ -4,3 +4,2237 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#: src/pdfsigner/_macstore.py
+msgid "unknown error"
+msgstr ""
+
+#: src/pdfsigner/_macstore.py
+msgid "macOS keychain"
+msgstr ""
+
+#: src/pdfsigner/_macstore.py
+#, python-brace-format
+msgid "keychain search failed (OSStatus {status})"
+msgstr ""
+
+#: src/pdfsigner/_macstore.py
+#, python-brace-format
+msgid "unsupported algorithm {mechanism}/{digest}"
+msgstr ""
+
+#: src/pdfsigner/_macstore.py
+#, python-brace-format
+msgid "cannot access the private key (OSStatus {status})"
+msgstr ""
+
+#: src/pdfsigner/_macstore.py
+msgid "cancelled in the keychain dialog"
+msgstr ""
+
+#: src/pdfsigner/_macstore.py
+#, python-brace-format
+msgid "keychain signing failed: {error}"
+msgstr ""
+
+#: src/pdfsigner/_winstore.py
+msgid "cancelled in the Windows PIN/consent dialog"
+msgstr ""
+
+#: src/pdfsigner/_winstore.py
+msgid "Windows certificate store (CurrentUser\\My)"
+msgstr ""
+
+#: src/pdfsigner/_winstore.py
+#, python-brace-format
+msgid "cannot open the certificate store: {error}"
+msgstr ""
+
+#: src/pdfsigner/_winstore.py
+#, python-brace-format
+msgid "accessing the private key failed: {error}"
+msgstr ""
+
+#: src/pdfsigner/_winstore.py
+msgid "cannot access the private key"
+msgstr ""
+
+#: src/pdfsigner/_winstore.py
+#, python-brace-format
+msgid "unsupported digest {digest}"
+msgstr ""
+
+#: src/pdfsigner/_winstore.py
+#, python-brace-format
+msgid "signing failed: {error}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid ""
+"Command line interface.\n"
+"\n"
+"    pdfsigner certs list|show|add|edit|remove|default|set-secret|test|system|pkcs11\n"
+"    pdfsigner fields FILE\n"
+"    pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]\n"
+"    pdfsigner verify FILE\n"
+"    pdfsigner rotate|crop FILE [--pages SPEC] ...\n"
+"    pdfsigner split FILE [--every N | --part SPEC ...]\n"
+"    pdfsigner merge -o OUT FILE[@SPEC] ...\n"
+"    pdfsigner gui [FILE]\n"
+"\n"
+"Pages are 1-based on the command line; coordinates are PDF points with the\n"
+"origin at the bottom-left of the (unrotated) page.\n"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "usage: "
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "%(heading)s:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "positional arguments"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "options"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "subcommands"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "show this help message and exit"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid ""
+"%(prog)s: error: %(message)s\n"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "argument %(argument_name)s: %(message)s"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "the following arguments are required: %s"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "one of the arguments %s is required"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "not allowed with argument %s"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "unrecognized arguments: %s"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "ambiguous option: %(option)s could match %(matches)s"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "ignored explicit argument %r"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "expected one argument"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "expected at most one argument"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "expected at least one argument"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "expected %s argument"
+msgid_plural "expected %s arguments"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+msgid "invalid %(type)s value: %(value)r"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "invalid choice: %(value)r (choose from %(choices)s)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "invalid choice: %(value)r, maybe you meant %(closest)r? (choose from %(choices)s)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "unknown parser %(parser_name)r (choices: %(choices)s)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "can't open '%(filename)s': %(error)s"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "{prompt}: "
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "expected {n} comma-separated number"
+msgid_plural "expected {n} comma-separated numbers"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "one of {types}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "path to the .p12/.pfx file"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "PKCS#11 module, e.g. {example}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "PKCS#11 token label"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "PKCS#11 key label"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "PKCS#11 key ID in hex, e.g. 02 for YubiKey PIV slot 9c"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "PKCS#11 certificate label (default: the certificate with the key's ID)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "Windows/macOS certificate store: thumbprint or part of the subject (see 'certs system')"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "signature image (PNG with transparency recommended)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "text on the stamp; %%(signer)s and %%(ts)s are replaced; '' for none"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "signature reason"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "signature location"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "contact info"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "RFC 3161 timestamp server URL"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "embed chain and revocation info for long-term validation: yes/no"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "where the passphrase/PIN comes from: {sources}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "KeePass .kdbx file"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "KeePass key file"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "entry as Group/Title or Title"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "attachment name holding the .p12"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "YubiKey slot[:serial] for the database (keepassxc only)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "make this the default certificate"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "no certificates configured ({path})"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "certificate {name} exists, use 'certs edit'"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "saved to {path}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "PIN for '{name}'"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "Passphrase for '{name}'"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "stored in keyring ({backend})"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "note: profile uses secret={secret}; switch with 'pdfsigner certs edit {name} --secret keyring'"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "no certificates with a private key in the {store}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "PIN for token '{label}'"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "no token found ({module})"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "(no objects)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "(private keys are usually only listed after logging in: --login)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "profile: pdfsigner certs add NAME --pkcs11-lib {module} --key-id ID{token}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "{n} page, certified ({name})"
+msgid_plural "{n} pages, certified ({name})"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "{n} page"
+msgid_plural "{n} pages"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+msgid "no signature fields"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#: src/pdfsigner/gui/app.py
+msgid "signed"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#: src/pdfsigner/gui/app.py
+msgid "LOCKED"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#: src/pdfsigner/gui/app.py
+msgid "empty"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#: src/pdfsigner/gui/pagetools.py
+#, python-brace-format
+msgid "page {page}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "page ?"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#: src/pdfsigner/gui/app.py
+msgid "invisible"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "--page needs --box or --at (an existing field is chosen with --field)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "--width only applies to --at"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "--box/--at need --page"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "--at needs --width"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "--at keeps the image aspect ratio but the profile has no image"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "no such file: {path}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "PDF password"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "signed field {name} -> {path}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "document has no signatures"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "VALID"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "UNTRUSTED"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "INVALID"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "signer:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "issuer:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "time:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "covers:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "ltv:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "reason:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "location:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "problem:"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "{field}: {status}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "{time} (timestamp)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "{time} (signer's clock)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "validation data embedded"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "PDF password for {file}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "--margins takes 1, 2 or 4 values (top,right,bottom,left)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "rotating pages would invalidate the signature(s) {names}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "rotated {n} page by {angle}° -> {path}"
+msgid_plural "rotated {n} pages by {angle}° -> {path}"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "cropping pages would invalidate the signature(s) {names}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "cropped {n} page -> {path}"
+msgid_plural "cropped {n} pages -> {path}"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "splitting would remove the signature(s) {names}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "-o needs {n} in the name, e.g. part-{n}.pdf"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "{path}  ({n} page)"
+msgid_plural "{path}  ({n} pages)"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "merging {file} would remove the signature(s) {names}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "{n} file"
+msgid_plural "{n} files"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "merged {files} ({pages}) -> {path}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "the GUI needs PySide6: pip install 'pdfsigner[gui]' ({error})"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "config file (default: $PDFSIGNER_CONFIG, else config.toml in the platform's config folder, see docs/cli.md)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "show library warnings"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "manage certificate profiles"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "also delete it from the keyring"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "store passphrase/PIN in the OS keyring"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "list certificates in the Windows/macOS store"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "list the keys and certificates on a PKCS#11 token"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "only this token"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "ask for the PIN to list the private keys too"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "unlock the certificate and print its subject"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "list signature fields"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "sign a PDF"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "output file (default: <name>-signed.pdf)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "overwrite the input"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "certificate profile (default: configured default)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "existing field to sign, or name for the new field"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "page for a new field (1-based)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "x1,y1,x2,y2 in points"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "x,y of lower-left corner; height follows the image aspect ratio"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "width in points (with --at)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "sign even if this invalidates an existing signature"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "check the signatures in a PDF"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "extra trusted root certificate (PEM/DER); repeatable"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "don't trust the built-in Mozilla roots, only --trust and the config's trust list"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "fetch revocation info (OCSP/CRL) from the network"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "print pyHanko's full report"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "output file (default: <name>-{suffix}.pdf)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "pages, e.g. 1-3,5,8- or odd/even (default: all)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "go ahead even if this invalidates existing signatures"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "rotate pages"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "clockwise degrees"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "crop pages (sets the visible area)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "points to cut off as seen on screen: ALL, VERTICAL,HORIZONTAL or TOP,RIGHT,BOTTOM,LEFT"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "x1,y1,x2,y2 in PDF points"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "show the whole page again"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "split into several PDFs"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "pages per file (default: 1)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "pages of one output file; repeat for more files"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "output names with {n} for the part number (default: <name>-part{n}.pdf)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "split even signed documents (the signatures are removed)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "combine PDFs (or some of their pages)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "output file"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "merge even signed documents (the signatures are removed)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "start the GUI"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "cancelled"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "error: {message} (use --force to continue anyway)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "error: {message} (use --force to sign anyway)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "error: {message}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "error: cannot read the PDF: {error}"
+msgstr ""
+
+#: src/pdfsigner/config.py
+msgid ""
+"Digitally signed by %(signer)s\n"
+"%(ts)s"
+msgstr ""
+
+#: src/pdfsigner/config.py
+msgid "certificate profile needs a name"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: unknown type {type!r}"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: unknown secret source {secret!r}"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: pkcs12 needs a path or a KeePass attachment"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: keepass_attachment requires secret = 'keepass' or 'keepassxc'"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: keepass_yubikey requires secret = 'keepassxc'"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: system needs system_cert (thumbprint or subject)"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: pkcs11 needs pkcs11_lib"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: key_id must be hex, e.g. 02"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: ltv must be true or false"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: {secret} needs keepass_db and keepass_entry"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: unknown keys {keys}"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: {key} must be true or false, not {value!r}"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{name}: {key} must be a string, not {value!r}"
+msgstr ""
+
+#: src/pdfsigner/config.py
+msgid "no certificate given and no default configured"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "unknown certificate {name!r}"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{path}: unknown keys {keys}"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{path}: default {default!r} is not a certificate profile"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{path}: trust must be a list of file names"
+msgstr ""
+
+#: src/pdfsigner/config.py
+#, python-brace-format
+msgid "{path}: language must be one of {languages}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Click on the page to place a signature, drag to move, drag the corner or Ctrl+wheel to resize. Click a dashed field to sign a prepared field."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "valid"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "untrusted"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "invalid"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "{n} valid"
+msgid_plural "{n} valid"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "{n} untrusted"
+msgid_plural "{n} untrusted"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "{n} invalid"
+msgid_plural "{n} invalid"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+msgid "PDF Signer"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Main"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Open…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "‹ Prev"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Next ›"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Fit"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Clear placement"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Pages"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Save"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Save the edited document"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Save as…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Undo"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Rotate left"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Rotate the selected pages (or the current page) counter-clockwise"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Rotate right"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Rotate the selected pages (or the current page) clockwise"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Crop"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Drag a rectangle on the page to crop to it"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Uncrop"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Show the whole page again"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Split…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/pagetools.py
+msgid "Merge…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Certificate"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Manage…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Signature image"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Text"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Target"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Sign…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Signature fields"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Signatures"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Double-click for the full validation report"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Sign"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Open PDF"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "PDF"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/pagetools.py
+#, python-brace-format
+msgid "Password for {name}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Open"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Cannot open {path}:\n"
+"{error}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid " / {count} "
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Document is certified ({name}). {message}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "{modified}{name} – PDF Signer"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Existing signatures"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "{message} (not saved yet)"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Undone"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Rotating pages will invalidate the signature(s) {names}.\n"
+"\n"
+"Edit pages before signing. Continue anyway?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Rotated page {page}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Rotated {n} page"
+msgid_plural "Rotated {n} pages"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Drag a rectangle around the area to keep. Esc cancels."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "This page ({page})"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "All pages"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Selected pages ({count})"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Apply to:"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Cropping pages will invalidate the signature(s) {names}.\n"
+"\n"
+"Edit pages before signing. Continue anyway?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Cropped page {page}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Cropped {n} page"
+msgid_plural "Cropped {n} pages"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Uncropping pages will invalidate the signature(s) {names}.\n"
+"\n"
+"Edit pages before signing. Continue anyway?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Uncropped page {page}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Uncropped {n} page"
+msgid_plural "Uncropped {n} pages"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Split"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "The split files will not contain the signature(s) {names}. Continue?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Wrote {n} file:\n"
+"{paths}"
+msgid_plural ""
+"Wrote {n} files:\n"
+"{paths}"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+msgid "(current document)"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Merge"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Signatures in {names} will not be carried over. Continue?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Save merged PDF"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Saved {name}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Save PDF as"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Unsaved changes"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Save the changes to {name}?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Validation failed: {error}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"{field}: {status}\n"
+"   {signer}, {when}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"{field}: {status}\n"
+"   {signer}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "{n} signature: {counts}"
+msgid_plural "{n} signatures: {counts}"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Signature '{name}'"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Signer: {signer}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Issuer: {issuer}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Covers: {coverage}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Problem: {problem}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "p. {page}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"{name}\n"
+"   {state}, {where}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Prepared field '{name}'"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"New signature on page {page}\n"
+"at {x:.0f}, {y:.0f} pt, {width:.0f} × {height:.0f} pt"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Click on the page to place a signature, or pick an empty field."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Cannot sign"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Existing signature will break"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Signing will invalidate an existing signature:\n"
+"{reason}\n"
+"\n"
+"Sign anyway?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Save signed PDF"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Signing failed"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Signed '{field}' → {file}. You can add further signatures."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Cannot read the configuration:\n"
+"{error}"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Ask every time"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "OS keyring"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "KeePass database (.kdbx)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "KeePassXC (keepassxc-cli, YubiKey)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "No passphrase"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "system"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Certificates"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Add"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#: src/pdfsigner/gui/pagetools.py
+msgid "Remove"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Make default"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Type"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "PKCS#12 file"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "File"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "~/certs/me.p12 (empty if stored in KeePass)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "All files"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "System certificate store (Windows / macOS)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "thumbprint or part of the subject"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Choose…"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "PKCS#11 token / smartcard"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Module"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "PKCS#11 module"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "PKCS#11 modules"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Token label"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Key label"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Key ID"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "hex, e.g. 02 (YubiKey PIV slot 9c)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Cert label"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "default: the certificate with the key's ID"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Show token contents…"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "List the keys and certificates on the token and pick one"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Appearance"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "PNG with transparent background, or PDF (vector)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Images"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "empty = image only; %(signer)s, %(ts)s are replaced"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Stamp text"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Signature details"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Reason"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Location"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Contact"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Timestamp URL"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "optional RFC 3161 TSA"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Embed validation data (LTV)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Embed the certificate chain and revocation info so the signature can still be verified after the certificate expires (PAdES B-LT; B-LTA with a timestamp server). Needs network access and a trusted chain while signing."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Passphrase / PIN"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Source"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Store passphrase in keyring…"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "KeePass file"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "KeePass database"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Key file"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "optional"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Entry"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Group/Title"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Attachment"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "optional: .p12 stored on the entry"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "optional: slot[:serial], e.g. 2"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Test: unlock and show certificate"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "Config file: {path}"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "{name}  (default)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "New certificate"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Name:"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "{name!r} already exists"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "Remove {name!r}?"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "(no image)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "(cannot load image)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "Passphrase/PIN for '{name}'"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Keyring"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid ""
+"Could not store secret:\n"
+"{error}"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "Stored in {backend}"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "System certificate store"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "No certificates with a private key in the {store}."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Certificate:"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "PKCS#11 token"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Enter the PKCS#11 module first."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "PIN for token '{label}' (Cancel: certificates only)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "No keys or certificates with an ID found."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "No token found."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Key / certificate:"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Test failed"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Certificate OK"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Invalid certificate"
+msgstr ""
+
+#: src/pdfsigner/gui/dialogs.py
+msgid "Password"
+msgstr ""
+
+#: src/pdfsigner/gui/dialogs.py
+#, python-brace-format
+msgid "{prompt}:"
+msgstr ""
+
+#: src/pdfsigner/gui/document.py
+msgid "coordinate conversion failed"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Split PDF"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Every"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Parts"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "e.g. 1-3; 4-6; 7-  (one file per part)"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "page(s) per file"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Folder"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "File names"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+#, python-brace-format
+msgid "{count} page"
+msgid_plural "{count} pages"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Output folder"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "enter at least one part"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+#, python-brace-format
+msgid "the file name needs {n} for the part number"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Merge PDFs"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "all pages, or e.g. 1-3,5"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Add files…"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Up"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Down"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Pages of the selected file:"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+#, python-brace-format
+msgid "{name}  ({count} page; {pages})"
+msgid_plural "{name}  ({count} pages; {pages})"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "all pages"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+#, python-brace-format
+msgid "wrong password for {name}"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "Add PDFs"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+#, python-brace-format
+msgid "{name}: {error}"
+msgstr ""
+
+#: src/pdfsigner/gui/pagetools.py
+msgid "add at least one file"
+msgstr ""
+
+#: src/pdfsigner/gui/pageview.py
+msgid "Signature"
+msgstr ""
+
+#: src/pdfsigner/gui/pageview.py
+#, python-brace-format
+msgid "{name}: signed"
+msgstr ""
+
+#: src/pdfsigner/gui/pageview.py
+#, python-brace-format
+msgid "{name}: locked"
+msgstr ""
+
+#: src/pdfsigner/gui/pageview.py
+#, python-brace-format
+msgid "{name}: empty - click to sign this field"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+#, python-brace-format
+msgid "invalid page spec {spec!r} (use e.g. 1-3,5,8-)"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+#, python-brace-format
+msgid "pages {pages} out of range (document has {count})"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+#: src/pdfsigner/signing.py
+msgid "PDF is encrypted, a password is required"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+msgid "no pages selected"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+#, python-brace-format
+msgid "page {page} out of range (document has {count})"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+msgid "rotation must be a multiple of 90 degrees"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+msgid "give exactly one of box, margins or reset"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+#, python-brace-format
+msgid "crop leaves nothing of page {page}"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+msgid "PDF is encrypted, a (correct) password is required"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+msgid "--every needs a positive number"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+msgid "nothing to merge"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "PIN for certificate '{name}'"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "passphrase for certificate '{name}'"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "no PIN for '{name}' in the keyring (store it with: pdfsigner certs set-secret {name})"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "no passphrase for '{name}' in the keyring (store it with: pdfsigner certs set-secret {name})"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "unknown secret source {source!r}"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+msgid "keyring support needs the 'keyring' package"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+msgid "no OS keyring available (on Linux: start a Secret Service provider such as GNOME Keyring, KWallet or KeePassXC, or use another secret source)"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "keyring: {error}"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+msgid "KeePass support needs the 'pykeepass' package"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "KeePass master password for {database}"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "wrong master password or key file for {path}"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "KeePass database not found: {path}"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "entry {entry!r} not found in {database}"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "attachment {attachment!r} not found on entry {entry!r}"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+msgid "keepassxc-cli not found (install KeePassXC, or set PDFSIGNER_KEEPASSXC_CLI to its path)"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "wrong master password, key file or YubiKey for {path}"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "keepassxc-cli: {error}"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "KeePass master password for {database} (then touch your YubiKey)"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "field {name!r} is locked by an existing signature"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "the document is certified, and a new visible signature field breaks the certification; sign an existing empty field ({fields}) instead"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+msgid "the document is certified, and a new visible signature field breaks the certification; sign invisibly instead"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "cannot read the PDF: {error}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+msgid "wrong PDF password"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "cannot read signature PDF {path}: {error}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "signature image not found: {path}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "'{label}' (ID {id})"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#: src/pdfsigner/validation.py
+msgid "none"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "no private key with label {label!r} and ID {id!r} on the token (keys: {keys})"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "no private key with label {label!r} on the token (keys: {keys})"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "no private key with ID {id!r} on the token (keys: {keys})"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "no private key on the token (keys: {keys})"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "{n} private key matches, set key_label or key_id (keys: {keys})"
+msgid_plural "{n} private keys match, set key_label or key_id (keys: {keys})"
+msgstr[0] ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "no certificate with label {label!r} on the token, set cert_label (certificates: {certs})"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "{n} certificate with label {label!r} on the token, set cert_label (certificates: {certs})"
+msgid_plural "{n} certificates with label {label!r} on the token, set cert_label (certificates: {certs})"
+msgstr[0] ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "no certificate for key {key} on the token, set cert_label (certificates: {certs})"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "{n} certificate for key {key} on the token, set cert_label (certificates: {certs})"
+msgid_plural "{n} certificates for key {key} on the token, set cert_label (certificates: {certs})"
+msgstr[0] ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "cannot read {path}: {error}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "cannot load PKCS#12 for '{name}' (wrong passphrase?): {error}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#: src/pdfsigner/tokens.py
+msgid "PKCS#11 support needs 'pyhanko[pkcs11]'"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "wrong PIN for token of '{name}'"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "the key of '{name}' needs the PIN for every signature, but none was given"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "PKCS#11 ({module}): the token refused to sign: {error}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#: src/pdfsigner/tokens.py
+#, python-brace-format
+msgid "PKCS#11 ({module}): {error}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "unknown certificate type {type!r}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid ""
+"{subject}\n"
+"  issuer:  {issuer}\n"
+"  valid:   {start} .. {end}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+msgid "document is certified with 'no changes allowed'; it cannot be signed again"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "field {name!r} already exists; omit the box"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "field {name!r} is already signed"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "page out of range (document has {count})"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+msgid "box needs x1 < x2 and y1 < y2"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "signing would invalidate an existing signature: {reason}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "LTV: cannot validate the signer's certificate chain: {error}. LTV needs a chain to a trusted root (add it with `trust` in the config) and reachable revocation info (OCSP/CRL)"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "cannot write {path}: {error} (is it open in another program?)"
+msgstr ""
+
+#: src/pdfsigner/systemstore.py
+#, python-brace-format
+msgid "{thumbprint}  {subject}  (valid until {date})"
+msgstr ""
+
+#: src/pdfsigner/systemstore.py
+msgid "[smartcard]"
+msgstr ""
+
+#: src/pdfsigner/systemstore.py
+msgid "the system certificate store is only supported on Windows and macOS"
+msgstr ""
+
+#: src/pdfsigner/systemstore.py
+msgid "no certificate selected (system_cert is empty)"
+msgstr ""
+
+#: src/pdfsigner/systemstore.py
+#, python-brace-format
+msgid "no certificate with a private key matches {spec!r} (see: pdfsigner certs system)"
+msgstr ""
+
+#: src/pdfsigner/systemstore.py
+#, python-brace-format
+msgid ""
+"{spec!r} matches several certificates; use the thumbprint:\n"
+"  {listing}"
+msgstr ""
+
+#: src/pdfsigner/systemstore.py
+#, python-brace-format
+msgid "unsupported signature mechanism {mechanism!r} for the system store (RSA PKCS#1 v1.5 and ECDSA are supported)"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+#, python-brace-format
+msgid "ID {id}"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+#, python-brace-format
+msgid "key '{label}' ({type}, PIN for every signature)"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+#, python-brace-format
+msgid "key '{label}' ({type})"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+#, python-brace-format
+msgid "certificate '{label}': {subject}, expires {date}"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+#, python-brace-format
+msgid "token '{label}' ({manufacturer} {model}, serial {serial})"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+msgid "(unreadable)"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+#, python-brace-format
+msgid "wrong PIN for token '{label}'"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+#, python-brace-format
+msgid "PKCS#11 ({module}), token '{label}': {error}"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "validation data and timestamps only"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "form filling and signatures"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "annotations, form filling and signatures"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "changes the signature doesn't allow"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+#, python-brace-format
+msgid "cannot load trust root {path}: {error}"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "entire document"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+#, python-brace-format
+msgid "revision {revision} of {revisions}; later changes: {later}"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "only part of the document"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the signed content was modified"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the signature value doesn't match the certificate"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the signer's certificate is revoked"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the document was changed in a way this signature doesn't allow"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the signature doesn't cover a complete revision"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the certificate doesn't chain to a trusted root"
+msgstr ""
