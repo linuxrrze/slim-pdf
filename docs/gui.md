@@ -97,7 +97,9 @@ is opened:
   lacks are downloaded once and cached (see
   [cli.md](cli.md#check-signatures-pdfsigner-verify));
 * red: **invalid**, i.e. the content was modified or changed in a way the
-  signature doesn't allow.
+  signature doesn't allow;
+* grey: **not checked**, a signature in a legacy format pdfsigner can't
+  validate (e.g. `adbe.x509.rsa_sha1`); signer and time are still shown.
 
 A signature followed by allowed changes, such as filled-in form fields or
 further signatures, gets a third line *then changed (allowed)*: what you

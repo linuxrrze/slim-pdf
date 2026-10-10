@@ -443,7 +443,7 @@ EXIT_UNTRUSTED, EXIT_INVALID = 4, 5
 
 
 def cmd_verify(cfg: Config, args) -> int:
-    from .validation import INVALID, UNTRUSTED, VALID, verify_pdf
+    from .validation import INVALID, UNSUPPORTED, UNTRUSTED, VALID, verify_pdf
 
     src = Path(args.file)
     if not src.is_file():
@@ -454,7 +454,8 @@ def cmd_verify(cfg: Config, args) -> int:
                          password=pdf_password, fetch_issuers=not args.no_download)
     if not reports:
         raise SigningError(_("document has no signatures"))
-    status_text = {VALID: _("VALID"), UNTRUSTED: _("UNTRUSTED"), INVALID: _("INVALID")}
+    status_text = {VALID: _("VALID"), UNTRUSTED: _("UNTRUSTED"), INVALID: _("INVALID"),
+                   UNSUPPORTED: _("NOT CHECKED")}
     labels = {"signer": _("signer:"), "issuer": _("issuer:"), "time": _("time:"),
               "covers": _("covers:"), "ltv": _("ltv:"), "reason": _("reason:"),
               "location": _("location:"), "problem": _("problem:")}
@@ -491,7 +492,7 @@ def cmd_verify(cfg: Config, args) -> int:
     statuses = {r.status for r in reports}
     if INVALID in statuses:
         return EXIT_INVALID
-    return EXIT_UNTRUSTED if UNTRUSTED in statuses else 0
+    return EXIT_UNTRUSTED if statuses & {UNTRUSTED, UNSUPPORTED} else 0
 
 
 # --- page tools ----------------------------------------------------------------

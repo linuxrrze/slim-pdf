@@ -890,6 +890,20 @@ def test_signatures_panel(window, form_pdf, save_to, p12, tmp_path, monkeypatch)
     assert "Bottom line" in details
 
 
+def test_signatures_panel_unsupported_format(window, form_pdf, tmp_path):
+    """A legacy adbe.x509.rsa_sha1 signature is listed, greyed, not dropped."""
+    from conftest import sign_with
+
+    out = tmp_path / "s.pdf"
+    sign_with(window.config.certs["alice"], form_pdf, out, field_name="Applicant")
+    out.write_bytes(out.read_bytes().replace(b"/ETSI.CAdES.detached", b"/adbe.x509.rsa_sha1 "))
+    window.open(out)
+    [row] = sig_rows(window)
+    assert row.startswith("Applicant: not checked\n")
+    assert "1 signature: 1 not checked" in window.statusBar().currentMessage()
+    assert "adbe.x509.rsa_sha1" in window.sigs_list.item(0).toolTip()
+
+
 def test_lists_escape_text_from_the_pdf(window, blank_pdf, tmp_path):
     """A field name with a line break can't fake an extra (green) row."""
     from conftest import sign_with

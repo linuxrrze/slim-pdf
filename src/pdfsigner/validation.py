@@ -1,6 +1,6 @@
 """Check the signatures in a PDF.
 
-Each signature gets one of three verdicts:
+Each signature gets one of these verdicts:
 
 * ``valid``: intact, cryptographically sound, the signer's certificate chains
   to a trusted root, and later changes are allowed ones.
@@ -9,6 +9,9 @@ Each signature gets one of three verdicts:
 * ``invalid``: the document was changed in a way the signature doesn't allow,
   or the signature itself is broken or revoked (revocation is only known
   from data embedded in the PDF, or with ``online=True``).
+* ``unsupported``: a signature format pyHanko can't check, such as the
+  legacy ``adbe.x509.rsa_sha1`` (PKCS#1 with SHA-1, deprecated in PDF 2.0).
+  It is listed (signer, time, coverage) rather than silently skipped.
 
 Trust comes from Mozilla's root list (via ``certifi``, the same on every
 platform) plus any extra roots (``--trust`` or ``trust = [...]`` in the
@@ -27,6 +30,8 @@ from pathlib import Path
 import certifi
 from asn1crypto import pem, x509
 from pyhanko.keys import load_cert_from_pemder
+from pyhanko.pdf_utils import generic
+from pyhanko.sign.fields import SigSeedSubFilter, enumerate_sig_fields
 from pyhanko.sign.diff_analysis import ModificationLevel
 from pyhanko.sign.validation.errors import SignatureValidationError
 from pyhanko.sign.validation import validate_pdf_signature
@@ -42,6 +47,19 @@ from .signing import SigningError, _open_reader
 log = logging.getLogger(__name__)
 
 VALID, UNTRUSTED, INVALID = "valid", "untrusted", "invalid"
+UNSUPPORTED = "unsupported"
+SUPPORTED_SUBFILTERS = {s.value for s in SigSeedSubFilter}
+
+
+class _QuietSkip(logging.Filter):
+    """pyHanko logs a traceback for every signature it can't handle; those are
+    reported as UNSUPPORTED instead."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not record.getMessage().startswith("Encountered signature with unsupported")
+
+
+logging.getLogger("pyhanko.sign.validation.pdf_embedded").addFilter(_QuietSkip())
 
 _LATER = {
     ModificationLevel.NONE: N_("none"),
@@ -55,7 +73,7 @@ _LATER = {
 @dataclass
 class SignatureReport:
     field: str
-    status: str  # VALID / UNTRUSTED / INVALID
+    status: str  # VALID / UNTRUSTED / INVALID / UNSUPPORTED
     signer: str = ""
     issuer: str = ""
     signed_at: datetime | None = None  # as claimed by the signer
@@ -213,10 +231,65 @@ def report(sig, st, revision: int, revisions: int) -> SignatureReport:
     )
 
 
+def _signed_end(sig_object) -> int:
+    """Where a signature's byte range ends: older signatures end earlier."""
+    try:
+        br = sig_object["/ByteRange"]
+        return int(br[2]) + int(br[3])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return 0
+
+
+def _first_cert(sig_object) -> x509.Certificate | None:
+    """The signer's certificate of a legacy signature (/Cert: one or a list)."""
+    try:
+        certs = sig_object["/Cert"]
+        der = certs[0] if isinstance(certs, generic.ArrayObject) else certs
+        cert = x509.Certificate.load(bytes(der))
+        cert.native  # noqa: B018 - parses now: garbage raises here
+        return cert
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+
+
+def unsupported_signatures(reader) -> list[tuple[str, generic.DictionaryObject]]:
+    """(field name, signature dictionary) of the signatures in a format
+    pyHanko skips."""
+    found = []
+    for name, value, _ref in enumerate_sig_fields(reader, filled_status=True):
+        sig_object = value.get_object()
+        subfilter = sig_object.get("/SubFilter")
+        if subfilter is not None and str(subfilter) not in SUPPORTED_SUBFILTERS:
+            found.append((name, sig_object))
+    return found
+
+
+def unsupported_report(name: str, sig_object, size: int) -> SignatureReport:
+    subfilter = str(sig_object.get("/SubFilter")).lstrip("/")
+    cert = _first_cert(sig_object)
+    try:
+        signed_at = generic.parse_pdf_date(str(sig_object["/M"]), strict=False)
+    except (KeyError, ValueError, TypeError):
+        signed_at = None
+    if _signed_end(sig_object) == size:
+        coverage = _("entire document")
+    else:
+        coverage = _("an earlier revision; later changes not checked")
+    return SignatureReport(
+        field=name, status=UNSUPPORTED,
+        signer=cert.subject.human_friendly if cert else _str(sig_object, "/Name"),
+        issuer=cert.issuer.human_friendly if cert else "",
+        signed_at=signed_at, coverage=coverage,
+        reason=_str(sig_object, "/Reason"), location=_str(sig_object, "/Location"),
+        problems=[_("the signature uses the format {format}, which pdfsigner cannot check "
+                    "(a legacy format, unlike PAdES/PKCS#7)").format(format=subfilter)])
+
+
 def verify_pdf(path: Path | str | bytes, *, trust=(), system_trust: bool = True,
                online: bool = False, password: str | None = None,
                fetch_issuers: bool = True) -> list[SignatureReport]:
-    """Validate every signature in the document, oldest first. Intermediate
+    """Validate every signature in the document, oldest first; those in a
+    format that can't be checked are reported as UNSUPPORTED. Intermediate
     certificates a signature lacks are downloaded once (``fetch_issuers``)
     and cached, see chain.py."""
     data = path if isinstance(path, bytes) else Path(path).read_bytes()
@@ -227,7 +300,8 @@ def verify_pdf(path: Path | str | bytes, *, trust=(), system_trust: bool = True,
     except NoDSSFoundError:
         dss = None
     revisions = reader.xrefs.total_revisions
-    results = []
+    results = [(_signed_end(obj), unsupported_report(name, obj, len(data)))
+               for name, obj in unsupported_signatures(reader)]
     roots = trust_roots(trust, system_trust=system_trust)
     dss_certs = list(dss.load_certs()) if dss is not None else []
     for sig in sigs:
@@ -241,11 +315,13 @@ def verify_pdf(path: Path | str | bytes, *, trust=(), system_trust: bool = True,
         try:
             st = validate_pdf_signature(sig, vc)
         except SignatureValidationError as e:
-            results.append(SignatureReport(field=sig.field_name, status=INVALID,
-                                           problems=[str(e)]))
+            results.append((_signed_end(sig.sig_object),
+                            SignatureReport(field=sig.field_name, status=INVALID,
+                                            problems=[str(e)])))
             continue
         revision = sig.signed_revision + 1
         rep = report(sig, st, revision, revisions)
         rep.ltv = dss is not None
-        results.append(rep)
-    return results
+        results.append((_signed_end(sig.sig_object), rep))
+    results.sort(key=lambda r: r[0])
+    return [rep for _end, rep in results]

@@ -54,7 +54,7 @@ from .pageview import PageView
 from .pagetools import PagesPanel
 
 STATUS_COLORS = {validation.VALID: "#2e7d32", validation.UNTRUSTED: "#ef8c00",
-                 validation.INVALID: "#c62828"}
+                 validation.INVALID: "#c62828", validation.UNSUPPORTED: "#757575"}
 
 
 def _dot(color: str) -> QIcon:
@@ -79,7 +79,8 @@ PLACE_HINT = N_("Click where the signature should go, or on an empty (dashed) fi
 def _status_text(status: str) -> str:
     """The word shown for a validation status code."""
     return {validation.VALID: _("valid"), validation.UNTRUSTED: _("untrusted"),
-            validation.INVALID: _("invalid")}.get(status, status)
+            validation.INVALID: _("invalid"),
+            validation.UNSUPPORTED: _("not checked")}.get(status, status)
 
 
 def _status_count(status: str, n: int) -> str:
@@ -88,6 +89,8 @@ def _status_count(status: str, n: int) -> str:
         return ngettext("{n} valid", "{n} valid", n).format(n=n)
     if status == validation.UNTRUSTED:
         return ngettext("{n} untrusted", "{n} untrusted", n).format(n=n)
+    if status == validation.UNSUPPORTED:
+        return ngettext("{n} not checked", "{n} not checked", n).format(n=n)
     return ngettext("{n} invalid", "{n} invalid", n).format(n=n)
 
 
@@ -628,7 +631,8 @@ class MainWindow(QMainWindow):
             else:
                 text = _("{field}: {status}\n   {signer}").format(
                     field=printable(r.field), status=_status_text(r.status), signer=signer)
-            if r.changed_later and r.status != validation.INVALID:
+            if r.changed_later and r.status not in (validation.INVALID,
+                                                    validation.UNSUPPORTED):
                 text += "\n   " + _("then changed (allowed): see tooltip")
             item = QListWidgetItem(_dot(STATUS_COLORS[r.status]), text)
             item.setData(Qt.UserRole, r.field)
@@ -637,7 +641,8 @@ class MainWindow(QMainWindow):
         if not self.reports:
             return ""
         counts = {s: sum(r.status == s for r in self.reports)
-                  for s in (validation.VALID, validation.UNTRUSTED, validation.INVALID)}
+                  for s in (validation.VALID, validation.UNTRUSTED, validation.INVALID,
+                            validation.UNSUPPORTED)}
         parts = [_status_count(s, n) for s, n in counts.items() if n]
         n = len(self.reports)
         return ngettext("{n} signature: {counts}", "{n} signatures: {counts}", n).format(

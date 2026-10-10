@@ -644,6 +644,10 @@ msgid "INVALID"
 msgstr "UNGÜLTIG"
 
 #: src/pdfsigner/cli.py
+msgid "NOT CHECKED"
+msgstr "NICHT GEPRÜFT"
+
+#: src/pdfsigner/cli.py
 msgid "signer:"
 msgstr "Unterzeichner:"
 
@@ -1144,6 +1148,10 @@ msgid "invalid"
 msgstr "ungültig"
 
 #: src/pdfsigner/gui/app.py
+msgid "not checked"
+msgstr "nicht geprüft"
+
+#: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid "{n} valid"
 msgid_plural "{n} valid"
@@ -1156,6 +1164,13 @@ msgid "{n} untrusted"
 msgid_plural "{n} untrusted"
 msgstr[0] "{n} nicht vertrauenswürdig"
 msgstr[1] "{n} nicht vertrauenswürdig"
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "{n} not checked"
+msgid_plural "{n} not checked"
+msgstr[0] "{n} nicht geprüft"
+msgstr[1] "{n} nicht geprüft"
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
@@ -2743,3 +2758,12 @@ msgstr "dem Zeitstempeldienst des Inhaltszeitstempels wird nicht vertraut"
 #: src/pdfsigner/validation.py
 msgid "the signature could not be fully validated"
 msgstr "die Signatur konnte nicht vollständig geprüft werden"
+
+#: src/pdfsigner/validation.py
+msgid "an earlier revision; later changes not checked"
+msgstr "eine frühere Revision; spätere Änderungen nicht geprüft"
+
+#: src/pdfsigner/validation.py
+#, python-brace-format
+msgid "the signature uses the format {format}, which pdfsigner cannot check (a legacy format, unlike PAdES/PKCS#7)"
+msgstr "die Signatur verwendet das Format {format}, das pdfsigner nicht prüfen kann (ein veraltetes Format, anders als PAdES/PKCS#7)"

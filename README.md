@@ -27,7 +27,7 @@ share the same certificate profiles.
 * **English and German** (GUI and command line), following the system
   language or `language` in the config.
 * **Verify** signatures (`pdfsigner verify`, and a *Signatures* list in the
-  GUI): valid, untrusted or invalid, with what changed after each signature.
+  GUI): valid, untrusted or invalid (legacy formats: not checked), with what changed after each signature.
 
 ## Install
 
@@ -148,7 +148,7 @@ strings, run `python scripts/i18n.py update`, translate the new entries in
 | `test_chain.py` | Intermediate certificates: found, downloaded via AIA (DER, PEM, PKCS#7) from a local server, cached, embedded when signing; old signatures without the chain validate once it's downloaded. |
 | `test_certinfo.py` | Certificate details, stamp text placeholders and their values, template checks. |
 | `test_ltv.py` | LTV against a local test CA serving a CRL: data is embedded and verifiable offline with revocation checks *required*; B-LTA with a document timestamp; refuses untrusted, revoked and unreachable cases. |
-| `test_validation.py` | Verdicts valid/untrusted/invalid, trust roots from options and config, tampered bytes, disallowed later changes, encrypted PDFs, `verify` exit codes. |
+| `test_validation.py` | Verdicts valid/untrusted/invalid, legacy formats (`adbe.x509.rsa_sha1`) listed as not checked, trust roots from options and config, tampered bytes, disallowed later changes, encrypted PDFs, `verify` exit codes. |
 | `test_keepassxc.py` | `keepassxc-cli` source against the real binary (binary-exact attachments via named pipe and temp file, key files, wrong password, missing entry/attachment) and a fake CLI (argument protocol, YubiKey option, no hang when the CLI fails). |
 | `test_systemstore.py`, `test_systemstore_native.py` | Windows store / macOS keychain: selection by thumbprint or subject, RSA and ECDSA signing through a fake backend; the native backends against a throwaway store (CI on Windows and macOS only). |
 | `test_pages.py` | Page specs; rotate and crop as incremental updates (encryption kept, signatures reported invalid afterwards); crop margins follow the screen on all four rotations; split/merge drop signed fields but keep empty ones; CLI refuses signed input without `--force`. |

@@ -1,15 +1,17 @@
 """Signature validation: pdfsigner.validation and `pdfsigner verify`."""
 
 import io
+import logging
 
 import pytest
+from cryptography.hazmat.primitives import serialization
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-from pyhanko.pdf_utils.generic import NameObject, NumberObject
+from pyhanko.pdf_utils.generic import ByteStringObject, NameObject, NumberObject
 
-from pdfsigner import cli
+from pdfsigner import cli, pages
 from pdfsigner.config import CertProfile, Config
 from pdfsigner.signing import SigningError
-from pdfsigner.validation import INVALID, UNTRUSTED, VALID, verify_pdf
+from pdfsigner.validation import INVALID, UNSUPPORTED, UNTRUSTED, VALID, verify_pdf
 
 from conftest import make_encrypted, sign_with, write_pem
 
@@ -215,3 +217,49 @@ def test_untrusted_timestamp_authority(profile, blank_pdf, alice_pem, tmp_path, 
     assert r.problems == ["the timestamp authority isn't trusted"]
     [r] = verify_pdf(out, trust=[alice_pem, tsa_pem])
     assert r.status == VALID and r.timestamp is not None
+
+
+@pytest.fixture
+def legacy(signed):
+    """The signature turned into a legacy adbe.x509.rsa_sha1 one (same length,
+    so the byte range still fits), which pyHanko skips."""
+    data = signed.read_bytes()
+    assert data.count(b"/ETSI.CAdES.detached") == 1  # PAdES, as pdfsigner signs
+    signed.write_bytes(data.replace(b"/ETSI.CAdES.detached", b"/adbe.x509.rsa_sha1 "))
+    return signed
+
+
+def test_unsupported_format_is_listed_not_skipped(legacy, p12, caplog):
+    with caplog.at_level(logging.WARNING):
+        [r] = verify_pdf(legacy)
+    assert "unsupported SubFilter" not in caplog.text  # reported, not logged
+    assert (r.field, r.status, r.ok) == ("Applicant", UNSUPPORTED, False)
+    assert r.coverage == "entire document" and r.reason == "Test"
+    assert r.signed_at is not None
+    assert "adbe.x509.rsa_sha1, which pdfsigner cannot check" in r.problems[0]
+    # page edits must still warn about it
+    assert pages.signature_names(legacy.read_bytes()) == ["Applicant"]
+
+    # the signer comes from /Cert; a later revision isn't covered
+    w = IncrementalPdfFileWriter(io.BytesIO(legacy.read_bytes()))
+    sig = w.root["/AcroForm"]["/Fields"][0].get_object()["/V"].get_object()
+    sig[NameObject("/Cert")] = ByteStringObject(
+        p12[1].public_bytes(serialization.Encoding.DER))
+    w.update_container(sig)
+    buf = io.BytesIO()
+    w.write(buf)
+    legacy.write_bytes(buf.getvalue())
+    [r] = verify_pdf(legacy)
+    assert "Alice Example" in r.signer and "Alice Example" in r.issuer
+    assert r.coverage.startswith("an earlier revision")
+
+
+def test_unsupported_in_order_with_others(legacy, p12_bob, tmp_path, capsys, cfg_path):
+    bob = CertProfile(name="bob", path=str(p12_bob[0]), secret="none")
+    sign_with(bob, legacy, legacy, field_name="Supervisor")
+    bob_pem = write_pem(p12_bob[1], tmp_path / "bob.pem")
+    first, second = verify_pdf(legacy, trust=[bob_pem])
+    assert (first.field, first.status) == ("Applicant", UNSUPPORTED)
+    assert (second.field, second.status) == ("Supervisor", VALID)
+    assert run("verify", legacy, "--trust", bob_pem) == 4  # not proven valid
+    assert "Applicant: NOT CHECKED" in capsys.readouterr().out

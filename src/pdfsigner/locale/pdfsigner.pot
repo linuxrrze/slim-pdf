@@ -623,6 +623,10 @@ msgid "INVALID"
 msgstr ""
 
 #: src/pdfsigner/cli.py
+msgid "NOT CHECKED"
+msgstr ""
+
+#: src/pdfsigner/cli.py
 msgid "signer:"
 msgstr ""
 
@@ -1116,6 +1120,10 @@ msgid "invalid"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+msgid "not checked"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid "{n} valid"
 msgid_plural "{n} valid"
@@ -1125,6 +1133,12 @@ msgstr[0] ""
 #, python-brace-format
 msgid "{n} untrusted"
 msgid_plural "{n} untrusted"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "{n} not checked"
+msgid_plural "{n} not checked"
 msgstr[0] ""
 
 #: src/pdfsigner/gui/app.py
@@ -2659,4 +2673,13 @@ msgstr ""
 
 #: src/pdfsigner/validation.py
 msgid "the signature could not be fully validated"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "an earlier revision; later changes not checked"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+#, python-brace-format
+msgid "the signature uses the format {format}, which pdfsigner cannot check (a legacy format, unlike PAdES/PKCS#7)"
 msgstr ""

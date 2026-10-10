@@ -511,6 +511,7 @@ Each signature gets one verdict:
 |---|---|---|
 | `VALID` | Intact, the certificate chains to a trusted root, and later changes are allowed ones (form filling, more signatures, validation data). | `0` |
 | `UNTRUSTED` | Everything that can be checked is intact, but trust is missing: a self-signed certificate or a CA that isn't in the trust list, a certificate that wasn't valid at signing time or isn't meant for signatures, revocation status not known yet, or a timestamp from an authority that isn't trusted. The `problem:` line says which. | `4` |
+| `NOT CHECKED` | A signature in a format pdfsigner can't check, such as the legacy `adbe.x509.rsa_sha1` (PKCS#1 with SHA-1, deprecated since PDF 2.0). It is listed with signer, time and coverage, but its validity is unknown. | `4` |
 | `INVALID` | The signed content was modified, the document was changed in a way the signature doesn't allow (e.g. pages rotated after signing), the certificate is revoked, a timestamp is broken, or the signature violates the field's requirements (seed values). | `5` |
 
 The exit code is the worst verdict. A document without signatures is an

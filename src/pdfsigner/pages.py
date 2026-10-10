@@ -21,6 +21,7 @@ from collections.abc import Iterable, Sequence
 from pyhanko.pdf_utils import generic
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.pdf_utils.rw_common import find_inherited_value_in_tree
+from pyhanko.sign.fields import enumerate_sig_fields
 
 from .i18n import _
 from .signing import (
@@ -74,9 +75,10 @@ def page_count(data: bytes, password: str | None = None) -> int:
 
 
 def signature_names(data: bytes, password: str | None = None) -> list[str]:
-    """Names of the signed signature fields (what an edit would invalidate)."""
+    """Names of the signed signature fields (what an edit would invalidate),
+    including signatures in formats pyHanko can't validate."""
     reader = _open_reader(data, password)
-    return [s.field_name for s in reader.embedded_signatures]
+    return [name for name, _value, _ref in enumerate_sig_fields(reader, filled_status=True)]
 
 
 # --- rotate / crop (incremental) ----------------------------------------------------
