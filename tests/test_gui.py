@@ -570,3 +570,57 @@ def test_ctrl_wheel_resizes_signature_and_zooms_page(window, blank_pdf):
     wheel(view, (450, 700), 120)  # over the page: zoom
     assert view.zoom == pytest.approx(zoom * 1.15)
     assert view.placement.size[0] == pytest.approx(w1)
+
+
+# --- signature validation panel ---------------------------------------------------
+
+
+def sig_rows(window):
+    return [window.sigs_list.item(i).text() for i in range(window.sigs_list.count())]
+
+
+def test_signatures_panel(window, form_pdf, save_to, p12, tmp_path, monkeypatch):
+    from conftest import sign_with, write_pem
+
+    window.open(form_pdf)
+    assert sig_rows(window) == []
+
+    out = tmp_path / "s.pdf"
+    sign_with(window.config.certs["alice"], form_pdf, out, field_name="Applicant")
+    window.open(out)
+    [row] = sig_rows(window)
+    assert row.startswith("Applicant: untrusted\n   Alice Example, ")
+    assert "1 signature: 1 untrusted" in window.statusBar().currentMessage()
+
+    window.config.trust = [str(write_pem(p12[1], tmp_path / "alice.pem"))]
+    window.open(out)
+    assert sig_rows(window)[0].startswith("Applicant: valid")
+    assert "1 signature: 1 valid" in window.statusBar().currentMessage()
+
+    shown = []
+    monkeypatch.setattr(gui_app.QMessageBox, "exec",
+                        lambda self: shown.append((self.text(), self.detailedText())))
+    window.view.go_to(0)
+    item = window.sigs_list.item(0)
+    window._signature_clicked(item)
+    assert window.view.page == 1  # the field is on page 2
+    window.show_signature_details(item)
+    [(text, details)] = shown
+    assert "<b>VALID</b>" in text and "Alice Example" in text
+    assert "Bottom line" in details
+
+
+def test_signatures_panel_after_gui_signing(window, form_pdf, save_to):
+    window.open(form_pdf)
+    window.view.select_field("Applicant")
+    window.sign()
+    assert [r.split(":")[0] for r in sig_rows(window)] == ["Applicant"]
+
+
+def test_validation_failure_does_not_block_open(window, form_pdf, monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("broken")
+
+    monkeypatch.setattr(gui_app.validation, "verify_pdf", boom)
+    assert window.open(form_pdf)
+    assert sig_rows(window) == ["Validation failed: broken"]

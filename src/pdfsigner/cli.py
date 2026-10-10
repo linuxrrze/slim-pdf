@@ -3,6 +3,7 @@
     pdfsigner certs list|show|add|edit|remove|default|set-secret|test
     pdfsigner fields FILE
     pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]
+    pdfsigner verify FILE
     pdfsigner gui [FILE]
 
 Pages are 1-based on the command line; coordinates are PDF points with the
@@ -13,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import logging
 import sys
 from dataclasses import fields as dc_fields
 from pathlib import Path
@@ -228,6 +230,48 @@ def inspect_needs_password(path: Path) -> bool:
         return PdfFileReader(f, strict=False).encrypted
 
 
+EXIT_UNTRUSTED, EXIT_INVALID = 4, 5
+
+
+def cmd_verify(cfg: Config, args) -> int:
+    from .validation import INVALID, UNTRUSTED, verify_pdf
+
+    src = Path(args.file)
+    if not src.is_file():
+        raise SigningError(f"no such file: {src}")
+    pdf_password = args.password
+    if pdf_password is None and inspect_needs_password(src):
+        pdf_password = _ask("PDF password")
+    reports = verify_pdf(src, trust=[*cfg.trust, *args.trust],
+                         system_trust=not args.no_system_trust, online=args.online,
+                         password=pdf_password)
+    if not reports:
+        raise SigningError("document has no signatures")
+    for r in reports:
+        print(f"{r.field}: {r.status.upper()}")
+        if r.signer:
+            print(f"  signer:   {r.signer}")
+            print(f"  issuer:   {r.issuer}")
+        if r.timestamp:
+            print(f"  time:     {r.timestamp:%Y-%m-%d %H:%M:%S %z} (timestamp)")
+        elif r.signed_at:
+            print(f"  time:     {r.signed_at:%Y-%m-%d %H:%M:%S %z} (signer's clock)")
+        if r.coverage:
+            print(f"  covers:   {r.coverage}")
+        for label, value in (("reason", r.reason), ("location", r.location)):
+            if value:
+                print(f"  {label + ':':9} {value}")
+        for problem in r.problems:
+            print(f"  problem:  {problem}")
+        if args.details and r.details:
+            print("\n  " + r.details.strip().replace("\n", "\n  "))
+        print()
+    statuses = {r.status for r in reports}
+    if INVALID in statuses:
+        return EXIT_INVALID
+    return EXIT_UNTRUSTED if UNTRUSTED in statuses else 0
+
+
 def cmd_gui(cfg: Config, args) -> int:
     from .gui.app import main as gui_main
 
@@ -242,6 +286,7 @@ def build_parser() -> argparse.ArgumentParser:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", type=Path, help="config file (default: $PDFSIGNER_CONFIG "
                     "or ~/.config/pdfsigner/config.toml)")
+    ap.add_argument("-v", "--verbose", action="store_true", help="show library warnings")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     certs = sub.add_parser("certs", help="manage certificate profiles")
@@ -282,6 +327,18 @@ def build_parser() -> argparse.ArgumentParser:
                    help="sign even if this invalidates an existing signature")
     p.set_defaults(func=cmd_sign)
 
+    p = sub.add_parser("verify", help="check the signatures in a PDF")
+    p.add_argument("file")
+    p.add_argument("--trust", action="append", default=[], metavar="CERT",
+                   help="extra trusted root certificate (PEM/DER); repeatable")
+    p.add_argument("--no-system-trust", action="store_true",
+                   help="trust only --trust and the config's trust list")
+    p.add_argument("--online", action="store_true",
+                   help="fetch revocation info (OCSP/CRL) from the network")
+    p.add_argument("--details", action="store_true", help="print pyHanko's full report")
+    p.add_argument("--password", help="PDF password")
+    p.set_defaults(func=cmd_verify)
+
     p = sub.add_parser("gui", help="start the GUI")
     p.add_argument("file", nargs="?")
     p.set_defaults(func=cmd_gui)
@@ -290,6 +347,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    # pyHanko logs expected situations (e.g. self-signed certificates) as warnings.
+    logging.basicConfig(level=logging.WARNING if args.verbose else logging.ERROR,
+                        format="%(name)s: %(message)s")
     try:
         cfg = load_config(args.config)
         return args.func(cfg, args)

@@ -17,6 +17,8 @@ share the same certificate profiles.
   Secret Service), or a KeePass database. The `.p12` can live inside KeePass
   as an attachment. See [docs/secret-storage.md](docs/secret-storage.md).
 * Stamps are drawn upright on rotated pages (`/Rotate`).
+* **Verify** signatures (`pdfsigner verify`, and a *Signatures* list in the
+  GUI): valid, untrusted or invalid, with what changed after each signature.
 
 ## Install
 
@@ -99,6 +101,7 @@ Quick start:
 pdfsigner fields contract.pdf                        # what can be signed?
 pdfsigner sign contract.pdf --field Applicant        # -> contract-signed.pdf
 pdfsigner sign letter.pdf --page 2 --at 350,80 --width 160
+pdfsigner verify contract-signed.pdf                # valid / untrusted / invalid
 pdfsigner gui contract.pdf
 ```
 
@@ -114,10 +117,11 @@ pytest --cov=pdfsigner       # ~200 tests, ~95 % line coverage
 |---|---|
 | `test_signing.py` | New and prepared fields, chains of 2–3 signers (each validated with pyHanko's diff analysis), certification and FieldMDP locks (Include/Exclude/All) and `--force`, encrypted PDFs, timestamps (dummy TSA), stamp variants. **Visual regressions:** stamp upright on all four page rotations; text never overlapping the image. |
 | `test_pkcs11_softhsm.py` | Signing with a real PKCS#11 token (SoftHSM 2): token + PKCS#12 chain, wrong PIN, unknown token/key/module. Skipped if SoftHSM isn't installed. |
+| `test_validation.py` | Verdicts valid/untrusted/invalid, trust roots from options and config, tampered bytes, disallowed later changes, encrypted PDFs, `verify` exit codes. |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |
 | `test_gui.py`, `test_gui_coords.py` | Click to place, drag, resize with fixed aspect ratio (handle and Ctrl+wheel), clamping, page navigation, prepared fields, signing twice, error dialogs, encrypted PDFs, certificate manager. Screen-to-PDF mapping for all rotations. |
-| `test_docs.py` | Every `pdfsigner …` example in the docs is accepted by the real parser; documented options and config keys match the code; links and screenshots exist. |
+| `test_docs.py` | Every `pdfsigner …` example in the docs is accepted by the real parser; every command and option is documented, and every documented option and config key exists; links and screenshots exist. |
 
 CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and
 Windows with Python 3.11 and 3.13.
@@ -134,8 +138,6 @@ Screenshots are regenerated with
   profile.
 * Signature images are raster only (PNG/JPEG). Vector PDF signatures would
   scale better.
-* There is no validation view in the GUI yet (`pyhanko sign validate` works
-  in the meantime).
 * The Windows certificate store and the macOS Keychain can't be used as key
   sources (pyHanko has no backend for them), so certificates must be exported
   as `.p12`.

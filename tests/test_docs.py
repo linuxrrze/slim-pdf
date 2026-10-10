@@ -73,17 +73,33 @@ def test_documented_config_keys_match_code():
     assert documented == actual
 
 
+def _parser_options() -> tuple[set[str], set[str]]:
+    """(all --options, all subcommand paths like 'certs add') of the CLI."""
+    opts, commands = set(), set()
+    stack = [((), cli.build_parser())]
+    while stack:
+        path, p = stack.pop()
+        for a in p._actions:
+            opts.update(o for o in a.option_strings if o.startswith("--"))
+            if a.__class__.__name__ == "_SubParsersAction":
+                for name, child in a.choices.items():
+                    commands.add(" ".join((*path, name)))
+                    stack.append(((*path, name), child))
+    opts.discard("--help")
+    return opts, commands
+
+
+def test_everything_in_the_parser_is_documented():
+    text = (ROOT / "docs" / "cli.md").read_text()
+    opts, commands = _parser_options()
+    undocumented = {o for o in opts if not re.search(rf"(?<![\w-]){o}(?![\w-])", text)}
+    assert not undocumented
+    missing = {c for c in commands if f"pdfsigner {c}" not in text}
+    assert not missing
+
+
 def test_documented_options_exist():
     """Every --option mentioned in cli.md exists in the parser."""
-    parser_opts = set()
-    sub = cli.build_parser()._subparsers._group_actions[0]
-    stack = list(sub.choices.values())
-    while stack:
-        p = stack.pop()
-        for a in p._actions:
-            parser_opts.update(o for o in a.option_strings if o.startswith("--"))
-            if a.__class__.__name__ == "_SubParsersAction":
-                stack.extend(a.choices.values())
-    parser_opts.add("--config")
+    parser_opts, _ = _parser_options()
     documented = set(re.findall(r"(?<![\w-])(--[a-z][a-z0-9-]+)", (ROOT / "docs" / "cli.md").read_text()))
     assert documented <= parser_opts, documented - parser_opts

@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tests"))
 
-from conftest import draw_signature_image, make_p12  # noqa: E402
+from conftest import draw_signature_image, make_p12, write_pem  # noqa: E402
 from PySide6.QtCore import QMarginsF, QPointF, QRectF, Qt  # noqa: E402
 from PySide6.QtGui import QFont, QPageLayout, QPageSize, QPainter, QPdfWriter, QPen  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
@@ -115,7 +115,7 @@ def main() -> None:
     os.environ["HOME"] = str(tmp)
     (tmp / "certs").mkdir()
 
-    alice_p12, _ = make_p12("Alice Example")
+    alice_p12, alice_cert = make_p12("Alice Example")
     bob_p12, _ = make_p12("Bob Supervisor")
     (tmp / "certs/fau-smime.p12").write_bytes(alice_p12)
     (tmp / "certs/supervisor.p12").write_bytes(bob_p12)
@@ -137,7 +137,9 @@ def main() -> None:
     run_bob = CertProfile(name="Supervisor", path="~/certs/supervisor.p12",
                           image="~/certs/supervisor.png",
                           stamp_text="Approved by %(signer)s\n%(ts)s", secret="prompt")
+    # Trust only Alice, so the Signatures list shows a valid and an untrusted one.
     cfg = Config(certs={"FAU S/MIME": run_alice, "Supervisor": run_bob}, default="FAU S/MIME",
+                 trust=[str(write_pem(alice_cert, tmp / "certs/alice.pem"))],
                  path=tmp / "config.toml")
 
     gui_app.ask_secret = lambda parent, prompt: "secret"

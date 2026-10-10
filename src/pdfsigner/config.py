@@ -107,6 +107,7 @@ class CertProfile:
 class Config:
     certs: dict[str, CertProfile] = field(default_factory=dict)
     default: str = ""
+    trust: list[str] = field(default_factory=list)  # extra trust roots for verify
     path: Path | None = None
 
     def get(self, name: str | None) -> CertProfile:
@@ -137,6 +138,8 @@ class Config:
         data: dict = {}
         if self.default:
             data["default"] = self.default
+        if self.trust:
+            data["trust"] = list(self.trust)
         data["certs"] = {n: p.to_dict() for n, p in self.certs.items()}
         tmp = path.with_suffix(".tmp")
         with open(tmp, "wb") as f:
@@ -163,7 +166,11 @@ def load_config(path: Path | None = None) -> Config:
     certs = {
         name: CertProfile.from_dict(name, d) for name, d in data.get("certs", {}).items()
     }
-    return Config(certs=certs, default=data.get("default", ""), path=path)
+    unknown = set(data) - {"default", "trust", "certs"}
+    if unknown:
+        raise ValueError(f"{path}: unknown keys {sorted(unknown)}")
+    return Config(certs=certs, default=data.get("default", ""),
+                  trust=list(data.get("trust", [])), path=path)
 
 
 def expand(p: str) -> Path:

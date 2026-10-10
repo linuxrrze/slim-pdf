@@ -55,6 +55,10 @@ away, for example with another certificate:
 
 ![Two signatures from two certificates](images/gui-signed.png)
 
+In this example only Alice's certificate is in the trust list, so the
+*Signatures* list shows her signature as valid and the supervisor's as
+untrusted (see [Checking signatures](#checking-signatures)).
+
 If the target field is locked by an earlier signature, pdfsigner warns you
 that signing will invalidate that signature, and you can still go ahead.
 Documents certified as "no changes allowed" can't be signed again; the status
@@ -62,6 +66,21 @@ bar points this out when you open one.
 
 The *Signature image* and *Text* checkboxes switch the stamp to image only or
 text only for the next signature.
+
+## Checking signatures
+
+The *Signatures* list on the right validates every signature when a document
+is opened:
+
+* green: **valid**;
+* orange: **untrusted**, i.e. intact but the certificate doesn't chain to a
+  trusted root (e.g. self-signed);
+* red: **invalid**, i.e. the content was modified or changed in a way the
+  signature doesn't allow.
+
+Click a signature to jump to its page. Double-click it for the full report.
+The tooltip shows what the signature covers. Extra trusted roots come from
+`trust = [...]` in the config file (see [cli.md](cli.md#check-signatures-pdfsigner-verify)).
 
 ## Managing certificates
 

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import html
 import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QGuiApplication, QKeySequence, QPixmap
+from PySide6.QtGui import QAction, QColor, QGuiApplication, QIcon, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -26,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import secretstore
+from .. import secretstore, validation
 from ..config import Config, load_config
 from ..signing import (
     SigningBlocked,
@@ -41,6 +42,22 @@ from .certdialog import CertManagerDialog
 from .dialogs import ask_secret
 from .document import PdfDocument
 from .pageview import PageView
+
+STATUS_COLORS = {validation.VALID: "#2e7d32", validation.UNTRUSTED: "#ef8c00",
+                 validation.INVALID: "#c62828"}
+
+
+def _dot(color: str) -> QIcon:
+    pm = QPixmap(14, 14)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.Antialiasing)
+    p.setBrush(QColor(color))
+    p.setPen(Qt.NoPen)
+    p.drawEllipse(1, 1, 12, 12)
+    p.end()
+    return QIcon(pm)
+
 
 HINT = ("Click on the page to place a signature, drag to move, drag the corner or "
         "Ctrl+wheel to resize. Click a dashed field to sign a prepared field.")
@@ -147,6 +164,15 @@ class MainWindow(QMainWindow):
         self.fields_list.itemClicked.connect(self._field_clicked)
         lay.addWidget(self.fields_list, 1)
 
+        lay.addSpacing(8)
+        lay.addWidget(QLabel("<b>Signatures</b>"))
+        self.sigs_list = QListWidget()
+        self.sigs_list.setToolTip("Double-click for the full validation report")
+        self.sigs_list.itemClicked.connect(self._signature_clicked)
+        self.sigs_list.itemDoubleClicked.connect(self.show_signature_details)
+        lay.addWidget(self.sigs_list, 1)
+        self.reports: list[validation.SignatureReport] = []
+
         dock = QDockWidget("Sign")
         dock.setWidget(panel)
         dock.setFeatures(QDockWidget.DockWidgetMovable)
@@ -219,10 +245,57 @@ class MainWindow(QMainWindow):
         self.page_count.setText(f" / {len(self.doc)} ")
         self._fill_fields()
         self.setWindowTitle(f"{path.name} – PDF Signer")
+        message = self._verify() or HINT
         if info.certification is not None:
-            self.statusBar().showMessage(
-                f"Document is certified ({info.certification.name}). " + HINT)
+            message = f"Document is certified ({info.certification.name}). " + message
+        self.statusBar().showMessage(message)
         return True
+
+    def _verify(self) -> str:
+        """Validate the signatures and fill the list; returns a short summary."""
+        self.sigs_list.clear()
+        self.reports = []
+        try:
+            self.reports = validation.verify_pdf(self.path, trust=self.config.trust,
+                                                 password=self.pdf_password)
+        except Exception as e:  # never block opening a document
+            self.sigs_list.addItem(f"Validation failed: {e}")
+            return ""
+        for r in self.reports:
+            when = r.timestamp or r.signed_at
+            text = f"{r.field}: {r.status}\n   {r.signer.removeprefix('Common Name: ')}"
+            if when:
+                text += f", {when:%Y-%m-%d %H:%M}"
+            item = QListWidgetItem(_dot(STATUS_COLORS[r.status]), text)
+            item.setData(Qt.UserRole, r.field)
+            item.setToolTip("\n".join([r.coverage, *r.problems]))
+            self.sigs_list.addItem(item)
+        if not self.reports:
+            return ""
+        counts = {s: sum(r.status == s for r in self.reports)
+                  for s in (validation.VALID, validation.UNTRUSTED, validation.INVALID)}
+        parts = [f"{n} {s}" for s, n in counts.items() if n]
+        n = len(self.reports)
+        return f"{n} signature{'s' * (n != 1)}: " + ", ".join(parts)
+
+    def _signature_clicked(self, item: QListWidgetItem) -> None:
+        f = self.info.field(item.data(Qt.UserRole)) if self.info else None
+        if f is not None and f.page is not None:
+            self.view.go_to(f.page)
+
+    def show_signature_details(self, item: QListWidgetItem) -> None:
+        r = next((r for r in self.reports if r.field == item.data(Qt.UserRole)), None)
+        if r is None:
+            return
+        box = QMessageBox(self)
+        box.setWindowTitle(f"Signature '{r.field}'")
+        box.setIcon(QMessageBox.Information if r.ok else QMessageBox.Warning)
+        lines = [f"<b>{r.status.upper()}</b>", f"Signer: {r.signer}", f"Issuer: {r.issuer}",
+                 f"Covers: {r.coverage}", *(f"Problem: {p}" for p in r.problems)]
+        lines = [lines[0], *map(html.escape, lines[1:])]
+        box.setText("<br>".join(lines))
+        box.setDetailedText(r.details)
+        box.exec()
 
     def _fill_fields(self) -> None:
         self.fields_list.clear()

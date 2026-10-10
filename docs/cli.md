@@ -1,13 +1,17 @@
 # Command line reference
 
 ```
-pdfsigner [--config FILE] <command> ...
+pdfsigner [--config FILE] [--verbose] <command> ...
 
   certs list | show | add | edit | remove | default | set-secret | test
   fields FILE
   sign FILE [target] [options]
+  verify FILE [--trust CERT]
   gui [FILE]
 ```
+
+`-v`/`--verbose` shows warnings from pyHanko that are hidden by default (for
+example about self-signed certificates).
 
 * **Pages** are 1-based.
 * **Coordinates** are PDF points (1/72 inch), with the origin at the
@@ -23,8 +27,8 @@ pdfsigner [--config FILE] <command> ...
   `` ` `` instead of `\`, and quote with `"…"`. `~` and `$VARS`/`%VARS%` in
   profile paths are expanded on all platforms.
 * **Exit codes:** `0` OK, `1` error, `3` refused because it would invalidate
-  an existing signature (overridable with `--force`), `130` cancelled at a
-  prompt.
+  an existing signature (overridable with `--force`), `4`/`5` signatures
+  untrusted/invalid (`verify`), `130` cancelled at a prompt.
 
 All outputs below come from real runs. Paths are shortened to `~`.
 
@@ -50,6 +54,7 @@ saved to ~/.config/pdfsigner/config.toml
 
 | Option | Meaning |
 |---|---|
+| `--type TYPE` | `pkcs12` (default) or `pkcs11`. Rarely needed: `--pkcs11-lib` implies `pkcs11`. |
 | `--p12 FILE` | PKCS#12 file (`.p12`/`.pfx`). `~` and `$VARS` are expanded when used. |
 | `--image FILE` | Signature image (PNG with a transparent background works best). |
 | `--stamp-text TEXT` | Text below the image. `%(signer)s` = certificate CN, `%(ts)s` = signing time, `\n` = line break. `''` = image only. Default: `Digitally signed by %(signer)s\n%(ts)s`. |
@@ -172,7 +177,8 @@ pdfsigner sign FILE [-c PROFILE] [-o OUT | -i]
                [--no-image] [--no-text] [--force]
 ```
 
-The output defaults to `FILE-signed.pdf`. `-o` picks another name, and
+`-c`/`--cert` picks the profile (default: the configured default). The
+output defaults to `FILE-signed.pdf`. `-o`/`--output` picks another name, and
 `-i`/`--in-place` overwrites the input (written atomically). Signing is
 always incremental, so earlier signatures stay valid.
 
@@ -287,6 +293,68 @@ error: cannot load PKCS#12 for 'work' (wrong passphrase?): Could not load key ma
 
 ---
 
+## Check signatures: `pdfsigner verify`
+
+```console
+$ pdfsigner verify final.pdf
+Applicant: UNTRUSTED
+  signer:   Common Name: Alice Example
+  issuer:   Common Name: Alice Example
+  time:     2026-10-09 21:48:16 +0200 (signer's clock)
+  covers:   revision 3 of 6; later changes: form filling and signatures
+  reason:   Expense claim
+  location: Erlangen
+  problem:  the certificate doesn't chain to a trusted root
+
+Supervisor: UNTRUSTED
+  ...
+Signature2: UNTRUSTED
+  ...
+  covers:   entire document
+```
+
+Each signature gets one verdict:
+
+| Verdict | Meaning | Exit code |
+|---|---|---|
+| `VALID` | Intact, the certificate chains to a trusted root, and later changes are allowed ones (form filling, more signatures, validation data). | `0` |
+| `UNTRUSTED` | Everything checks out except trust: self-signed certificate, or a CA that isn't in the trust list. | `4` |
+| `INVALID` | The signed content was modified, the document was changed in a way the signature doesn't allow (e.g. pages rotated after signing), or the certificate is revoked. | `5` |
+
+The exit code is the worst verdict. A document without signatures is an
+error (`1`).
+
+**Trust:** by default, pdfsigner trusts the Mozilla root list (the same list
+on every platform, shipped with the `certifi` package). Add your own roots
+with `--trust CERT` (PEM or DER, repeatable) or permanently in the config
+file (`trust = ["~/certs/my-ca.pem"]`). `--no-system-trust` trusts only
+those.
+
+```console
+$ pdfsigner verify final.pdf --trust ~/certs/alice.pem --trust ~/certs/supervisor-ca.pem
+Applicant: VALID
+  ...
+```
+
+* `--online` fetches revocation information (OCSP/CRL) from the network.
+  Without it, only revocation data embedded in the document (LTV) is used,
+  and a missing revocation check is not an error.
+* `--details` appends pyHanko's full report for each signature.
+* `--password` for encrypted PDFs (otherwise you are asked).
+
+---
+
+## GUI: `pdfsigner gui`
+
+```console
+$ pdfsigner gui expense-claim.pdf
+```
+
+Starts the graphical interface (same as `pdfsigner-gui`); see
+[gui.md](gui.md).
+
+---
+
 ## Scripting examples
 
 Sign every PDF in a folder in the same spot (bottom right of page 1):
@@ -307,6 +375,17 @@ field=$(pdfsigner fields form.pdf | awk '$2 == "empty" {print $1; exit}')
 pdfsigner sign form.pdf --field "$field"
 ```
 
+React to the verdict of `verify`:
+
+```bash
+pdfsigner verify incoming.pdf --trust ~/certs/company-ca.pem
+case $? in
+  0) echo "all signatures valid" ;;
+  4) echo "signed, but by someone you don't trust" ;;
+  *) echo "invalid signature or error" ;;
+esac
+```
+
 Use a separate config, e.g. for a shared machine or CI:
 
 ```bash
@@ -323,6 +402,7 @@ can also edit it by hand:
 
 ```toml
 default = "work"
+trust = ["~/certs/supervisor-ca.pem"]   # extra roots for verify (optional)
 
 [certs.work]
 type = "pkcs12"

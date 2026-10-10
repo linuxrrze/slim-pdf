@@ -282,3 +282,17 @@ def keepass_db(tmp_path, p12):
     kp.add_entry(kp.root_group, "Plain", "bob", "plain-secret")
     kp.save()
     return db
+
+
+def sign_with(profile: CertProfile, src: Path, dst: Path, **kw) -> str:
+    """Sign ``src`` into ``dst`` with a PKCS#12 test profile."""
+    from pdfsigner.secretstore import Credentials
+    from pdfsigner.signing import open_signer, sign_pdf
+
+    with open_signer(profile, Credentials(secret=PASSPHRASE)) as s:
+        return sign_pdf(src, dst, s, profile, **kw)
+
+
+def write_pem(cert: x509.Certificate, path: Path) -> Path:
+    path.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    return path

@@ -9,6 +9,7 @@ dependencies = [
     "pillow>=10",
     "platformdirs>=4",
     "tomli-w>=1.0",
+    "certifi",
 ]
 
 [project.optional-dependencies]
