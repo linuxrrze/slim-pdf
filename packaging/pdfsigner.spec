@@ -15,7 +15,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy
 ROOT = Path(SPECPATH).parent
 ICONS = ROOT / "packaging" / "build-icons"
 APP_NAME = "PDF Signer"
-VERSION = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+VERSION = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
 
 hidden = (
     collect_submodules("keyring.backends")

@@ -41,44 +41,62 @@ def ca():
     return MiniPKI(port=1)
 
 
-@pytest.fixture(scope="module", params=["ec", "rsa"])
-def identity(request, ca, tmp_path_factory):
-    """Import a fresh identity into the OS store; yields (cn, certificate)."""
+@pytest.fixture(scope="module")
+def store(ca, tmp_path_factory):
+    """Import an EC and an RSA identity into the OS store once; yields
+    {kind: (cn, certificate)}.
+
+    Both go in up front: the macOS Security framework caches the keychain
+    search list per process, so a keychain added after the first search
+    may not be seen.
+    """
     tmp = tmp_path_factory.mktemp("store")
-    key = (ec.generate_private_key(ec.SECP256R1()) if request.param == "ec"
-           else rsa.generate_private_key(public_exponent=65537, key_size=2048))
-    cn = f"pdfsigner test {request.param} {uuid.uuid4().hex[:8]}"
-    data, cert = ca.issue(cn, PFX_PASSWORD.encode(), key=key, chain=False, legacy=True)
-    pfx = tmp / "id.p12"
-    pfx.write_bytes(data)
-    thumbprint = cert.fingerprint(hashes.SHA1()).hex().upper()
+    made = {}
+    for kind in ("ec", "rsa"):
+        key = (ec.generate_private_key(ec.SECP256R1()) if kind == "ec"
+               else rsa.generate_private_key(public_exponent=65537, key_size=2048))
+        cn = f"pdfsigner test {kind} {uuid.uuid4().hex[:8]}"
+        data, cert = ca.issue(cn, PFX_PASSWORD.encode(), key=key, chain=False, legacy=True)
+        pfx = tmp / f"{kind}.p12"
+        pfx.write_bytes(data)
+        made[kind] = (cn, cert, pfx)
 
     if sys.platform == "win32":
-        run("certutil", "-f", "-user", "-p", PFX_PASSWORD,
-            "-csp", "Microsoft Software Key Storage Provider",
-            "-importpfx", "My", str(pfx), "NoRoot")
         try:
-            yield cn, cert
+            for _, _, pfx in made.values():
+                run("certutil", "-f", "-user", "-p", PFX_PASSWORD,
+                    "-csp", "Microsoft Software Key Storage Provider",
+                    "-importpfx", "My", str(pfx), "NoRoot")
+            yield {k: (cn, cert) for k, (cn, cert, _) in made.items()}
         finally:
-            subprocess.run(["certutil", "-user", "-delstore", "My", thumbprint],
-                           capture_output=True)
+            for _, cert, _ in made.values():
+                subprocess.run(["certutil", "-user", "-delstore", "My",
+                                cert.fingerprint(hashes.SHA1()).hex().upper()],
+                               capture_output=True)
     else:
         kc = tmp / "pdfsigner-test.keychain-db"
         kc_pw = "kc-pass"
         old = [line.strip().strip('"') for line in
                run("security", "list-keychains", "-d", "user").splitlines() if line.strip()]
         run("security", "create-keychain", "-p", kc_pw, str(kc))
-        run("security", "unlock-keychain", "-p", kc_pw, str(kc))
-        run("security", "set-keychain-settings", str(kc))  # no auto-lock
-        run("security", "import", str(pfx), "-k", str(kc), "-P", PFX_PASSWORD, "-A")
-        run("security", "set-key-partition-list", "-S", "apple-tool:,apple:,unsigned:",
-            "-s", "-k", kc_pw, str(kc))
-        run("security", "list-keychains", "-d", "user", "-s", str(kc), *old)
         try:
-            yield cn, cert
+            run("security", "unlock-keychain", "-p", kc_pw, str(kc))
+            run("security", "set-keychain-settings", str(kc))  # no auto-lock
+            for _, _, pfx in made.values():
+                run("security", "import", str(pfx), "-k", str(kc), "-P", PFX_PASSWORD, "-A")
+            run("security", "set-key-partition-list", "-S", "apple-tool:,apple:,unsigned:",
+                "-s", "-k", kc_pw, str(kc))
+            run("security", "list-keychains", "-d", "user", "-s", str(kc), *old)
+            yield {k: (cn, cert) for k, (cn, cert, _) in made.items()}
         finally:
             subprocess.run(["security", "list-keychains", "-d", "user", "-s", *old])
             subprocess.run(["security", "delete-keychain", str(kc)])
+
+
+@pytest.fixture(params=["ec", "rsa"])
+def identity(request, store):
+    """(cn, certificate) of an identity in the OS store."""
+    return store[request.param]
 
 
 def test_listed(identity):

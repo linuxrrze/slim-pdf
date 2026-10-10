@@ -32,7 +32,7 @@ def test_only_non_defaults_are_written(tmp_path):
     cfg = Config(path=tmp_path / "c.toml")
     cfg.put(CertProfile(name="w", path="a.p12"))
     cfg.save()
-    text = (tmp_path / "c.toml").read_text()
+    text = (tmp_path / "c.toml").read_text(encoding="utf-8")
     assert 'type = "pkcs12"' in text  # always written
     assert "stamp_text" not in text and "secret" not in text
 

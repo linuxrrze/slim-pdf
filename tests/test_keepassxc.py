@@ -145,7 +145,7 @@ def fake_cli(tmp_path, monkeypatch):
     monkeypatch.setenv("PDFSIGNER_KEEPASSXC_CLI", "fake-keepassxc-cli")
 
     def calls():
-        return [json.loads(line) for line in log.read_text().splitlines()]
+        return [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
 
     return calls
 

@@ -15,7 +15,7 @@ DOCS = [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md"))]
 
 def command_lines(path: Path):
     """`pdfsigner ...` invocations from fenced code blocks (with continuations)."""
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     for block in re.findall(r"```(?:console|bash)\n(.*?)```", text, re.S):
         lines = block.replace("\\\n", " ").splitlines()
         for line in lines:
@@ -51,14 +51,14 @@ def test_example_parses(doc, cmd):
 
 @pytest.mark.parametrize("doc", DOCS, ids=lambda p: p.name)
 def test_links_and_images_exist(doc):
-    for target in re.findall(r"\]\(([^)#]+)(?:#[^)]*)?\)", doc.read_text()):
+    for target in re.findall(r"\]\(([^)#]+)(?:#[^)]*)?\)", doc.read_text(encoding="utf-8")):
         if target.startswith(("http://", "https://")):
             continue
         assert (doc.parent / target).exists(), f"{doc.name}: broken link {target}"
 
 
 def test_gui_doc_has_screenshots():
-    text = (ROOT / "docs" / "gui.md").read_text()
+    text = (ROOT / "docs" / "gui.md").read_text(encoding="utf-8")
     images = re.findall(r"!\[[^\]]*\]\((images/[^)]+)\)", text)
     assert len(images) >= 6
     for img in images:
@@ -66,7 +66,7 @@ def test_gui_doc_has_screenshots():
 
 
 def test_documented_config_keys_match_code():
-    text = (ROOT / "docs" / "cli.md").read_text()
+    text = (ROOT / "docs" / "cli.md").read_text(encoding="utf-8")
     m = re.search(r"All keys: (.*?)\. Unknown keys", text, re.S)
     documented = set(re.findall(r"`(\w+)`", m.group(1)))
     actual = set(CertProfile.__dataclass_fields__) - {"name"}
@@ -90,7 +90,7 @@ def _parser_options() -> tuple[set[str], set[str]]:
 
 
 def test_everything_in_the_parser_is_documented():
-    text = (ROOT / "docs" / "cli.md").read_text()
+    text = (ROOT / "docs" / "cli.md").read_text(encoding="utf-8")
     opts, commands = _parser_options()
     undocumented = {o for o in opts if not re.search(rf"(?<![\w-]){o}(?![\w-])", text)}
     assert not undocumented
@@ -101,5 +101,5 @@ def test_everything_in_the_parser_is_documented():
 def test_documented_options_exist():
     """Every --option mentioned in cli.md exists in the parser."""
     parser_opts, _ = _parser_options()
-    documented = set(re.findall(r"(?<![\w-])(--[a-z][a-z0-9-]+)", (ROOT / "docs" / "cli.md").read_text()))
+    documented = set(re.findall(r"(?<![\w-])(--[a-z][a-z0-9-]+)", (ROOT / "docs" / "cli.md").read_text(encoding="utf-8")))
     assert documented <= parser_opts, documented - parser_opts
