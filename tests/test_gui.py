@@ -80,6 +80,7 @@ def window(qapp, profile, p12_bob, secrets, save_to):
     win.show()
     QTest.qWaitForWindowExposed(win)
     yield win
+    win.dirty = False  # don't ask about unsaved edits
     win.close()
 
 

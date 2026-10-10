@@ -172,9 +172,13 @@ def _locked_field_names(reader: PdfFileReader) -> tuple[set[str], bool]:
     return locked, all_locked
 
 
-def inspect_pdf(path: str | os.PathLike, password: str | None = None) -> DocInfo:
-    with open(path, "rb") as f:
-        reader = _open_reader(f.read(), password)
+def _data(src: str | os.PathLike | bytes) -> bytes:
+    return src if isinstance(src, bytes) else Path(src).read_bytes()
+
+
+def inspect_pdf(path: str | os.PathLike | bytes, password: str | None = None) -> DocInfo:
+    """Pages, rotation, signature fields and certification of a PDF (path or bytes)."""
+    reader = _open_reader(_data(path), password)
 
     pages = list(_walk_pages(reader.root.raw_get("/Pages")))
     page_index = {pid: i for i, (_, pid, _) in enumerate(pages) if pid is not None}
@@ -469,7 +473,7 @@ def check_target(
 
 
 def sign_pdf(
-    src: str | os.PathLike,
+    src: str | os.PathLike | bytes,
     dst: str | os.PathLike,
     signer: signers.Signer,
     profile: CertProfile | None = None,
@@ -483,7 +487,8 @@ def sign_pdf(
     allow_breaking: bool = False,
     trust: Sequence[str] = (),
 ) -> str:
-    """Sign ``src`` into ``dst`` (may be the same file). Returns the field name.
+    """Sign ``src`` (path or bytes) into ``dst`` (may be the same file).
+    Returns the field name.
 
     * ``field_name`` only            -> sign that existing empty field
     * ``page`` + ``box``             -> create a new visible field there
@@ -496,8 +501,8 @@ def sign_pdf(
     Mozilla roots plus ``trust``, and the chain and revocation info are
     embedded (PAdES B-LT, or B-LTA when a timestamp server is configured).
     """
-    data = Path(src).read_bytes()
-    info = inspect_pdf(src, pdf_password)
+    data = _data(src)
+    info = inspect_pdf(data, pdf_password)
 
     check_target(info, field_name, page, box, allow_breaking=allow_breaking)
     existing = info.field(field_name) if field_name else None

@@ -147,7 +147,7 @@ def main() -> None:
     gui_app.QFileDialog.getSaveFileName = staticmethod(lambda *a, **k: (str(out), ""))
 
     win = gui_app.MainWindow(cfg)
-    win.resize(1180, 1010)
+    win.resize(1320, 1010)
     win.show()
     QTest.qWaitForWindowExposed(win)
     win.open(doc)
@@ -169,6 +169,20 @@ def main() -> None:
     view.select_field("Supervisor")
     win.sign()
     grab(win, "gui-signed.png")
+
+    # page tools: a scanned attachment page that needs rotating and cropping
+    win.open(doc)
+    win.view.go_to(1)
+    win.thumbs.show_page(1)
+    win.crop_act.setChecked(True)
+    win._toggle_crop()
+    vp = view.viewport()
+    a, b = view.mapFromScene(QPointF(40, 60)), view.mapFromScene(QPointF(555, 300))
+    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, a)
+    QTest.mouseMove(vp, b)  # leave the rectangle visible
+    grab(win, "gui-pages.png")
+    win._escape()
+    win.dirty = False
 
     # password prompt (shown non-modally just for the picture)
     dlg = QInputDialog(win)

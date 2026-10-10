@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMainWindow,
+    QInputDialog,
     QMessageBox,
     QPushButton,
     QSpinBox,
@@ -27,11 +28,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import secretstore, validation
+from .. import pages, secretstore, validation
 from ..config import Config, load_config
 from ..signing import (
     SigningBlocked,
     SigningError,
+    _atomic_write,
     check_target,
     image_aspect,
     inspect_pdf,
@@ -42,6 +44,7 @@ from .certdialog import CertManagerDialog
 from .dialogs import ask_secret
 from .document import PdfDocument, signature_pixmap
 from .pageview import PageView
+from .pagetools import MergeDialog, MergeInput, PagesPanel, SplitDialog, page_label
 
 STATUS_COLORS = {validation.VALID: "#2e7d32", validation.UNTRUSTED: "#ef8c00",
                  validation.INVALID: "#c62828"}
@@ -71,16 +74,24 @@ class MainWindow(QMainWindow):
         self.path: Path | None = None
         self.pdf_password: str | None = None
         self.info = None
+        # The document is edited in memory (page tools); self.path is where it
+        # came from or was last saved to.
+        self.data: bytes | None = None
+        self.dirty = False
+        self.undo_stack: list[bytes] = []
 
         self.setWindowTitle("PDF Signer")
         self.resize(1100, 900)
         self.view = PageView()
         self.view.targetChanged.connect(self._update_target)
         self.view.pageChanged.connect(self._sync_page_spin)
+        self.view.cropSelected.connect(self._crop_selected)
         self.setCentralWidget(self.view)
 
         self._build_toolbar()
+        self._build_pages_toolbar()
         self._build_sign_panel()
+        self._build_pages_panel()
         self.statusBar().showMessage(HINT)
         self._reload_certs()
         self._update_target()
@@ -114,7 +125,58 @@ class MainWindow(QMainWindow):
                              triggered=lambda: self.view.set_zoom(self.view.zoom * 1.2)))
         tb.addSeparator()
         tb.addAction(QAction("Clear placement", self, shortcut=Qt.Key_Escape,
-                             triggered=lambda: self.view.clear_target()))
+                             triggered=self._escape))
+
+    def _build_pages_toolbar(self) -> None:
+        tb = QToolBar("Pages")
+        tb.setMovable(False)
+        self.addToolBar(tb)
+
+        def act(text, slot, shortcut=None, tip=""):
+            a = QAction(text, self, triggered=slot)
+            if shortcut:
+                a.setShortcut(QKeySequence(shortcut))
+            a.setToolTip(tip or text)
+            tb.addAction(a)
+            self.page_actions.append(a)
+            return a
+
+        self.page_actions: list[QAction] = []
+        self.save_act = act("Save", self.save, tip="Save the edited document")
+        self.save_as_act = act("Save as…", self.save_as, "Ctrl+Shift+S")
+        self.undo_act = act("Undo", self.undo, QKeySequence.Undo)
+        tb.addSeparator()
+        act("Rotate left", lambda: self.rotate_pages(-90), "Ctrl+L",
+            "Rotate the selected pages (or the current page) counter-clockwise")
+        act("Rotate right", lambda: self.rotate_pages(90), "Ctrl+R",
+            "Rotate the selected pages (or the current page) clockwise")
+        self.crop_act = act("Crop", self._toggle_crop, None,
+                            "Drag a rectangle on the page to crop to it")
+        self.crop_act.setCheckable(True)
+        act("Uncrop", self.reset_crop, None, "Show the whole page again")
+        tb.addSeparator()
+        act("Split…", self.split_dialog)
+        act("Merge…", self.merge_dialog)
+        self._update_page_actions()
+
+    def _build_pages_panel(self) -> None:
+        self.thumbs = PagesPanel()
+        self.thumbs.pageActivated.connect(self.view.go_to)
+        self.view.pageChanged.connect(self.thumbs.show_page)
+        dock = QDockWidget("Pages")
+        dock.setWidget(self.thumbs)
+        dock.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetClosable)
+        self.addDockWidget(Qt.LeftDockWidgetArea, dock)
+        self.resizeDocks([dock], [self.thumbs.minimumWidth() + 20], Qt.Horizontal)
+        self.pages_dock = dock
+
+    def _escape(self) -> None:
+        if self.view.crop_mode:
+            self.crop_act.setChecked(False)
+            self.view.set_crop_mode(False)
+            self.statusBar().showMessage(HINT)
+        else:
+            self.view.clear_target()
 
     def _build_sign_panel(self) -> None:
         panel = QWidget()
@@ -215,48 +277,239 @@ class MainWindow(QMainWindow):
     # documents ----------------------------------------------------------------
 
     def open_dialog(self) -> None:
+        if not self._maybe_save():
+            return
         start = str(self.path.parent) if self.path else ""
         path, _ = QFileDialog.getOpenFileName(self, "Open PDF", start, "PDF (*.pdf)")
         if path:
             self.open(Path(path))
 
-    def open(self, path: Path, password: str | None = None) -> bool:
+    def open(self, path: Path, password: str | None = None, *, page: int = 0) -> bool:
         try:
-            info = inspect_pdf(path, password)
+            data = Path(path).read_bytes()
+            info = inspect_pdf(data, password)
         except SigningError as e:
             if "password" in str(e):
                 pw = ask_secret(self, f"Password for {path.name}")
-                return pw is not None and self.open(path, pw)
+                return pw is not None and self.open(path, pw, page=page)
             QMessageBox.critical(self, "Open", str(e))
             return False
         except Exception as e:  # malformed PDFs raise all sorts of things
             QMessageBox.critical(self, "Open", f"Cannot open {path}:\n{e}")
             return False
 
+        self.path, self.pdf_password = Path(path), password
+        self.undo_stack = []
+        self._show(data, info, page, dirty=False)
+        return True
+
+    def _show(self, data: bytes, info, page: int, *, dirty: bool) -> None:
+        """Display ``data`` (already inspected as ``info``)."""
         if self.doc is not None:
             self.doc.close()
-        self.doc = PdfDocument(str(path), password)
-        self.path, self.pdf_password, self.info = path, password, info
-        self.view.set_document(self.doc, info.fields)
+        self.data, self.info, self.dirty = data, info, dirty
+        self.doc = PdfDocument(data, self.pdf_password)
+        page = min(page, len(self.doc) - 1)
+        self.view.set_document(self.doc, info.fields, page)
         self.page_spin.blockSignals(True)
         self.page_spin.setMaximum(len(self.doc))
-        self.page_spin.setValue(1)
+        self.page_spin.setValue(page + 1)
         self.page_spin.blockSignals(False)
         self.page_count.setText(f" / {len(self.doc)} ")
         self._fill_fields()
-        self.setWindowTitle(f"{path.name} – PDF Signer")
+        self.thumbs.set_document(self.doc, page)
+        self._update_title()
         message = self._verify() or HINT
         if info.certification is not None:
             message = f"Document is certified ({info.certification.name}). " + message
         self.statusBar().showMessage(message)
+        self._update_page_actions()
+
+    def _update_title(self) -> None:
+        name = self.path.name if self.path else "PDF Signer"
+        self.setWindowTitle(f"{'*' if self.dirty else ''}{name} – PDF Signer")
+
+    def _update_page_actions(self) -> None:
+        has_doc = self.data is not None
+        for a in self.page_actions:
+            a.setEnabled(has_doc)
+        self.save_act.setEnabled(has_doc and self.dirty)
+        self.undo_act.setEnabled(bool(self.undo_stack))
+
+    # page tools -----------------------------------------------------------------
+
+    def target_pages(self) -> list[int]:
+        """Pages selected in the thumbnail panel, else the current page."""
+        selected = self.thumbs.selected_pages()
+        return selected if len(selected) > 1 else [self.view.page]
+
+    def _confirm_breaking(self, what: str) -> bool:
+        names = pages.signature_names(self.data, self.pdf_password)
+        if not names:
+            return True
+        return QMessageBox.warning(
+            self, "Existing signatures",
+            f"{what} will invalidate the signature(s) {', '.join(names)}.\n\n"
+            "Edit pages before signing. Continue anyway?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
+
+    def apply_edit(self, new_data: bytes, message: str) -> None:
+        self.undo_stack.append(self.data)
+        self._show(new_data, inspect_pdf(new_data, self.pdf_password), self.view.page,
+                   dirty=True)
+        self.statusBar().showMessage(message + " (not saved yet)", 10000)
+
+    def undo(self) -> None:
+        if not self.undo_stack:
+            return
+        data = self.undo_stack.pop()
+        self._show(data, inspect_pdf(data, self.pdf_password), self.view.page,
+                   dirty=bool(self.undo_stack))
+        self.statusBar().showMessage("Undone", 5000)
+
+    def rotate_pages(self, angle: int) -> None:
+        if self.data is None:
+            return
+        target = self.target_pages()
+        if not self._confirm_breaking("Rotating pages"):
+            return
+        self.apply_edit(pages.rotate(self.data, target, angle, self.pdf_password),
+                        f"Rotated {page_label(target)}")
+
+    def _toggle_crop(self) -> None:
+        on = self.crop_act.isChecked() and self.data is not None
+        self.view.set_crop_mode(on)
+        if on:
+            self.statusBar().showMessage(
+                "Drag a rectangle around the area to keep. Esc cancels.")
+
+    def _crop_selected(self, page: int, rect) -> None:
+        self.crop_act.setChecked(False)
+        self.view.set_crop_mode(False)
+        box = self.doc.rect_to_pdf(page, rect.x(), rect.y(), rect.width(), rect.height())
+        selected = self.thumbs.selected_pages()
+        choices = [f"This page ({page + 1})", "All pages"]
+        if len(selected) > 1:
+            choices.insert(1, f"Selected pages ({len(selected)})")
+        choice, ok = QInputDialog.getItem(self, "Crop", "Apply to:", choices, 0, False)
+        if not ok:
+            return
+        target = ([page] if choice == choices[0] else
+                  list(range(len(self.doc))) if choice == "All pages" else selected)
+        if not self._confirm_breaking("Cropping pages"):
+            return
+        try:
+            new = pages.crop(self.data, target, box=box, password=self.pdf_password)
+        except (pages.PageError, SigningError) as e:
+            QMessageBox.critical(self, "Crop", str(e))
+            return
+        self.apply_edit(new, f"Cropped {page_label(target)}")
+
+    def reset_crop(self) -> None:
+        if self.data is None:
+            return
+        target = self.target_pages()
+        if not self._confirm_breaking("Uncropping pages"):
+            return
+        self.apply_edit(pages.crop(self.data, target, reset=True, password=self.pdf_password),
+                        f"Uncropped {page_label(target)}")
+
+    def split_dialog(self) -> None:
+        if self.data is None:
+            return
+        dlg = SplitDialog(len(self.doc), self.path, self)
+        if not dlg.exec():
+            return
+        names = pages.signature_names(self.data, self.pdf_password)
+        if names and QMessageBox.warning(
+                self, "Split", f"The split files will not contain the signature(s) "
+                f"{', '.join(names)}. Continue?", QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No) != QMessageBox.Yes:
+            return
+        try:
+            parts = pages.split(self.data, dlg.result_parts, self.pdf_password)
+            for path, part in zip(dlg.result_paths, parts, strict=True):
+                _atomic_write(path, part)
+        except (OSError, SigningError, pages.PageError) as e:
+            QMessageBox.critical(self, "Split", str(e))
+            return
+        QMessageBox.information(self, "Split", f"Wrote {len(dlg.result_paths)} files:\n"
+                                + "\n".join(str(p) for p in dlg.result_paths))
+
+    def merge_dialog(self) -> None:
+        first = None
+        if self.data is not None:
+            first = MergeInput("(current document)", self.data, self.pdf_password, len(self.doc))
+        dlg = MergeDialog(first, self)
+        if not dlg.exec():
+            return
+        signed = [m.label for m in dlg.inputs if pages.signature_names(m.data, m.password)]
+        if signed and QMessageBox.warning(
+                self, "Merge", f"Signatures in {', '.join(signed)} will not be carried "
+                "over. Continue?", QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No) != QMessageBox.Yes:
+            return
+        start = str(self.path.with_name(f"{self.path.stem}-merged.pdf")) if self.path else ""
+        out, _ = QFileDialog.getSaveFileName(self, "Save merged PDF", start, "PDF (*.pdf)")
+        if not out:
+            return
+        try:
+            _atomic_write(Path(out), pages.merge(dlg.selection()))
+        except (OSError, SigningError, pages.PageError) as e:
+            QMessageBox.critical(self, "Merge", str(e))
+            return
+        if self._maybe_save():
+            self.open(Path(out))
+
+    # saving ---------------------------------------------------------------------
+
+    def save(self) -> bool:
+        if self.data is None or self.path is None:
+            return False
+        try:
+            _atomic_write(self.path, self.data)
+        except (OSError, SigningError) as e:
+            QMessageBox.critical(self, "Save", str(e))
+            return False
+        self.dirty = False
+        self._update_title()
+        self._update_page_actions()
+        self.statusBar().showMessage(f"Saved {self.path.name}", 5000)
         return True
+
+    def save_as(self) -> bool:
+        if self.data is None:
+            return False
+        out, _ = QFileDialog.getSaveFileName(self, "Save PDF as", str(self.path or ""),
+                                             "PDF (*.pdf)")
+        if not out:
+            return False
+        self.path = Path(out)
+        return self.save()
+
+    def _maybe_save(self) -> bool:
+        """Ask about unsaved edits. False means: cancel what you were doing."""
+        if not self.dirty:
+            return True
+        answer = QMessageBox.question(
+            self, "Unsaved changes", f"Save the changes to {self.path.name}?",
+            QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Save)
+        if answer == QMessageBox.Save:
+            return self.save()
+        return answer == QMessageBox.Discard
+
+    def closeEvent(self, event) -> None:
+        if self._maybe_save():
+            event.accept()
+        else:
+            event.ignore()
 
     def _verify(self) -> str:
         """Validate the signatures and fill the list; returns a short summary."""
         self.sigs_list.clear()
         self.reports = []
         try:
-            self.reports = validation.verify_pdf(self.path, trust=self.config.trust,
+            self.reports = validation.verify_pdf(self.data, trust=self.config.trust,
                                                  password=self.pdf_password)
         except Exception as e:  # never block opening a document
             self.sigs_list.addItem(f"Validation failed: {e}")
@@ -380,7 +633,7 @@ class MainWindow(QMainWindow):
                 profile, lambda prompt: self._ask_unbusy(prompt))
             with open_signer(profile, creds) as signer:
                 name = sign_pdf(
-                    self.path, out, signer, profile,
+                    self.data, out, signer, profile,
                     field_name=field_name, page=page, box=box,
                     with_image=self.image_check.isChecked(),
                     with_text=self.text_check.isChecked(),
@@ -395,9 +648,7 @@ class MainWindow(QMainWindow):
         finally:
             QGuiApplication.restoreOverrideCursor()
 
-        current_page = self.view.page
-        self.open(out, self.pdf_password)
-        self.view.go_to(current_page)
+        self.open(out, self.pdf_password, page=self.view.page)
         self.statusBar().showMessage(
             f"Signed '{name}' → {out.name}. You can add further signatures.", 15000)
 

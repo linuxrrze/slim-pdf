@@ -182,10 +182,15 @@ class FieldItem(QGraphicsRectItem):
 
 
 class PageView(QGraphicsView):
-    """Shows one page. Emits ``targetChanged`` when the signing target changes."""
+    """Shows one page. Emits ``targetChanged`` when the signing target changes.
+
+    In crop mode, dragging draws a rectangle instead of placing a signature;
+    ``cropSelected(page, display rect)`` is emitted on release.
+    """
 
     targetChanged = Signal()
     pageChanged = Signal(int)
+    cropSelected = Signal(int, QRectF)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -210,13 +215,31 @@ class PageView(QGraphicsView):
         self._placement_page: int | None = None
         self.selected_field: str | None = None
 
+        self.crop_mode = False
+        self._crop_start: QPointF | None = None
+        self._crop_item: QGraphicsRectItem | None = None
+
     # setup ------------------------------------------------------------------
 
-    def set_document(self, doc: PdfDocument | None, fields: list[SigField]) -> None:
+    def set_document(self, doc: PdfDocument | None, fields: list[SigField],
+                     page: int = 0) -> None:
         self.doc, self.fields = doc, fields
         self.clear_target()
-        self.page = 0
+        self.page = min(page, len(doc) - 1) if doc is not None else 0
         self._render()
+
+    def set_crop_mode(self, on: bool) -> None:
+        self.crop_mode = on
+        self._cancel_crop_drag()
+        if on:
+            self.clear_target()
+        self.viewport().setCursor(Qt.CrossCursor if on else Qt.ArrowCursor)
+
+    def _cancel_crop_drag(self) -> None:
+        if self._crop_item is not None and self._crop_item.scene() is not None:
+            self.scene().removeItem(self._crop_item)
+        self._crop_item = None
+        self._crop_start = None
 
     def set_signature_appearance(self, pixmap: QPixmap | None, aspect: float) -> None:
         self._sig_pixmap, self._sig_aspect = pixmap, aspect
@@ -330,10 +353,25 @@ class PageView(QGraphicsView):
         w, h = self.doc.display_size(self.page)
         return QRectF(0, 0, w, h)
 
+    def _clamp(self, pos: QPointF) -> QPointF:
+        r = self.page_rect()
+        return QPointF(min(max(pos.x(), r.left()), r.right()),
+                       min(max(pos.y(), r.top()), r.bottom()))
+
     def mousePressEvent(self, event):
         if self.doc is None or event.button() != Qt.LeftButton:
             return super().mousePressEvent(event)
         pos = self.mapToScene(event.position().toPoint())
+        if self.crop_mode:
+            self._cancel_crop_drag()
+            self._crop_start = self._clamp(pos)
+            self._crop_item = QGraphicsRectItem(QRectF(self._crop_start, self._crop_start))
+            pen = QPen(QColor(220, 40, 40), 0, Qt.DashLine)
+            self._crop_item.setPen(pen)
+            self._crop_item.setBrush(QBrush(QColor(220, 40, 40, 30)))
+            self._crop_item.setZValue(20)
+            self.scene().addItem(self._crop_item)
+            return
         item = self.itemAt(event.position().toPoint())
         if isinstance(item, SignatureItem):
             return super().mousePressEvent(event)
@@ -345,6 +383,22 @@ class PageView(QGraphicsView):
             self.place_at(pos)
             return
         super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.crop_mode and self._crop_item is not None:
+            end = self._clamp(self.mapToScene(event.position().toPoint()))
+            self._crop_item.setRect(QRectF(self._crop_start, end).normalized())
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.crop_mode and self._crop_item is not None:
+            rect = self._crop_item.rect()
+            self._cancel_crop_drag()
+            if rect.width() >= 5 and rect.height() >= 5:
+                self.cropSelected.emit(self.page, rect)
+            return
+        super().mouseReleaseEvent(event)
 
     def select_field(self, name: str) -> None:
         f = next((f for f in self.fields if f.name == name), None)
