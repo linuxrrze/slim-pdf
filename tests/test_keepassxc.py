@@ -6,7 +6,6 @@ PDFSIGNER_KEEPASSXC_CLI points to it); the protocol tests use a fake CLI.
 
 import json
 import os
-import shutil
 import sys
 import threading
 
@@ -21,7 +20,11 @@ from conftest import PASSPHRASE
 
 
 def _real_cli():
-    return os.environ.get("PDFSIGNER_KEEPASSXC_CLI") or shutil.which("keepassxc-cli")
+    """The app's own lookup, so default install locations count too."""
+    try:
+        return secretstore.keepassxc_cli()
+    except SecretError:
+        return None
 
 
 @pytest.fixture
