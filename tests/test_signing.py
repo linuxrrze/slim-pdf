@@ -742,3 +742,29 @@ def test_pkcs11_locked_or_last_try(fake_token):
     with open_signer(_tok_profile(secret="prompt"), Credentials(secret="123456")):
         pass  # a PIN typed now is
     assert last.opened == [{"user_pin": "123456"}]
+
+
+def test_malformed_xmp_metadata_does_not_block_signing(profile, blank_pdf, tmp_path):
+    """Some producers write broken XMP; pyHanko failed with "Failed to parse
+    XMP XML" when refreshing it. Signing and page edits leave it as is."""
+    from conftest import sign_with
+    from pdfsigner import pages
+    from pdfsigner.validation import verify_pdf
+
+    w = IncrementalPdfFileWriter(io.BytesIO(blank_pdf.read_bytes()))
+    stm = generic.StreamObject({generic.NameObject("/Type"): generic.NameObject("/Metadata"),
+                                generic.NameObject("/Subtype"): generic.NameObject("/XML")},
+                               stream_data=b"<x:xmpmeta xmlns:x='adobe:ns:meta/'>broken &")
+    w.root["/Metadata"] = w.add_object(stm)
+    w.update_root()
+    w.__dict__["_update_meta"] = lambda: None  # write the broken XMP unchanged
+    buf = io.BytesIO()
+    w.write(buf)
+    src = tmp_path / "badxmp.pdf"
+    src.write_bytes(buf.getvalue())
+
+    out = tmp_path / "signed.pdf"
+    sign_with(profile, src, out, page=0, box=(50, 50, 200, 100))
+    [r] = verify_pdf(out)
+    assert r.problems == ["the certificate is self-signed and not in the trust list"]
+    assert pages.rotate(src.read_bytes(), [0], 90, None)

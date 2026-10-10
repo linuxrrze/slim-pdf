@@ -9,6 +9,7 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import io
+import logging
 import math
 from fractions import Fraction
 import os
@@ -25,6 +26,7 @@ from pyhanko.pdf_utils.content import ImportedPdfPage
 from pyhanko.pdf_utils.crypt import AuthStatus, PdfKeyNotAvailableError
 from pyhanko.pdf_utils.images import PdfImage
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+from pyhanko.pdf_utils.writer import BasePdfFileWriter
 from pyhanko.pdf_utils.layout import (
     AxisAlignment,
     BoxConstraints,
@@ -46,6 +48,33 @@ from .i18n import N_, _, ngettext
 from .secretstore import Credentials
 
 Box = tuple[float, float, float, float]
+
+log = logging.getLogger(__name__)
+
+
+def _tolerate_broken_xmp() -> None:
+    """Whenever pyHanko writes (signing, LTV data, timestamps, page edits) it
+    refreshes the document's XMP metadata, and fails if that is malformed
+    ("Failed to parse XMP XML"), which some PDF producers write. Leave such
+    metadata as it is instead: it isn't part of what a signature protects.
+    Patched once, centrally, because pyHanko also creates writers itself."""
+    update = BasePdfFileWriter._update_meta
+    if getattr(update, "_tolerant", False):
+        return
+
+    def tolerant(self):
+        try:
+            update(self)
+        except Exception as e:  # XmpXmlProcessingError (lxml is optional, so is its import)
+            if type(e).__name__ != "XmpXmlProcessingError":
+                raise
+            log.info("leaving the document's malformed XMP metadata unchanged: %s", e)
+
+    tolerant._tolerant = True
+    BasePdfFileWriter._update_meta = tolerant
+
+
+_tolerate_broken_xmp()
 
 
 class SigningError(Exception):
