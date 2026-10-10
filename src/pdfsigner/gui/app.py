@@ -385,6 +385,7 @@ class MainWindow(QMainWindow):
                     with_image=self.image_check.isChecked(),
                     with_text=self.text_check.isChecked(),
                     pdf_password=self.pdf_password, allow_breaking=True,
+                    trust=self.config.trust,
                 )
         except secretstore.Cancelled:
             return

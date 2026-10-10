@@ -29,6 +29,7 @@ from pyhanko.keys import load_cert_from_pemder
 from pyhanko.sign.diff_analysis import ModificationLevel
 from pyhanko.sign.validation.errors import SignatureValidationError
 from pyhanko.sign.validation import validate_pdf_signature
+from pyhanko.sign.validation.dss import DocumentSecurityStore, NoDSSFoundError
 from pyhanko.sign.validation.status import SignatureCoverageLevel
 from pyhanko_certvalidator import ValidationContext
 
@@ -58,6 +59,7 @@ class SignatureReport:
     coverage: str = ""
     reason: str = ""
     location: str = ""
+    ltv: bool = False  # document carries validation data (DSS)
     problems: list[str] = field(default_factory=list)
     details: str = ""  # pyHanko's full report
 
@@ -82,13 +84,16 @@ def system_trust_roots() -> tuple[x509.Certificate, ...]:
         return tuple(x509.Certificate.load(der) for _, _, der in pem.unarmor(f.read(), multiple=True))
 
 
-def validation_context(trust=(), *, system_trust: bool = True,
-                       online: bool = False) -> ValidationContext:
+def validation_context(trust=(), *, system_trust: bool = True, online: bool = False,
+                       revocation_mode: str = "soft-fail", dss=None) -> ValidationContext:
+    """Validation context; with ``dss``, preloaded with the document's LTV data."""
     roots = load_trust_roots(trust)
     if system_trust:
         roots += system_trust_roots()
-    return ValidationContext(trust_roots=roots, allow_fetching=online,
-                             revocation_mode="soft-fail")
+    kwargs = dict(trust_roots=roots, allow_fetching=online, revocation_mode=revocation_mode)
+    if dss is not None:
+        return dss.as_validation_context(kwargs)
+    return ValidationContext(**kwargs)
 
 
 def _str(d, key) -> str:
@@ -151,11 +156,15 @@ def verify_pdf(path: Path | str | bytes, *, trust=(), system_trust: bool = True,
     """Validate every signature in the document, oldest first."""
     data = path if isinstance(path, bytes) else Path(path).read_bytes()
     reader = _open_reader(data, password)
-    sigs = reader.embedded_signatures
+    sigs = reader.embedded_regular_signatures  # document timestamps aren't signers
+    try:
+        dss = DocumentSecurityStore.read_dss(reader)
+    except NoDSSFoundError:
+        dss = None
     revisions = reader.xrefs.total_revisions
     results = []
     for sig in sigs:
-        vc = validation_context(trust, system_trust=system_trust, online=online)
+        vc = validation_context(trust, system_trust=system_trust, online=online, dss=dss)
         try:
             st = validate_pdf_signature(sig, vc)
         except SignatureValidationError as e:
@@ -163,5 +172,7 @@ def verify_pdf(path: Path | str | bytes, *, trust=(), system_trust: bool = True,
                                            problems=[str(e)]))
             continue
         revision = sig.signed_revision + 1
-        results.append(report(sig, st, revision, revisions))
+        rep = report(sig, st, revision, revisions)
+        rep.ltv = dss is not None
+        results.append(rep)
     return results

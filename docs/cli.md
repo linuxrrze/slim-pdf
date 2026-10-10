@@ -60,6 +60,7 @@ saved to ~/.config/pdfsigner/config.toml
 | `--stamp-text TEXT` | Text below the image. `%(signer)s` = certificate CN, `%(ts)s` = signing time, `\n` = line break. `''` = image only. Default: `Digitally signed by %(signer)s\n%(ts)s`. |
 | `--reason`, `--location`, `--contact` | Stored in the signature; shown by PDF viewers. |
 | `--timestamp-url URL` | RFC 3161 timestamp server, e.g. `http://timestamp.digicert.com`. |
+| `--ltv yes\|no` | Embed the certificate chain and revocation info (LTV), see below. |
 | `--secret SOURCE` | `prompt` (default), `keyring`, `keepass` or `none`. See [secret-storage.md](secret-storage.md). |
 | `--default` | Make this the default profile. |
 
@@ -100,6 +101,38 @@ $ pdfsigner certs remove supervisor --purge-secret     # also delete it from the
 ```
 
 `edit` takes the same options as `add` and changes only the ones you pass.
+
+### Long-term validation (LTV)
+
+A plain signature can only be checked as long as the certificate's
+revocation status can be looked up, which in practice ends when the
+certificate expires. With `--ltv yes`, pdfsigner validates the signer's
+certificate chain while signing, fetches the revocation info (OCSP/CRL) and
+embeds it in the document. Together with a timestamp server this gives
+PAdES B-LTA; without one, B-LT.
+
+```console
+$ pdfsigner certs edit work --ltv yes --timestamp-url http://timestamp.digicert.com
+$ pdfsigner sign contract.pdf --field Buyer
+passphrase for certificate 'work':
+signed field 'Buyer' -> contract-signed.pdf
+$ pdfsigner verify contract-signed.pdf
+Buyer: VALID
+  ...
+  ltv:      validation data embedded
+```
+
+Signing with LTV needs network access, and the chain must end in a trusted
+root: the Mozilla list (which contains the usual public CAs such as HARICA,
+Sectigo or T-TeleSec) or a root you add with `trust = [...]` in the config
+file. If the chain can't be validated, or the certificate is revoked,
+signing fails instead of producing a signature without LTV data:
+
+```console
+$ pdfsigner sign contract.pdf --field Buyer
+passphrase for certificate 'work':
+error: LTV: cannot validate the signer's certificate chain: Unable to build a validation path for the certificate "Common Name: Carol LTV" - no issuer matching "Common Name: Test Root CA" was found. LTV needs a chain to a trusted root (add it with `trust` in the config) and reachable revocation info (OCSP/CRL)
+```
 
 ### Store the passphrase in the OS keyring
 
@@ -338,7 +371,8 @@ Applicant: VALID
 
 * `--online` fetches revocation information (OCSP/CRL) from the network.
   Without it, only revocation data embedded in the document (LTV) is used,
-  and a missing revocation check is not an error.
+  and a missing revocation check is not an error. `ltv:` in the output
+  means the document carries such data.
 * `--details` appends pyHanko's full report for each signature.
 * `--password` for encrypted PDFs (otherwise you are asked).
 
@@ -410,6 +444,7 @@ path = "~/certs/fau-smime.p12"
 image = "~/certs/signature.png"
 reason = "Expense claim"
 location = "Erlangen"
+ltv = true
 
 [certs.supervisor]
 type = "pkcs12"
@@ -433,7 +468,7 @@ key_label = "SIGN key"
 
 All keys: `type`, `path`, `pkcs11_lib`, `token_label`, `key_label`,
 `cert_label`, `image`, `stamp_text`, `reason`, `location`, `contact_info`,
-`timestamp_url`, `secret`, `keepass_db`, `keepass_keyfile`, `keepass_entry`,
+`timestamp_url`, `ltv`, `secret`, `keepass_db`, `keepass_keyfile`, `keepass_entry`,
 `keepass_attachment`. Unknown keys are rejected, so typos don't go
 unnoticed. The file is written with mode `0600` and **never contains
 secrets**.

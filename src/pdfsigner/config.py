@@ -59,6 +59,9 @@ class CertProfile:
     location: str = ""
     contact_info: str = ""
     timestamp_url: str = ""
+    # Embed certificate chain and revocation info (PAdES B-LT; B-LTA together
+    # with a timestamp server) so the signature stays verifiable after expiry.
+    ltv: bool = False
 
     # Secret handling
     secret: str = "prompt"
@@ -80,6 +83,8 @@ class CertProfile:
             raise ValueError(f"{self.name}: keepass_attachment requires secret = 'keepass'")
         if self.type == "pkcs11" and not self.pkcs11_lib:
             raise ValueError(f"{self.name}: pkcs11 needs pkcs11_lib")
+        if not isinstance(self.ltv, bool):
+            raise ValueError(f"{self.name}: ltv must be true or false")
         if self.secret == "keepass" and not (self.keepass_db and self.keepass_entry):
             raise ValueError(f"{self.name}: keepass needs keepass_db and keepass_entry")
 

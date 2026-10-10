@@ -1,13 +1,8 @@
-import datetime
 import io
 import sys
 import types
 
 import pytest
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec, rsa
-from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 from pyhanko import stamp
 from pyhanko.pdf_utils import generic
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
@@ -31,6 +26,7 @@ from pdfsigner.signing import (
     unique_field_name,
 )
 
+from pki import make_tsa
 from conftest import (
     PASSPHRASE,
     add_sig_field,
@@ -356,24 +352,6 @@ def test_unknown_type():
 # --- timestamps -----------------------------------------------------------------------
 
 
-def make_tsa():
-    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)  # dummy TSA is RSA-only
-    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Test TSA")])
-    now = datetime.datetime.now(datetime.UTC)
-    cert = (
-        x509.CertificateBuilder().subject_name(name).issuer_name(name)
-        .public_key(key.public_key()).serial_number(x509.random_serial_number())
-        .not_valid_before(now - datetime.timedelta(days=1))
-        .not_valid_after(now + datetime.timedelta(days=30))
-        .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.TIME_STAMPING]), critical=True)
-        .sign(key, hashes.SHA256())
-    )
-    from asn1crypto import keys
-
-    key_info = keys.PrivateKeyInfo.load(key.private_bytes(
-        serialization.Encoding.DER, serialization.PrivateFormat.PKCS8,
-        serialization.NoEncryption()))
-    return cert, key_info
 
 
 def test_timestamp_url_is_used(profile, blank_pdf, p12, tmp_path, monkeypatch):

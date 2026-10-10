@@ -16,6 +16,8 @@ share the same certificate profiles.
 * **Secrets** come from a prompt, the OS keyring (including KeePassXC via
   Secret Service), or a KeePass database. The `.p12` can live inside KeePass
   as an attachment. See [docs/secret-storage.md](docs/secret-storage.md).
+* **Long-term validation** (`ltv = true`): certificate chain and revocation
+  info are embedded (PAdES B-LT, or B-LTA with a timestamp server).
 * Stamps are drawn upright on rotated pages (`/Rotate`).
 * **Verify** signatures (`pdfsigner verify`, and a *Signatures* list in the
   GUI): valid, untrusted or invalid, with what changed after each signature.
@@ -117,6 +119,7 @@ pytest --cov=pdfsigner       # ~200 tests, ~95 % line coverage
 |---|---|
 | `test_signing.py` | New and prepared fields, chains of 2–3 signers (each validated with pyHanko's diff analysis), certification and FieldMDP locks (Include/Exclude/All) and `--force`, encrypted PDFs, timestamps (dummy TSA), stamp variants. **Visual regressions:** stamp upright on all four page rotations; text never overlapping the image. |
 | `test_pkcs11_softhsm.py` | Signing with a real PKCS#11 token (SoftHSM 2): token + PKCS#12 chain, wrong PIN, unknown token/key/module. Skipped if SoftHSM isn't installed. |
+| `test_ltv.py` | LTV against a local test CA serving a CRL: data is embedded and verifiable offline with revocation checks *required*; B-LTA with a document timestamp; refuses untrusted, revoked and unreachable cases. |
 | `test_validation.py` | Verdicts valid/untrusted/invalid, trust roots from options and config, tampered bytes, disallowed later changes, encrypted PDFs, `verify` exit codes. |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |
@@ -132,10 +135,6 @@ Screenshots are regenerated with
 ## Known gaps / next steps
 
 * **PKCS#11** is tested against SoftHSM, not yet with a physical token.
-* **No LTV yet.** Adding `embed_validation_info` plus a validation context
-  would give PAdES B-LT. Without it, signatures become hard to validate once
-  the certificate expires. A timestamp server can already be configured per
-  profile.
 * Signature images are raster only (PNG/JPEG). Vector PDF signatures would
   scale better.
 * The Windows certificate store and the macOS Keychain can't be used as key

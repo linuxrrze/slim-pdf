@@ -7,6 +7,7 @@ import copy
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -133,6 +134,12 @@ class CertManagerDialog(QDialog):
         f.addRow("Location", line("location"))
         f.addRow("Contact", line("contact_info"))
         f.addRow("Timestamp URL", line("timestamp_url", "optional RFC 3161 TSA"))
+        self.ltv_check = QCheckBox("Embed validation data (LTV)")
+        self.ltv_check.setToolTip(
+            "Embed the certificate chain and revocation info so the signature can still "
+            "be verified after the certificate expires (PAdES B-LT; B-LTA with a "
+            "timestamp server). Needs network access and a trusted chain while signing.")
+        f.addRow("", self.ltv_check)
 
         secret = QGroupBox("Passphrase / PIN")
         f = QFormLayout(secret)
@@ -255,6 +262,7 @@ class CertManagerDialog(QDialog):
         for attr, w in self.e.items():
             w.setText(getattr(p, attr))
         self.stamp_text.setPlainText(p.stamp_text)
+        self.ltv_check.setChecked(p.ltv)
         self.secret_combo.setCurrentIndex(SECRET_SOURCES.index(p.secret))
         self._update_visibility()
         self._update_preview()
@@ -265,6 +273,7 @@ class CertManagerDialog(QDialog):
         for attr, w in self.e.items():
             setattr(p, attr, w.text().strip())
         p.stamp_text = self.stamp_text.toPlainText()
+        p.ltv = self.ltv_check.isChecked()
         p.secret = self.secret_combo.currentData()
         return p
 

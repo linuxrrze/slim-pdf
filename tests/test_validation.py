@@ -11,7 +11,7 @@ from pdfsigner.config import CertProfile, Config
 from pdfsigner.signing import SigningError
 from pdfsigner.validation import INVALID, UNTRUSTED, VALID, verify_pdf
 
-from conftest import PASSPHRASE, make_encrypted, sign_with, write_pem
+from conftest import make_encrypted, sign_with, write_pem
 
 
 @pytest.fixture

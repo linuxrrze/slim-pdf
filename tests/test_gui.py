@@ -624,3 +624,15 @@ def test_validation_failure_does_not_block_open(window, form_pdf, monkeypatch):
     monkeypatch.setattr(gui_app.validation, "verify_pdf", boom)
     assert window.open(form_pdf)
     assert sig_rows(window) == ["Validation failed: broken"]
+
+
+def test_dialog_ltv_checkbox(dialog):
+    assert not dialog.ltv_check.isChecked()
+    dialog.ltv_check.setChecked(True)
+    select(dialog, "tok")
+    assert not dialog.ltv_check.isChecked()
+    select(dialog, "work")
+    assert dialog.ltv_check.isChecked()
+    dialog._save()
+    assert load_config(dialog.config.path).certs["work"].ltv is True
+    assert load_config(dialog.config.path).certs["tok"].ltv is False

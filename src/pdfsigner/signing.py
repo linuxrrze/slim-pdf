@@ -12,7 +12,7 @@ import io
 import math
 import os
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -32,6 +32,7 @@ from pyhanko.pdf_utils.reader import PdfFileReader
 from pyhanko.pdf_utils.text import TextBoxStyle
 from pyhanko.sign import fields, signers, timestamps
 from pyhanko.sign.fields import MDPPerm
+from pyhanko.sign.general import SigningError as PyHankoSigningError
 from pyhanko.sign.validation.pdf_embedded import read_certification_data
 
 from .config import CertProfile, expand
@@ -441,6 +442,7 @@ def sign_pdf(
     with_text: bool = True,
     pdf_password: str | None = None,
     allow_breaking: bool = False,
+    trust: Sequence[str] = (),
 ) -> str:
     """Sign ``src`` into ``dst`` (may be the same file). Returns the field name.
 
@@ -450,6 +452,10 @@ def sign_pdf(
     * neither                        -> invisible signature in a new field
 
     Signing is always incremental, so existing signatures stay valid.
+
+    With ``profile.ltv`` the signer's chain is validated online against the
+    Mozilla roots plus ``trust``, and the chain and revocation info are
+    embedded (PAdES B-LT, or B-LTA when a timestamp server is configured).
     """
     data = Path(src).read_bytes()
     info = inspect_pdf(src, pdf_password)
@@ -466,17 +472,28 @@ def sign_pdf(
         else:
             new_spec = fields.SigFieldSpec(field_name)
 
+    timestamper = (
+        timestamps.HTTPTimeStamper(profile.timestamp_url)
+        if profile and profile.timestamp_url
+        else None
+    )
+    ltv = {}
+    if profile and profile.ltv:
+        from .validation import validation_context
+
+        ltv = dict(
+            embed_validation_info=True,
+            use_pades_lta=timestamper is not None,
+            validation_context=validation_context(trust, online=True,
+                                                  revocation_mode="hard-fail"),
+        )
     meta = signers.PdfSignatureMetadata(
+        **ltv,
         field_name=field_name,
         reason=(profile.reason or None) if profile else None,
         location=(profile.location or None) if profile else None,
         contact_info=(profile.contact_info or None) if profile else None,
         subfilter=fields.SigSeedSubFilter.PADES,
-    )
-    timestamper = (
-        timestamps.HTTPTimeStamper(profile.timestamp_url)
-        if profile and profile.timestamp_url
-        else None
     )
     visible = box is not None or (existing is not None and existing.rect is not None)
     style = None
@@ -498,7 +515,16 @@ def sign_pdf(
         # its size estimate misses, so reserve generously instead.
         bytes_reserved = 16384 + (16384 if timestamper else 0)
     out = io.BytesIO()
-    pdf_signer.sign_pdf(writer, output=out, bytes_reserved=bytes_reserved)
+    try:
+        pdf_signer.sign_pdf(writer, output=out, bytes_reserved=bytes_reserved)
+    except PyHankoSigningError as e:
+        if not ltv:
+            raise
+        cause = e.__cause__ or e.__context__ or e  # e.g. PathBuildingError, RevokedError
+        raise SigningError(
+            f"LTV: cannot validate the signer's certificate chain: {cause}. LTV needs a "
+            "chain to a trusted root (add it with `trust` in the config) and reachable "
+            "revocation info (OCSP/CRL)") from None
 
     _atomic_write(Path(dst), out.getvalue())
     return field_name

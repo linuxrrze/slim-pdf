@@ -65,6 +65,7 @@ PROFILE_OPTS = {
     "--location": ("location", "signature location"),
     "--contact": ("contact_info", "contact info"),
     "--timestamp-url": ("timestamp_url", "RFC 3161 timestamp server URL"),
+    "--ltv": ("ltv", "embed chain and revocation info for long-term validation: yes/no"),
     "--secret": ("secret", f"where the passphrase/PIN comes from: {', '.join(SECRET_SOURCES)}"),
     "--keepass-db": ("keepass_db", "KeePass .kdbx file"),
     "--keepass-keyfile": ("keepass_keyfile", "KeePass key file"),
@@ -75,15 +76,23 @@ PROFILE_OPTS = {
 
 def _add_profile_opts(p: argparse.ArgumentParser) -> None:
     for opt, (attr, help_) in PROFILE_OPTS.items():
-        p.add_argument(opt, dest=attr, default=None, help=help_)
+        if attr == "ltv":
+            p.add_argument(opt, dest=attr, default=None, choices=("yes", "no"), help=help_)
+        else:
+            p.add_argument(opt, dest=attr, default=None, help=help_)
     p.add_argument("--default", action="store_true", help="make this the default certificate")
 
 
 def _apply_profile_opts(profile: CertProfile, args) -> CertProfile:
     for attr, _ in PROFILE_OPTS.values():
         value = getattr(args, attr)
-        if value is not None:
-            setattr(profile, attr, value.replace("\\n", "\n") if attr == "stamp_text" else value)
+        if value is None:
+            continue
+        if attr == "stamp_text":
+            value = value.replace("\\n", "\n")
+        elif attr == "ltv":
+            value = value == "yes"
+        setattr(profile, attr, value)
     if args.pkcs11_lib and args.type is None:
         profile.type = "pkcs11"
     return profile
@@ -217,7 +226,7 @@ def cmd_sign(cfg: Config, args) -> int:
             src, dst, signer, profile,
             field_name=args.field, page=page, box=box,
             with_image=not args.no_image, with_text=not args.no_text,
-            pdf_password=pdf_password, allow_breaking=args.force,
+            pdf_password=pdf_password, allow_breaking=args.force, trust=cfg.trust,
         )
     print(f"signed field {name!r} -> {dst}")
     return 0
@@ -258,6 +267,8 @@ def cmd_verify(cfg: Config, args) -> int:
             print(f"  time:     {r.signed_at:%Y-%m-%d %H:%M:%S %z} (signer's clock)")
         if r.coverage:
             print(f"  covers:   {r.coverage}")
+        if r.ltv:
+            print("  ltv:      validation data embedded")
         for label, value in (("reason", r.reason), ("location", r.location)):
             if value:
                 print(f"  {label + ':':9} {value}")

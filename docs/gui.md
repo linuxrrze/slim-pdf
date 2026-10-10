@@ -107,6 +107,9 @@ Smartcard or USB token via PKCS#11:
 
 ![Certificate manager: PKCS#11 profile](images/gui-certs-pkcs11.png)
 
+*Embed validation data (LTV)* under *Signature details* corresponds to
+`ltv = true` (see [cli.md](cli.md#long-term-validation-ltv)).
+
 With *OS keyring* selected, a **Store passphrase in keyring…** button
 appears. It does the same as `pdfsigner certs set-secret`.
 
