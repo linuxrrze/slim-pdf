@@ -25,7 +25,8 @@ finished installer and runs the CLI from there.
 ## Building locally
 
 ```bash
-pip install '.[all]' pyinstaller
+pip install --require-hashes -r packaging/release-requirements.txt   # or: pip install '.[all]' pyinstaller
+pip install --no-deps .
 python packaging/make_icons.py
 pyinstaller packaging/pdfsigner.spec --noconfirm
 python packaging/smoke_test.py "dist/PDF Signer/pdfsigner" "dist/PDF Signer/PDF Signer"
@@ -43,6 +44,11 @@ On macOS:
 packaging/macos/build_dmg.sh 0.1.0                         # -> dist/PDF-Signer-0.1.0-macos-<arch>.dmg
 ```
 
+`release-requirements.txt` pins every dependency with hashes, so a release
+is built from known packages; the command to update it is at the top of
+`release-requirements.in`. The build fails (`pip check`) if the locked set
+no longer satisfies `pyproject.toml`.
+
 The same spec also builds a Linux folder (`dist/PDF Signer/`), which is how
 the bundling is checked without Windows or a Mac.
 
@@ -54,7 +60,12 @@ Unsigned builds work, but the first start shows a warning:
 * **macOS Gatekeeper:** right-click the app → *Open*, or
   `xattr -dr com.apple.quarantine "/Applications/PDF Signer.app"`.
 
-To sign, add these repository secrets; the workflow picks them up:
+To sign, create an environment named `release` (*Settings → Environments*),
+limit it to tags with *Deployment branches and tags → Selected → tag
+pattern `v*`*, optionally add required reviewers, and add these as
+**environment secrets** there, not as repository secrets. Only runs for a
+`v*` tag use that environment, so a manual run of the workflow on some
+branch can't produce a signed binary:
 
 | Secret | Use |
 |---|---|
