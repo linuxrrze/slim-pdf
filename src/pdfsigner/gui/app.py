@@ -69,9 +69,9 @@ def _dot(color: str) -> QIcon:
     return QIcon(pm)
 
 
-HINT = N_("Wheel: zoom, drag: move the page. Place signature… adds a signature; "
-          "a placed signature is moved by dragging and resized at its corner or "
-          "with Ctrl+wheel.")
+HINT = N_("Wheel: zoom, drag: move the page. Click an empty field to sign it, or use "
+          "Place signature…; a placed signature is moved by dragging and resized at its "
+          "corner or with Ctrl+wheel.")
 PLACE_HINT = N_("Click where the signature should go, or on an empty (dashed) field. "
                 "Esc cancels.")
 
@@ -118,6 +118,7 @@ class MainWindow(QMainWindow):
         self.view.pageChanged.connect(self._sync_page_spin)
         self.view.cropSelected.connect(self._crop_selected)
         self.view.placeModeChanged.connect(self._place_mode_changed)
+        self.view.fieldActivated.connect(self._field_activated)
         self.setCentralWidget(self.view)
 
         self._build_toolbar()
@@ -693,6 +694,22 @@ class MainWindow(QMainWindow):
                 self.view.go_to(f.page)
             return
         self.view.select_field(name)
+
+    def _field_activated(self, name: str) -> None:
+        """A click on a field in the page: sign an empty one, show a signed
+        one's validation."""
+        f = self.info.field(name) if self.info else None
+        if f is None or f.locked:
+            return
+        if f.filled:
+            for i in range(self.sigs_list.count()):
+                item = self.sigs_list.item(i)
+                if item.data(Qt.UserRole) == name:
+                    self.sigs_list.setCurrentItem(item)
+                    self.show_signature_details(item)
+            return
+        self.view.select_field(name)
+        self.sign()
 
     def _sync_page_spin(self, page: int) -> None:
         self.page_spin.blockSignals(True)

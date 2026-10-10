@@ -12,6 +12,7 @@ import math
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
+    QApplication,
     QGraphicsItem,
     QGraphicsObject,
     QGraphicsPixmapItem,
@@ -180,6 +181,8 @@ class FieldItem(QGraphicsRectItem):
         else:
             tip = _("{name}: empty signature field").format(name=name)
         self.setToolTip(tip)
+        if not f.locked:  # a click signs it, or shows the signature
+            self.setCursor(Qt.PointingHandCursor)
         self.set_selected(False)
 
     @property
@@ -201,7 +204,8 @@ class PageView(QGraphicsView):
     By default the wheel zooms and dragging moves the page (a placed
     signature is dragged itself). In place mode, one click places the
     signature or picks an empty field, then the view is back to the default
-    (``placeModeChanged``). In crop mode, dragging draws a rectangle;
+    (``placeModeChanged``). Outside place mode, a click (not a drag) on a
+    field emits ``fieldActivated(name)``. In crop mode, dragging draws a rectangle;
     ``cropSelected(page, display rect)`` is emitted on release.
     """
 
@@ -209,6 +213,7 @@ class PageView(QGraphicsView):
     pageChanged = Signal(int)
     cropSelected = Signal(int, QRectF)
     placeModeChanged = Signal(bool)
+    fieldActivated = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -234,6 +239,7 @@ class PageView(QGraphicsView):
         for bar in (self.horizontalScrollBar(), self.verticalScrollBar()):
             bar.valueChanged.connect(self._schedule_detail)
         self._field_items: list[FieldItem] = []
+        self._field_press: tuple[str, object] | None = None  # (field, press position)
         self._sig_pixmap: QPixmap | None = None
         self._sig_aspect = 3.0
 
@@ -479,6 +485,11 @@ class PageView(QGraphicsView):
             return super().mousePressEvent(event)
         pos = self.mapToScene(event.position().toPoint())
         if not (self.crop_mode or self.place_mode):
+            # a click on a field activates it; a drag moves the page
+            top = next(iter(self.items(event.position().toPoint())), None)
+            self._field_press = ((top.field.name, event.position().toPoint())
+                                 if isinstance(top, FieldItem) and not top.field.locked
+                                 else None)
             return super().mousePressEvent(event)  # drag the signature, or the page
         if self.crop_mode:
             self._cancel_crop_drag()
@@ -514,7 +525,13 @@ class PageView(QGraphicsView):
             if rect.width() >= 5 and rect.height() >= 5:
                 self.cropSelected.emit(self.page, rect)
             return
+        press, self._field_press = self._field_press, None
         super().mouseReleaseEvent(event)
+        if press is not None and event.button() == Qt.LeftButton:
+            name, start = press
+            moved = (event.position().toPoint() - start).manhattanLength()
+            if moved < QApplication.startDragDistance():
+                self.fieldActivated.emit(name)
 
     def select_field(self, name: str) -> None:
         f = next((f for f in self.fields if f.name == name), None)

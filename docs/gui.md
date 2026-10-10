@@ -24,8 +24,8 @@ guide show the English version.
   only until the whole page fits the view);
   press and hold the left mouse button and move to move the page. Prepared
   signature fields appear as boxes:
-  * blue, dashed: empty, can be signed;
-  * green: already signed;
+  * blue, dashed: empty, can be signed; a click signs it;
+  * green: already signed; a click shows the signature's details;
   * red: locked by an earlier signature.
 * **Pages panel** (left): thumbnails. Click one to go there; Ctrl- or
   Shift-click to select several pages for the page tools.
@@ -54,8 +54,11 @@ page while you browse other pages.
 
 ![A prepared field selected](images/gui-field.png)
 
-Pick an empty field in the list on the right, or press **Place signature…**
-and click the field on the page. It turns solid blue and becomes the target. The stamp is fitted into the field's rectangle.
+Click an empty field on the page: it turns solid blue, becomes the target,
+and signing starts right away (see [Signing](#signing)). To choose the
+certificate or appearance first, pick the field in the list on the right
+instead (or press **Place signature…** and click the field); then press
+**Sign…**. The stamp is fitted into the field's rectangle.
 
 ## Signing
 

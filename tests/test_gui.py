@@ -347,12 +347,39 @@ def test_place_mode_picks_a_field(window, form_pdf):
     field = next(i for i in window.view.scene().items()
                  if isinstance(i, FieldItem) and i.field.name == "Applicant")
     c = field.rect().center()
-    click_scene(window.view, c.x(), c.y())  # default mode: nothing happens
-    assert window.view.selected_field is None
     window.sign()
     click_scene(window.view, c.x(), c.y())
     assert window.view.selected_field == "Applicant" and not window.view.place_mode
     assert window.sign_btn.text() == "Sign…"
+
+
+def field_center(window, name):
+    field = next(i for i in window.view.scene().items()
+                 if isinstance(i, FieldItem) and i.field.name == name)
+    return field.rect().center()
+
+
+def test_click_on_field_signs_it_then_shows_the_signature(window, form_pdf, save_to,
+                                                         monkeypatch):
+    """No need for Place signature… first: a click on an empty field signs
+    it; on a signed field, it shows the signature's details."""
+    window.open(form_pdf)
+    window.view.go_to(1)
+    c = field_center(window, "Applicant")
+    drag_scene(window.view, (c.x(), c.y()), (c.x() - 60, c.y() - 60))  # a drag: just moves
+    assert window.view.selected_field is None and not save_to["path"].exists()
+
+    click_scene(window.view, c.x(), c.y())
+    assert save_to["path"].exists()
+    assert window.path == save_to["path"]
+
+    shown = []
+    monkeypatch.setattr(gui_app.QMessageBox, "exec", lambda self: shown.append(self.text()))
+    window.view.go_to(1)
+    c = field_center(window, "Applicant")
+    click_scene(window.view, c.x(), c.y())
+    [text] = shown
+    assert "Alice Example" in text
 
 
 def test_zoomed_in_only_the_visible_part_is_rendered_sharply(window, blank_pdf, qapp):

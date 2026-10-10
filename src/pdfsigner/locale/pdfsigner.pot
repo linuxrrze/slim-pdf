@@ -1100,7 +1100,7 @@ msgid "{path}: language must be one of {languages}"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Wheel: zoom, drag: move the page. Place signature… adds a signature; a placed signature is moved by dragging and resized at its corner or with Ctrl+wheel."
+msgid "Wheel: zoom, drag: move the page. Click an empty field to sign it, or use Place signature…; a placed signature is moved by dragging and resized at its corner or with Ctrl+wheel."
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
