@@ -7,7 +7,9 @@ geometry converts directly to PDF coordinates via PdfDocument.rect_to_pdf.
 from __future__ import annotations
 
 from PIL.ImageQt import ImageQt
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+import math
+
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsItem,
@@ -27,7 +29,12 @@ MIN_WIDTH = 30.0
 HANDLE = 10.0  # resize handle size in screen pixels
 
 
-MAX_PAGE_PIXELS = 40_000_000  # ~160 MB as RGBA
+# The whole page is rendered at most this sharp (~32 MB as RGBA); closer up,
+# only the visible part is rendered at full sharpness ("detail"), after
+# zooming or scrolling pauses for RENDER_DELAY ms.
+MAX_PAGE_PIXELS = 8_000_000
+RENDER_DELAY = 120
+WHEEL_ZOOM = 1.15  # per wheel notch
 
 class SignatureItem(QGraphicsObject):
     """Movable signature preview; the corner handle scales it keeping the aspect ratio."""
@@ -170,10 +177,8 @@ class FieldItem(QGraphicsRectItem):
         elif f.locked:
             tip = _("{name}: locked").format(name=name)
         else:
-            tip = _("{name}: empty - click to sign this field").format(name=name)
+            tip = _("{name}: empty signature field").format(name=name)
         self.setToolTip(tip)
-        if self.clickable:
-            self.setCursor(Qt.PointingHandCursor)
         self.set_selected(False)
 
     @property
@@ -192,13 +197,17 @@ class FieldItem(QGraphicsRectItem):
 class PageView(QGraphicsView):
     """Shows one page. Emits ``targetChanged`` when the signing target changes.
 
-    In crop mode, dragging draws a rectangle instead of placing a signature;
+    By default the wheel zooms and dragging moves the page (a placed
+    signature is dragged itself). In place mode, one click places the
+    signature or picks an empty field, then the view is back to the default
+    (``placeModeChanged``). In crop mode, dragging draws a rectangle;
     ``cropSelected(page, display rect)`` is emitted on release.
     """
 
     targetChanged = Signal()
     pageChanged = Signal(int)
     cropSelected = Signal(int, QRectF)
+    placeModeChanged = Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -206,7 +215,8 @@ class PageView(QGraphicsView):
         self.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
         self.setBackgroundBrush(QColor(90, 90, 90))
         self.setAlignment(Qt.AlignCenter)
-        self.setDragMode(QGraphicsView.NoDrag)
+        self.setDragMode(QGraphicsView.ScrollHandDrag)
+        self.setTransformationAnchor(QGraphicsView.NoAnchor)  # zoom_at() anchors itself
 
         self.doc: PdfDocument | None = None
         self.fields: list[SigField] = []
@@ -214,6 +224,14 @@ class PageView(QGraphicsView):
         self.zoom = 1.0
         self._fit_width = True
         self._page_item: QGraphicsPixmapItem | None = None
+        self._page_scale = 0.0  # pixels per point of _page_item
+        self._detail_item: QGraphicsPixmapItem | None = None
+        self._detail_timer = QTimer(self)
+        self._detail_timer.setSingleShot(True)
+        self._detail_timer.setInterval(RENDER_DELAY)
+        self._detail_timer.timeout.connect(self._update_detail)
+        for bar in (self.horizontalScrollBar(), self.verticalScrollBar()):
+            bar.valueChanged.connect(self._schedule_detail)
         self._field_items: list[FieldItem] = []
         self._sig_pixmap: QPixmap | None = None
         self._sig_aspect = 3.0
@@ -223,6 +241,7 @@ class PageView(QGraphicsView):
         self._placement_page: int | None = None
         self.selected_field: str | None = None
 
+        self.place_mode = False
         self.crop_mode = False
         self._crop_start: QPointF | None = None
         self._crop_item: QGraphicsRectItem | None = None
@@ -232,16 +251,39 @@ class PageView(QGraphicsView):
     def set_document(self, doc: PdfDocument | None, fields: list[SigField],
                      page: int = 0) -> None:
         self.doc, self.fields = doc, fields
+        self.set_place_mode(False)
         self.clear_target()
         self.page = min(page, len(doc) - 1) if doc is not None else 0
         self._render()
 
+    def _update_mode(self) -> None:
+        clicking = self.place_mode or self.crop_mode
+        self.setDragMode(QGraphicsView.NoDrag if clicking else QGraphicsView.ScrollHandDrag)
+        self.viewport().setCursor(Qt.CrossCursor if clicking else Qt.OpenHandCursor)
+        for it in self._field_items:
+            if self.place_mode and it.clickable:
+                it.setCursor(Qt.PointingHandCursor)
+            else:
+                it.unsetCursor()
+
+    def set_place_mode(self, on: bool) -> None:
+        on = on and self.doc is not None
+        if on:
+            self.set_crop_mode(False)
+        changed = on != self.place_mode
+        self.place_mode = on
+        self._update_mode()
+        if changed:
+            self.placeModeChanged.emit(on)
+
     def set_crop_mode(self, on: bool) -> None:
+        if on:
+            self.set_place_mode(False)
         self.crop_mode = on
         self._cancel_crop_drag()
         if on:
             self.clear_target()
-        self.viewport().setCursor(Qt.CrossCursor if on else Qt.ArrowCursor)
+        self._update_mode()
 
     def _cancel_crop_drag(self) -> None:
         if self._crop_item is not None and self._crop_item.scene() is not None:
@@ -277,11 +319,23 @@ class PageView(QGraphicsView):
         self.pageChanged.emit(page)
 
     def set_zoom(self, zoom: float | None) -> None:
-        """``None`` means fit width."""
+        """``None`` means fit width. Keeps the centre of the view in place."""
+        self.zoom_at(None, zoom)
+
+    def zoom_at(self, pos: QPointF | None, zoom: float | None) -> None:
+        """Zoom so that the page point under viewport position ``pos`` (default:
+        the centre) stays where it is."""
+        if pos is None:
+            pos = QPointF(self.viewport().rect().center())
+        anchor = self.mapToScene(pos.toPoint())
         self._fit_width = zoom is None
         if zoom is not None:
             self.zoom = max(0.2, min(zoom, 6.0))
         self._apply_zoom()
+        if not self._fit_width:
+            moved = self.mapFromScene(anchor) - pos.toPoint()
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + moved.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() + moved.y())
 
     def _apply_zoom(self) -> None:
         if self.doc is None:
@@ -293,22 +347,24 @@ class PageView(QGraphicsView):
             self.zoom = max(0.2, avail / (w + 40))
         self.resetTransform()
         self.scale(self.zoom, self.zoom)
-        self._update_page_pixmap()
+        self._schedule_detail()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if self._fit_width:
             self._apply_zoom()
+        self._schedule_detail()
 
     def wheelEvent(self, event):
+        steps = event.angleDelta().y() / 120  # touchpads send fractions of a notch
+        if not steps:
+            return super().wheelEvent(event)
         item = self.itemAt(event.position().toPoint())
-        if event.modifiers() & Qt.ControlModifier and not isinstance(item, SignatureItem):
-            self.set_zoom(self.zoom * (1.15 if event.angleDelta().y() > 0 else 1 / 1.15))
-            return
         if event.modifiers() & Qt.ControlModifier and isinstance(item, SignatureItem):
-            item.scale_by(1.1 if event.angleDelta().y() > 0 else 1 / 1.1)
-            return
-        super().wheelEvent(event)
+            item.scale_by(1.1 ** steps)
+        else:
+            self.zoom_at(event.position(), self.zoom * WHEEL_ZOOM ** steps)
+        event.accept()
 
     # rendering ---------------------------------------------------------------
 
@@ -317,7 +373,7 @@ class PageView(QGraphicsView):
         for item in list(scene.items()):
             if item.parentItem() is None:
                 scene.removeItem(item)
-        self._page_item = None
+        self._page_item = self._detail_item = None
         self._field_items = []
         if self.doc is None:
             return
@@ -329,6 +385,10 @@ class PageView(QGraphicsView):
         scene.addItem(self._page_item)
         page_shadow = scene.addRect(QRectF(3, 3, w, h), QPen(Qt.NoPen), QBrush(QColor(0, 0, 0, 80)))
         page_shadow.setZValue(-1)
+        self._detail_item = QGraphicsPixmapItem()
+        self._detail_item.setZValue(1)  # over the page, under fields and the signature
+        self._detail_item.setTransformationMode(Qt.SmoothTransformation)
+        scene.addItem(self._detail_item)
 
         for f in self.fields:
             if f.page != self.page or f.rect is None:
@@ -342,22 +402,56 @@ class PageView(QGraphicsView):
         # The placed signature stays alive while browsing other pages.
         if self.placement is not None and self._placement_page == self.page:
             scene.addItem(self.placement)
+        self._update_mode()
         self._apply_zoom()
+        self._update_page_pixmap()
 
     def _update_page_pixmap(self) -> None:
+        """The whole page, as sharp as the current zoom needs, but at most
+        MAX_PAGE_PIXELS: a huge page (or a crafted MediaBox) at high zoom
+        would need gigabytes and seconds. The detail covers the rest."""
         if self.doc is None or self._page_item is None:
             return
-        dpr = self.devicePixelRatioF()
         w, h = self.doc.display_size(self.page)
-        # A huge page (or a crafted MediaBox) at high zoom would need gigabytes:
-        # above the cap, render less sharply instead.
         cap = 0.999 * (MAX_PAGE_PIXELS / max(w * h, 1.0)) ** 0.5  # pdfium rounds up
-        scale = min(self.zoom * dpr, cap)
-        img = self.doc.render(self.page, scale)
-        pm = QPixmap.fromImage(ImageQt(img))
+        scale = min(self.zoom * self.devicePixelRatioF(), cap)
+        pm = QPixmap.fromImage(ImageQt(self.doc.render(self.page, scale)))
         pm.setDevicePixelRatio(1.0)
         self._page_item.setPixmap(pm)
         self._page_item.setScale(1 / scale)
+        self._page_item.setTransformationMode(Qt.SmoothTransformation)
+        self._page_scale = scale
+
+    def _schedule_detail(self, *args) -> None:
+        if self._detail_item is not None:
+            self._detail_timer.start()  # restarts: renders once zooming/scrolling pauses
+
+    def _update_detail(self) -> None:
+        """Render the visible part of the page sharply when the whole-page
+        pixmap is coarser than the screen."""
+        item = self._detail_item
+        if self.doc is None or item is None or item.scene() is None:
+            return
+        scale = self.zoom * self.devicePixelRatioF()
+        if scale <= self._page_scale * 1.05:
+            item.setVisible(False)
+            return
+        w, h = self.doc.display_size(self.page)
+        visible = self.mapToScene(self.viewport().rect()).boundingRect() & QRectF(0, 0, w, h)
+        if visible.width() < 1 or visible.height() < 1:
+            item.setVisible(False)
+            return
+        # never more than the visible area needs (plus rounding)
+        scale = min(scale, (4 * MAX_PAGE_PIXELS / (visible.width() * visible.height())) ** 0.5)
+        crop = (visible.left(), h - visible.bottom(), w - visible.right(), visible.top())
+        img = self.doc.render(self.page, scale, crop)
+        pm = QPixmap.fromImage(ImageQt(img))
+        pm.setDevicePixelRatio(1.0)
+        item.setPixmap(pm)
+        item.setScale(1 / scale)
+        # pdfium cuts whole pixels: rounded up from the crop
+        item.setPos(math.ceil(crop[0] * scale) / scale, math.ceil(crop[3] * scale) / scale)
+        item.setVisible(True)
 
     # interaction -------------------------------------------------------------
 
@@ -374,6 +468,8 @@ class PageView(QGraphicsView):
         if self.doc is None or event.button() != Qt.LeftButton:
             return super().mousePressEvent(event)
         pos = self.mapToScene(event.position().toPoint())
+        if not (self.crop_mode or self.place_mode):
+            return super().mousePressEvent(event)  # drag the signature, or the page
         if self.crop_mode:
             self._cancel_crop_drag()
             self._crop_start = self._clamp(pos)
@@ -384,17 +480,15 @@ class PageView(QGraphicsView):
             self._crop_item.setZValue(20)
             self.scene().addItem(self._crop_item)
             return
-        item = self.itemAt(event.position().toPoint())
-        if isinstance(item, SignatureItem):
-            return super().mousePressEvent(event)
-        if isinstance(item, FieldItem):
+        # place mode: one click, then back to zoom/move
+        item = next((i for i in self.items(event.position().toPoint())
+                     if isinstance(i, FieldItem)), None)
+        if item is not None:
             if item.clickable:
                 self.select_field(item.field.name)
             return
         if self.page_rect().contains(pos):
             self.place_at(pos)
-            return
-        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if self.crop_mode and self._crop_item is not None:
@@ -424,6 +518,7 @@ class PageView(QGraphicsView):
             it.set_selected(it.field.name == name)
         if f.rect is not None:
             self.ensureVisible(self._field_items_by_name(name).rect(), 40, 40)
+        self.set_place_mode(False)
         self.targetChanged.emit()
 
     def _field_items_by_name(self, name: str) -> FieldItem:
@@ -444,6 +539,7 @@ class PageView(QGraphicsView):
             self._placement_page = self.page
         self.placement.center_on(pos)
         self.placement.setSelected(True)
+        self.set_place_mode(False)
         self.targetChanged.emit()
 
     # result ------------------------------------------------------------------

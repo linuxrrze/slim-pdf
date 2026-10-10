@@ -68,8 +68,11 @@ def _dot(color: str) -> QIcon:
     return QIcon(pm)
 
 
-HINT = N_("Click on the page to place a signature, drag to move, drag the corner or "
-          "Ctrl+wheel to resize. Click a dashed field to sign a prepared field.")
+HINT = N_("Wheel: zoom, drag: move the page. Place signature… adds a signature; "
+          "a placed signature is moved by dragging and resized at its corner or "
+          "with Ctrl+wheel.")
+PLACE_HINT = N_("Click where the signature should go, or on an empty (dashed) field. "
+                "Esc cancels.")
 
 
 def _status_text(status: str) -> str:
@@ -110,6 +113,7 @@ class MainWindow(QMainWindow):
         self.view.targetChanged.connect(self._update_target)
         self.view.pageChanged.connect(self._sync_page_spin)
         self.view.cropSelected.connect(self._crop_selected)
+        self.view.placeModeChanged.connect(self._place_mode_changed)
         self.setCentralWidget(self.view)
 
         self._build_toolbar()
@@ -229,7 +233,9 @@ class MainWindow(QMainWindow):
         self.pages_dock = dock
 
     def _escape(self) -> None:
-        if self.view.crop_mode:
+        if self.view.place_mode:
+            self.view.set_place_mode(False)
+        elif self.view.crop_mode:
             self.crop_act.setChecked(False)
             self.view.set_crop_mode(False)
             self.statusBar().showMessage(_(HINT))
@@ -691,9 +697,17 @@ class MainWindow(QMainWindow):
         for i in range(self.fields_list.count()):
             item = self.fields_list.item(i)
             item.setSelected(item.data(Qt.UserRole) == self.view.selected_field)
-        self.target_label.setText(target or _("Click on the page to place a signature, "
-                                                "or pick an empty field."))
-        self.sign_act.setEnabled(bool(self.doc and target and self.current_profile()))
+        self.target_label.setText(target or _("None yet: press Place signature…, or pick an "
+                                                "empty field below."))
+        # without a target, the button starts placing one; with one, it signs
+        text = _("Sign…") if target else _("Place signature…")
+        self.sign_act.setText(text)
+        self.sign_btn.setText(text)
+        self.sign_act.setEnabled(bool(self.doc and self.current_profile()))
+
+    def _place_mode_changed(self, on: bool) -> None:
+        self.sign_btn.setDown(on)
+        self.statusBar().showMessage(_(PLACE_HINT) if on else _(HINT))
 
     # signing ------------------------------------------------------------------
 
@@ -704,7 +718,8 @@ class MainWindow(QMainWindow):
         field_name, page, box = self.view.selected_field, None, None
         if field_name is None:
             pb = self.view.placement_box()
-            if pb is None:
+            if pb is None:  # nothing placed yet: the next click places it
+                self.view.set_place_mode(not self.view.place_mode)
                 return
             page, box = pb
 

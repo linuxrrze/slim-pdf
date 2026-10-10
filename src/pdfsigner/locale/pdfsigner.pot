@@ -936,7 +936,11 @@ msgid "{path}: language must be one of {languages}"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Click on the page to place a signature, drag to move, drag the corner or Ctrl+wheel to resize. Click a dashed field to sign a prepared field."
+msgid "Wheel: zoom, drag: move the page. Place signature… adds a signature; a placed signature is moved by dragging and resized at its corner or with Ctrl+wheel."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Click where the signature should go, or on an empty (dashed) field. Esc cancels."
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1362,7 +1366,11 @@ msgid ""
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Click on the page to place a signature, or pick an empty field."
+msgid "None yet: press Place signature…, or pick an empty field below."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Place signature…"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1817,7 +1825,7 @@ msgstr ""
 
 #: src/pdfsigner/gui/pageview.py
 #, python-brace-format
-msgid "{name}: empty - click to sign this field"
+msgid "{name}: empty signature field"
 msgstr ""
 
 #: src/pdfsigner/gui/settings.py

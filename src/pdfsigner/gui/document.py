@@ -70,9 +70,10 @@ class PdfDocument:
         """(width, height) in points as displayed, i.e. after /Rotate."""
         return self._pdf[index].get_size()
 
-    def render(self, index: int, scale: float):
-        """PIL image of the page at ``scale`` pixels per point."""
-        return self._pdf[index].render(scale=scale, may_draw_forms=True).to_pil()
+    def render(self, index: int, scale: float, crop=(0, 0, 0, 0)):
+        """PIL image of the page at ``scale`` pixels per point; ``crop`` cuts
+        (left, bottom, right, top) points off the page as displayed."""
+        return self._pdf[index].render(scale=scale, crop=crop, may_draw_forms=True).to_pil()
 
     def to_pdf(self, index: int, x: float, y: float) -> tuple[float, float]:
         """Display point -> PDF user space point."""

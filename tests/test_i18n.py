@@ -166,7 +166,7 @@ def test_gui_in_german(german, qapp_de):
     win = gui_app.MainWindow(Config())
     dlg = None
     try:
-        assert win.sign_btn.text() == "Signieren…"
+        assert win.sign_btn.text() == "Signatur platzieren…"  # nothing placed yet
         assert win.save_as_act.text() == "Speichern unter…"
         # Qt's own strings come from its German catalog
         dlg = SettingsDialog(Config())

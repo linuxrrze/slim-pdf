@@ -6,7 +6,7 @@ import pytest
 
 QtWidgets = pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
 
-from PySide6.QtCore import QPointF, Qt  # noqa: E402
+from PySide6.QtCore import QPointF, QRectF, Qt  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from pyhanko.sign import fields  # noqa: E402
 
@@ -89,6 +89,13 @@ def click_scene(view, x, y):
                      view.mapFromScene(QPointF(x, y)))
 
 
+def place(view, x, y):
+    """Place mode (as after Place signature…), then a click."""
+    view.set_place_mode(True)
+    click_scene(view, x, y)
+    assert not view.place_mode  # back to zoom/move
+
+
 def drag_scene(view, start, end):
     vp = view.viewport()
     a, b = view.mapFromScene(QPointF(*start)), view.mapFromScene(QPointF(*end))
@@ -131,14 +138,17 @@ def test_place_resize_sign_twice(window, form_pdf, save_to, p12, p12_bob):
     out = save_to["path"]
     window.open(form_pdf)
     view = window.view
-    assert not window.sign_act.isEnabled()
-
+    assert window.sign_btn.text() == "Place signature…"
+    window.sign()  # nothing placed yet: starts placing
+    assert view.place_mode and view.placement is None
+    assert "Click where the signature should go" in window.statusBar().currentMessage()
     click_scene(view, 200, 300)
+    assert not view.place_mode  # one click, then back to zoom/move
     item = view.placement
     assert isinstance(item, SignatureItem)
     w, h = item.size
     assert w / h == pytest.approx(3.0)
-    assert window.sign_act.isEnabled() and window.sign_btn.isEnabled()
+    assert window.sign_act.isEnabled() and window.sign_btn.text() == "Sign…"
     assert "New signature on page 1" in window.target_label.text()
 
     # drag the resize handle outwards: aspect ratio stays 3:1
@@ -178,7 +188,7 @@ def test_place_resize_sign_twice(window, form_pdf, save_to, p12, p12_bob):
 def test_drag_moves_and_stays_on_page(window, blank_pdf):
     window.open(blank_pdf)
     view = window.view
-    click_scene(view, 200, 300)
+    place(view, 200, 300)
     r = view.placement.scene_rect()
     centre = (r.center().x(), r.center().y())
     drag_scene(view, centre, (centre[0] + 100, centre[1] + 50))
@@ -196,7 +206,7 @@ def test_drag_moves_and_stays_on_page(window, blank_pdf):
 def test_placement_clamped_to_page(window, blank_pdf):
     window.open(blank_pdf)
     view = window.view
-    click_scene(view, 590, 835)  # near the bottom-right corner
+    place(view, 590, 835)  # near the bottom-right corner
     r = view.placement.scene_rect()
     assert r.right() <= 595 + 0.01 and r.bottom() <= 842 + 0.01
     view.placement.scale_by(10)
@@ -211,9 +221,9 @@ def test_placement_clamped_to_page(window, blank_pdf):
 def test_click_again_moves_existing_placement(window, blank_pdf):
     window.open(blank_pdf)
     view = window.view
-    click_scene(view, 200, 300)
+    place(view, 200, 300)
     first = view.placement
-    click_scene(view, 400, 600)
+    place(view, 400, 600)
     assert view.placement is first
     assert view.placement.scene_rect().center().x() == pytest.approx(400, abs=1)
 
@@ -221,7 +231,7 @@ def test_click_again_moves_existing_placement(window, blank_pdf):
 def test_placement_survives_page_navigation(window, blank_pdf):
     window.open(blank_pdf)
     view = window.view
-    click_scene(view, 200, 300)
+    place(view, 200, 300)
     item = view.placement
     view.go_to(1)
     assert item.scene() is None  # not shown on page 2
@@ -231,7 +241,7 @@ def test_placement_survives_page_navigation(window, blank_pdf):
     assert item.scene() is view.scene()
     # clicking on page 2 moves the placement there
     view.go_to(1)
-    click_scene(view, 300, 300)
+    place(view, 300, 300)
     assert view.placement_box()[0] == 1
 
 
@@ -246,12 +256,83 @@ def test_page_spin_and_label(window, blank_pdf):
 
 def test_escape_clears_target(window, blank_pdf):
     window.open(blank_pdf)
-    click_scene(window.view, 200, 300)
+    place(window.view, 200, 300)
     assert window.sign_act.isEnabled()
     window.view.clear_target()
     assert window.view.placement is None
-    assert not window.sign_act.isEnabled()
-    assert "Click on the page" in window.target_label.text()
+    assert window.sign_btn.text() == "Place signature…"
+    assert "None yet" in window.target_label.text()
+    window.sign()
+    assert window.view.place_mode
+    window._escape()  # Esc ends place mode without placing
+    assert not window.view.place_mode and window.view.placement is None
+
+
+def test_default_is_zoom_and_move(window, blank_pdf, qapp):
+    """Without Place signature…, a click places nothing, the wheel zooms
+    around the mouse and dragging moves the page."""
+    window.open(blank_pdf)
+    view = window.view
+    assert view.dragMode() == QtWidgets.QGraphicsView.ScrollHandDrag
+    click_scene(view, 200, 300)
+    assert view.placement is None and view.selected_field is None
+
+    view.set_zoom(1.0)
+    qapp.processEvents()
+    under = view.mapFromScene(QPointF(300, 400))
+    zoom = view.zoom
+    wheel(view, (300, 400), 120, Qt.NoModifier)
+    assert view.zoom == pytest.approx(zoom * 1.15)
+    after = view.mapFromScene(QPointF(300, 400))  # the point under the mouse stays
+    assert abs(after.x() - under.x()) <= 2 and abs(after.y() - under.y()) <= 2
+    wheel(view, (300, 400), -120, Qt.NoModifier)
+    assert view.zoom == pytest.approx(zoom)
+
+    view.set_zoom(3.0)
+    qapp.processEvents()
+    bar = view.verticalScrollBar()
+    bar.setValue(bar.maximum() // 2)
+    y0 = bar.value()
+    drag_scene(view, (300, 400), (300, 350))  # drag the page up: shows more below
+    assert bar.value() > y0
+    assert view.placement is None
+
+
+def test_place_mode_picks_a_field(window, form_pdf):
+    window.open(form_pdf)
+    window.view.go_to(1)
+    field = next(i for i in window.view.scene().items()
+                 if isinstance(i, FieldItem) and i.field.name == "Applicant")
+    c = field.rect().center()
+    click_scene(window.view, c.x(), c.y())  # default mode: nothing happens
+    assert window.view.selected_field is None
+    window.sign()
+    click_scene(window.view, c.x(), c.y())
+    assert window.view.selected_field == "Applicant" and not window.view.place_mode
+    assert window.sign_btn.text() == "Sign…"
+
+
+def test_zoomed_in_only_the_visible_part_is_rendered_sharply(window, blank_pdf, qapp):
+    from pdfsigner.gui.pageview import MAX_PAGE_PIXELS
+
+    window.open(blank_pdf)
+    view = window.view
+    view.set_zoom(6.0)
+    view._update_detail()  # normally after a short pause
+    detail = view._detail_item
+    assert detail.isVisible()
+    pm = detail.pixmap()
+    vp = view.viewport()
+    dpr = view.devicePixelRatioF()
+    assert pm.width() <= vp.width() * dpr + 2 and pm.height() <= vp.height() * dpr + 2
+    shown = view.mapToScene(vp.rect()).boundingRect() & QRectF(0, 0, 595, 842)
+    assert detail.sceneBoundingRect().left() == pytest.approx(shown.left(), abs=0.5)
+    assert detail.sceneBoundingRect().top() == pytest.approx(shown.top(), abs=0.5)
+    page = view._page_item.pixmap()
+    assert page.width() * page.height() <= MAX_PAGE_PIXELS
+    view.set_zoom(None)
+    view._update_detail()
+    assert not detail.isVisible()  # the whole-page pixmap is sharp enough
 
 
 def test_fit_width_has_no_horizontal_scrollbar(window, blank_pdf, qapp):
@@ -270,7 +351,7 @@ def test_fit_width_has_no_horizontal_scrollbar(window, blank_pdf, qapp):
 
 def test_switching_certificate_updates_preview(window, blank_pdf):
     window.open(blank_pdf)
-    click_scene(window.view, 200, 300)
+    place(window.view, 200, 300)
     item = window.view.placement
     assert item._pixmap is not None
     window.cert_combo.setCurrentIndex(window.cert_combo.findData("bob"))  # no image
@@ -290,7 +371,7 @@ def test_image_and_text_switches_are_passed(window, blank_pdf, save_to, monkeypa
 
     monkeypatch.setattr(gui_app, "sign_pdf", spy)
     window.open(blank_pdf)
-    click_scene(window.view, 200, 300)
+    place(window.view, 200, 300)
     window.text_check.setChecked(False)
     window.sign()
     assert seen["with_text"] is False and seen["with_image"] is True
@@ -309,7 +390,7 @@ def test_field_overlays_and_list(window, form_pdf):
     # click the field on the page
     applicant = next(i for i in items if i.field.name == "Applicant")
     c = applicant.rect().center()
-    click_scene(window.view, c.x(), c.y())
+    place(window.view, c.x(), c.y())
     assert window.view.selected_field == "Applicant"
     assert window.view.placement is None
     assert "Prepared field 'Applicant'" in window.target_label.text()
@@ -332,7 +413,7 @@ def test_signed_field_not_selectable(window, form_pdf, save_to):
     window.sign()
     window.view.select_field("Applicant")
     assert window.view.selected_field is None
-    assert not window.sign_act.isEnabled()
+    assert window.sign_btn.text() == "Place signature…"  # no target
 
 
 # --- error paths ---------------------------------------------------------------------------
@@ -408,7 +489,7 @@ def test_frozen_document_refused(window, blank_pdf, tmp_path, save_to, monkeypat
     boxes = Boxes(monkeypatch, gui_app)
     window.open(certified)
     assert "certified" in window.statusBar().currentMessage()
-    click_scene(window.view, 200, 300)
+    place(window.view, 200, 300)
     window.sign()
     assert boxes.kinds() == ["critical"] and "cannot be signed again" in boxes.text()
     assert not save_to["path"].exists()
@@ -433,7 +514,7 @@ def test_new_box_on_certified_document_warns(window, form_pdf, tmp_path, save_to
             signers.PdfSigner(meta, s).sign_pdf(w, output=f)
     window.open(certified)
     boxes = Boxes(monkeypatch, gui_app, answer=gui_app.QMessageBox.No)
-    click_scene(window.view, 200, 300)
+    place(window.view, 200, 300)
     window.sign()
     assert boxes.kinds() == ["warning"] and "breaks the certification" in boxes.text()
     assert not save_to["path"].exists()
@@ -710,7 +791,7 @@ def wheel(view, scene_pos, delta, modifiers=Qt.ControlModifier):
 def test_ctrl_wheel_resizes_signature_and_zooms_page(window, blank_pdf):
     window.open(blank_pdf)
     view = window.view
-    click_scene(view, 200, 300)
+    place(view, 200, 300)
     w0 = view.placement.size[0]
     wheel(view, (200, 300), 120)  # over the signature: resize
     w1, h1 = view.placement.size
@@ -808,7 +889,7 @@ def test_pdf_signature_image_preview(window, form_pdf, tmp_path):
     window.config.certs["alice"].image = str(make_vector_signature(tmp_path / "v.pdf", 200, 50))
     window._cert_changed()
     window.open(form_pdf)
-    click_scene(window.view, 200, 300)
+    place(window.view, 200, 300)
     w, h = window.view.placement.size
     assert w / h == pytest.approx(4.0)
     pm = window.view.placement._pixmap

@@ -154,7 +154,8 @@ def main() -> None:
     view = win.view
     grab(win, "gui-overview.png")
 
-    # free placement next to the closing sentence
+    # free placement next to the closing sentence: Place signature…, then a click
+    win.sign()
     click(view, 420, 470)
     view.placement.scale_by(1.2)
     grab(win, "gui-place.png")

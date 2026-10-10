@@ -19,27 +19,32 @@ guide show the English version.
 ![Main window with a document open](images/gui-overview.png)
 
 * **Toolbar:** open a file, move between pages (`PgUp`/`PgDown`), and zoom
-  (`Ctrl +`/`Ctrl -`, *Fit* = fit width; `Ctrl` + mouse wheel works too).
-* **Page:** prepared signature fields appear as boxes:
-  * blue, dashed: empty, click to sign it;
+  (`Ctrl +`/`Ctrl -`, *Fit* = fit width).
+* **Page:** the mouse wheel zooms in and out around the mouse pointer;
+  press and hold the left mouse button and move to move the page. Prepared
+  signature fields appear as boxes:
+  * blue, dashed: empty, can be signed;
   * green: already signed;
   * red: locked by an earlier signature.
 * **Pages panel** (left): thumbnails. Click one to go there; Ctrl- or
   Shift-click to select several pages for the page tools.
 * **Sign panel** (right): certificate, appearance options, the current
-  target, the **Sign…** button, and a list of all signature fields.
+  target, the **Place signature…** / **Sign…** button, and a list of all
+  signature fields.
 
 ## Placing a new signature
 
 ![Placing a signature freely](images/gui-place.png)
 
 1. Pick a certificate.
-2. **Click** anywhere on the page. A preview of the signature image appears
-   centred on the click.
-3. **Drag** it to move it. It always stays inside the page.
+2. Press **Place signature…** (`Ctrl+S`), then **click** where the signature
+   should go. A preview of the signature image appears centred on the click,
+   and the page is back to zooming and moving. `Esc` cancels instead.
+3. **Drag** the preview to move it. It always stays inside the page.
 4. **Resize** it by dragging the blue corner handle or with `Ctrl` + mouse
    wheel over it. The aspect ratio of the signature image is kept.
-5. The panel shows the exact position and size in PDF points.
+5. The panel shows the exact position and size in PDF points, and the button
+   now reads **Sign…**.
 
 `Esc` (or *Clear placement*) removes the preview. A placement stays on its
 page while you browse other pages.
@@ -48,8 +53,8 @@ page while you browse other pages.
 
 ![A prepared field selected](images/gui-field.png)
 
-Click an empty field on the page, or in the list on the right. It turns solid
-blue and becomes the target. The stamp is fitted into the field's rectangle.
+Pick an empty field in the list on the right, or press **Place signature…**
+and click the field on the page. It turns solid blue and becomes the target. The stamp is fitted into the field's rectangle.
 
 ## Signing
 
@@ -211,9 +216,11 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | `Ctrl+O` | Open PDF |
 | `PgUp` / `PgDown` | Previous / next page |
 | `Ctrl +` / `Ctrl -` | Zoom in / out |
-| `Ctrl` + wheel | Zoom (over the page) or resize (over the signature) |
-| `Esc` | Remove the placed signature, or cancel cropping |
-| `Ctrl+S` | Sign |
+| Wheel | Zoom in / out around the mouse pointer |
+| Left button + move | Move the page (or the placed signature, when on it) |
+| `Ctrl` + wheel | Resize the placed signature (over it); zoom elsewhere |
+| `Esc` | Cancel placing, remove the placed signature, or cancel cropping |
+| `Ctrl+S` | Place signature, then sign |
 | `Ctrl+L` / `Ctrl+R` | Rotate the selected pages left / right |
 | `Delete` | Delete the selected pages (in the *Pages* panel) |
 | `Ctrl+Z` | Undo the last page edit |

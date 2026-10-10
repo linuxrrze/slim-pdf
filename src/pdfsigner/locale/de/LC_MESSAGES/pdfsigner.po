@@ -964,8 +964,12 @@ msgid "{path}: language must be one of {languages}"
 msgstr "{path}: language muss eines von {languages} sein"
 
 #: src/pdfsigner/gui/app.py
-msgid "Click on the page to place a signature, drag to move, drag the corner or Ctrl+wheel to resize. Click a dashed field to sign a prepared field."
-msgstr "Auf die Seite klicken, um eine Signatur zu platzieren; ziehen zum Verschieben; Ecke ziehen oder Strg+Mausrad zum Ändern der Größe. Auf ein gestricheltes Feld klicken, um ein vorbereitetes Feld zu signieren."
+msgid "Wheel: zoom, drag: move the page. Place signature… adds a signature; a placed signature is moved by dragging and resized at its corner or with Ctrl+wheel."
+msgstr "Mausrad: zoomen, Ziehen: Seite verschieben. „Signatur platzieren…“ fügt eine Signatur hinzu; eine platzierte Signatur wird durch Ziehen verschoben und an ihrer Ecke oder mit Strg+Mausrad in der Größe geändert."
+
+#: src/pdfsigner/gui/app.py
+msgid "Click where the signature should go, or on an empty (dashed) field. Esc cancels."
+msgstr "Dorthin klicken, wo die Signatur hin soll, oder auf ein leeres (gestricheltes) Feld. Esc bricht ab."
 
 #: src/pdfsigner/gui/app.py
 msgid "valid"
@@ -1421,8 +1425,12 @@ msgstr ""
 "bei {x:.0f}, {y:.0f} pt, {width:.0f} × {height:.0f} pt"
 
 #: src/pdfsigner/gui/app.py
-msgid "Click on the page to place a signature, or pick an empty field."
-msgstr "Auf die Seite klicken, um eine Signatur zu platzieren, oder ein leeres Feld wählen."
+msgid "None yet: press Place signature…, or pick an empty field below."
+msgstr "Noch keins: „Signatur platzieren…“ drücken oder unten ein leeres Feld wählen."
+
+#: src/pdfsigner/gui/app.py
+msgid "Place signature…"
+msgstr "Signatur platzieren…"
 
 #: src/pdfsigner/gui/app.py
 msgid "Cannot sign"
@@ -1886,8 +1894,8 @@ msgstr "{name}: gesperrt"
 
 #: src/pdfsigner/gui/pageview.py
 #, python-brace-format
-msgid "{name}: empty - click to sign this field"
-msgstr "{name}: leer – klicken, um dieses Feld zu signieren"
+msgid "{name}: empty signature field"
+msgstr "{name}: leeres Signaturfeld"
 
 #: src/pdfsigner/gui/settings.py
 msgid "System default"
