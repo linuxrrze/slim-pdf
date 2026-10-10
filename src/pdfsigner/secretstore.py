@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .config import CertProfile, expand
+from .i18n import _
 
 KEYRING_SERVICE = "pdfsigner"
 
@@ -51,26 +52,30 @@ class Credentials:
 def resolve_credentials(profile: CertProfile, ask: AskFn) -> Credentials:
     if profile.type == "system":
         return Credentials()  # Windows/macOS ask for PINs themselves
-    what = "PIN" if profile.type == "pkcs11" else "passphrase"
+    pin = profile.type == "pkcs11"
     match profile.secret:
         case "none":
             return Credentials()
         case "prompt":
-            return Credentials(secret=_ask(ask, f"{what} for certificate '{profile.name}'"))
+            prompt = (_("PIN for certificate '{name}'") if pin
+                      else _("passphrase for certificate '{name}'"))
+            return Credentials(secret=_ask(ask, prompt.format(name=profile.name)))
         case "keyring":
             secret = keyring_get(profile.name)
             if secret is None:
-                raise SecretError(
-                    f"no {what} for '{profile.name}' in the keyring "
-                    f"(store it with: pdfsigner certs set-secret {profile.name})"
-                )
+                message = (
+                    _("no PIN for '{name}' in the keyring "
+                      "(store it with: pdfsigner certs set-secret {name})") if pin
+                    else _("no passphrase for '{name}' in the keyring "
+                           "(store it with: pdfsigner certs set-secret {name})"))
+                raise SecretError(message.format(name=profile.name))
             return Credentials(secret=secret)
         case "keepass":
             return _from_keepass(profile, ask)
         case "keepassxc":
             return _from_keepassxc_cli(profile, ask)
         case other:
-            raise SecretError(f"unknown secret source {other!r}")
+            raise SecretError(_("unknown secret source {source!r}").format(source=other))
 
 
 def _ask(ask: AskFn, prompt: str) -> str:
@@ -87,7 +92,7 @@ def _keyring():
     try:
         import keyring
     except ImportError as e:
-        raise SecretError("keyring support needs the 'keyring' package") from e
+        raise SecretError(_("keyring support needs the 'keyring' package")) from e
     return keyring
 
 
@@ -98,11 +103,11 @@ def _keyring_call(fn, *args):
     try:
         return fn(*args)
     except NoKeyringError:
-        raise SecretError(
+        raise SecretError(_(
             "no OS keyring available (on Linux: start a Secret Service provider such as "
-            "GNOME Keyring, KWallet or KeePassXC, or use another secret source)") from None
+            "GNOME Keyring, KWallet or KeePassXC, or use another secret source)")) from None
     except KeyringError as e:
-        raise SecretError(f"keyring: {e}") from None
+        raise SecretError(_("keyring: {error}").format(error=e)) from None
 
 
 def keyring_get(profile_name: str) -> str | None:
@@ -140,21 +145,23 @@ def _from_keepass(profile: CertProfile, ask: AskFn) -> Credentials:
         from pykeepass import PyKeePass
         from pykeepass.exceptions import CredentialsError
     except ImportError as e:
-        raise SecretError("KeePass support needs the 'pykeepass' package") from e
+        raise SecretError(_("KeePass support needs the 'pykeepass' package")) from e
 
     db = expand(profile.keepass_db)
     keyfile = str(expand(profile.keepass_keyfile)) if profile.keepass_keyfile else None
-    master = _ask(ask, f"KeePass master password for {db.name}")
+    master = _ask(ask, _("KeePass master password for {database}").format(database=db.name))
     try:
         kp = PyKeePass(str(db), password=master or None, keyfile=keyfile)
     except CredentialsError:
-        raise SecretError(f"wrong master password or key file for {db}") from None
+        raise SecretError(
+            _("wrong master password or key file for {path}").format(path=db)) from None
     except FileNotFoundError:
-        raise SecretError(f"KeePass database not found: {db}") from None
+        raise SecretError(_("KeePass database not found: {path}").format(path=db)) from None
 
     entry = find_keepass_entry(kp, profile.keepass_entry)
     if entry is None:
-        raise SecretError(f"entry {profile.keepass_entry!r} not found in {db.name}")
+        raise SecretError(_("entry {entry!r} not found in {database}").format(
+            entry=profile.keepass_entry, database=db.name))
 
     creds = Credentials(secret=entry.password or None)
     if profile.keepass_attachment:
@@ -164,8 +171,8 @@ def _from_keepass(profile: CertProfile, ask: AskFn) -> Credentials:
                 break
         else:
             raise SecretError(
-                f"attachment {profile.keepass_attachment!r} not found on entry "
-                f"{profile.keepass_entry!r}"
+                _("attachment {attachment!r} not found on entry {entry!r}").format(
+                    attachment=profile.keepass_attachment, entry=profile.keepass_entry)
             )
     return creds
 
@@ -227,23 +234,24 @@ def keepassxc_cli() -> str:
     for p in KEEPASSXC_CLI_CANDIDATES.get(sys.platform, []):
         if Path(p).exists():
             return p
-    raise SecretError("keepassxc-cli not found (install KeePassXC, or set "
-                      "PDFSIGNER_KEEPASSXC_CLI to its path)")
+    raise SecretError(_("keepassxc-cli not found (install KeePassXC, or set "
+                        "PDFSIGNER_KEEPASSXC_CLI to its path)"))
 
 
 def _cli_error(db: Path, stderr: str) -> SecretError:
     msg = stderr.strip().splitlines()
     # With -q a wrong password produces no message at all.
     if not msg or "Invalid credentials" in stderr:
-        return SecretError(f"wrong master password, key file or YubiKey for {db}")
-    return SecretError(f"keepassxc-cli: {msg[-1]}")
+        return SecretError(
+            _("wrong master password, key file or YubiKey for {path}").format(path=db))
+    return SecretError(_("keepassxc-cli: {error}").format(error=msg[-1]))
 
 
 def _from_keepassxc_cli(profile: CertProfile, ask: AskFn) -> Credentials:
     cli = keepassxc_cli()
     db = expand(profile.keepass_db)
     if not db.is_file():
-        raise SecretError(f"KeePass database not found: {db}")
+        raise SecretError(_("KeePass database not found: {path}").format(path=db))
     opts = ["-q"]
     if profile.keepass_keyfile:
         opts += ["-k", str(expand(profile.keepass_keyfile))]
@@ -251,8 +259,9 @@ def _from_keepassxc_cli(profile: CertProfile, ask: AskFn) -> Credentials:
         opts += ["-y", profile.keepass_yubikey]
     entry = profile.keepass_entry
     entry = entry if entry.startswith("/") else "/" + entry
-    hint = " (then touch your YubiKey)" if profile.keepass_yubikey else ""
-    master = _ask(ask, f"KeePass master password for {db.name}{hint}")
+    prompt = (_("KeePass master password for {database} (then touch your YubiKey)")
+              if profile.keepass_yubikey else _("KeePass master password for {database}"))
+    master = _ask(ask, prompt.format(database=db.name))
     stdin = (master + "\n").encode()
 
     r = subprocess.run([cli, "show", *opts, "-a", "Password", str(db), entry],

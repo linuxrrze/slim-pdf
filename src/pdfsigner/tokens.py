@@ -10,6 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from .config import expand
+from .i18n import _
 from .signing import SigningError, _p11_attr
 
 
@@ -30,13 +31,14 @@ class TokenEntry:
         return self.id.hex() if self.id else ""
 
     def describe(self) -> str:
-        parts = [f"ID {self.id_hex or '-':4}"]
+        parts = [_("ID {id}").format(id=f"{self.id_hex or '-':4}")]
         if self.key_label is not None:
-            extra = ", PIN for every signature" if self.always_auth else ""
-            parts.append(f"key '{self.key_label}' ({self.key_type or '?'}{extra})")
+            key = (_("key '{label}' ({type}, PIN for every signature)") if self.always_auth
+                   else _("key '{label}' ({type})"))
+            parts.append(key.format(label=self.key_label, type=self.key_type or "?"))
         if self.cert_label is not None:
-            parts.append(f"certificate '{self.cert_label}': {self.subject}, "
-                         f"expires {self.not_after}")
+            parts.append(_("certificate '{label}': {subject}, expires {date}").format(
+                label=self.cert_label, subject=self.subject, date=self.not_after))
         return "  ".join(parts)
 
 
@@ -50,8 +52,9 @@ class TokenInfo:
     entries: list[TokenEntry] = field(default_factory=list)
 
     def describe(self) -> str:
-        return (f"token '{self.label}' ({self.manufacturer} {self.model}, "
-                f"serial {self.serial or '-'})")
+        return _("token '{label}' ({manufacturer} {model}, serial {serial})").format(
+            label=self.label, manufacturer=self.manufacturer, model=self.model,
+            serial=self.serial or "-")
 
 
 def _text(value) -> str:
@@ -95,7 +98,7 @@ def _read(session, logged_in: bool) -> list[TokenEntry]:
             e.subject = cert.subject.human_friendly
             e.not_after = cert["tbs_certificate"]["validity"]["not_after"].native.date().isoformat()
         except ValueError:
-            e.subject, e.not_after = "(unreadable)", "?"
+            e.subject, e.not_after = _("(unreadable)"), "?"
     entries.sort(key=lambda e: (e.id is None, e.id or b""))
     return entries
 
@@ -112,14 +115,15 @@ def list_tokens(module: str, token_label: str | None = None,
         from pkcs11 import TokenFlag
         from pkcs11.exceptions import PinIncorrect, PinLenRange, PKCS11Error
     except ImportError as e:
-        raise SigningError("PKCS#11 support needs 'pyhanko[pkcs11]'") from e
+        raise SigningError(_("PKCS#11 support needs 'pyhanko[pkcs11]'")) from e
 
     try:
         lib = pkcs11.lib(str(expand(module)))
         tokens = [t for t in lib.get_tokens(token_label=token_label or None)
                   if t.flags & TokenFlag.TOKEN_INITIALIZED]
     except PKCS11Error as e:
-        raise SigningError(f"PKCS#11 ({module}): {str(e) or type(e).__name__}") from None
+        raise SigningError(_("PKCS#11 ({module}): {error}").format(
+            module=module, error=str(e) or type(e).__name__)) from None
     result = []
     for t in tokens:
         info = TokenInfo(label=_text(t.label), manufacturer=_text(t.manufacturer_id),
@@ -130,9 +134,10 @@ def list_tokens(module: str, token_label: str | None = None,
                 info.logged_in = pin is not None
                 info.entries = _read(session, info.logged_in)
         except (PinIncorrect, PinLenRange):
-            raise SigningError(f"wrong PIN for token '{info.label}'") from None
+            raise SigningError(
+                _("wrong PIN for token '{label}'").format(label=info.label)) from None
         except PKCS11Error as e:
-            raise SigningError(f"PKCS#11 ({module}), token '{info.label}': "
-                               f"{str(e) or type(e).__name__}") from None
+            raise SigningError(_("PKCS#11 ({module}), token '{label}': {error}").format(
+                module=module, label=info.label, error=str(e) or type(e).__name__)) from None
         result.append(info)
     return result

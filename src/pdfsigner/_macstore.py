@@ -8,6 +8,7 @@ from ctypes import c_char_p, c_int32, c_long, c_void_p
 
 from asn1crypto import x509
 
+from .i18n import _
 from .signing import SigningError
 from .systemstore import StoreCancelled, StoreIdentity
 
@@ -82,11 +83,13 @@ def _cferror(err: int) -> str:
     buf = ctypes.create_string_buffer(1024)
     ok = cf.CFStringGetCString(desc, buf, len(buf), kCFStringEncodingUTF8)
     cf.CFRelease(desc)
-    return buf.value.decode() if ok else "unknown error"
+    return buf.value.decode() if ok else _("unknown error")
 
 
 class MacKeychain:
-    name = "macOS keychain"
+    @property
+    def name(self) -> str:
+        return _("macOS keychain")
 
     def __init__(self):
         self._arrays: list[int] = []
@@ -114,7 +117,8 @@ class MacKeychain:
             if token:  # e.g. no smartcard support; the keychain itself still works
                 log.info("keychain: smartcard search failed (OSStatus %s)", status)
                 return None
-            raise SigningError(f"keychain search failed (OSStatus {status})")
+            raise SigningError(
+                _("keychain search failed (OSStatus {status})").format(status=status))
         self._arrays.append(result.value)  # keeps the identities alive until close()
         return result.value
 
@@ -150,23 +154,25 @@ class MacKeychain:
         try:
             algorithm = _const(sec, SIGN_ALGORITHMS[(mechanism, digest_algorithm)])
         except KeyError:
-            raise SigningError(f"unsupported algorithm {mechanism}/{digest_algorithm}") from None
+            raise SigningError(_("unsupported algorithm {mechanism}/{digest}").format(
+                mechanism=mechanism, digest=digest_algorithm)) from None
         key = c_void_p()
         status = sec.SecIdentityCopyPrivateKey(ident.handle, ctypes.byref(key))
         if status != errSecSuccess:
-            raise SigningError(f"cannot access the private key (OSStatus {status})")
+            raise SigningError(
+                _("cannot access the private key (OSStatus {status})").format(status=status))
         data = cf.CFDataCreate(None, digest, len(digest))
         err = c_void_p()
         try:
             sig = sec.SecKeyCreateSignature(key, algorithm, data, ctypes.byref(err))
             if not sig:
                 code = cf.CFErrorGetCode(err) if err.value else 0
-                msg = _cferror(err) if err.value else "unknown error"
+                msg = _cferror(err) if err.value else _("unknown error")
                 if err.value:
                     cf.CFRelease(err)
                 if code == errSecUserCanceled:
-                    raise StoreCancelled("cancelled in the keychain dialog")
-                raise SigningError(f"keychain signing failed: {msg}")
+                    raise StoreCancelled(_("cancelled in the keychain dialog"))
+                raise SigningError(_("keychain signing failed: {error}").format(error=msg))
             out = _cfdata_bytes(sig)  # RSA: PKCS#1 bytes; ECDSA: DER (X9.62)
             cf.CFRelease(sig)
             return out

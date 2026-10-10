@@ -26,6 +26,7 @@ from asn1crypto import algos, x509
 from pyhanko.sign import signers
 from pyhanko_certvalidator.registry import SimpleCertificateStore
 
+from .i18n import _
 from .signing import SigningError
 
 
@@ -48,9 +49,10 @@ class StoreIdentity:
         return self.cert.subject.human_friendly
 
     def describe(self) -> str:
-        return (f"{self.thumbprint}  {self.subject}  "
-                f"(valid until {self.cert.not_valid_after:%Y-%m-%d})"
-                + ("  [smartcard]" if self.on_token else ""))
+        text = _("{thumbprint}  {subject}  (valid until {date})").format(
+            thumbprint=self.thumbprint, subject=self.subject,
+            date=f"{self.cert.not_valid_after:%Y-%m-%d}")
+        return text + ("  " + _("[smartcard]") if self.on_token else "")
 
 
 class Backend(Protocol):
@@ -74,7 +76,7 @@ def get_backend() -> Backend:
         from ._macstore import MacKeychain
 
         return MacKeychain()
-    raise SigningError("the system certificate store is only supported on Windows and macOS")
+    raise SigningError(_("the system certificate store is only supported on Windows and macOS"))
 
 
 def _norm_thumbprint(s: str) -> str:
@@ -84,7 +86,7 @@ def _norm_thumbprint(s: str) -> str:
 def select(identities: list[StoreIdentity], spec: str) -> StoreIdentity:
     """Pick by SHA-1 thumbprint (spaces/colons allowed) or subject substring."""
     if not spec.strip():
-        raise SigningError("no certificate selected (system_cert is empty)")
+        raise SigningError(_("no certificate selected (system_cert is empty)"))
     tp = _norm_thumbprint(spec)
     if len(tp) == 40:
         for ident in identities:
@@ -94,10 +96,11 @@ def select(identities: list[StoreIdentity], spec: str) -> StoreIdentity:
     if len(matches) == 1:
         return matches[0]
     if not matches:
-        raise SigningError(f"no certificate with a private key matches {spec!r} "
-                           "(see: pdfsigner certs system)")
+        raise SigningError(_("no certificate with a private key matches {spec!r} "
+                             "(see: pdfsigner certs system)").format(spec=spec))
     listing = "\n  ".join(i.describe() for i in matches)
-    raise SigningError(f"{spec!r} matches several certificates; use the thumbprint:\n  {listing}")
+    raise SigningError(_("{spec!r} matches several certificates; use the thumbprint:\n  {listing}")
+                       .format(spec=spec, listing=listing))
 
 
 def p1363_to_der(raw: bytes) -> bytes:
@@ -124,8 +127,9 @@ class SystemStoreSigner(signers.Signer):
     async def async_sign_raw(self, data: bytes, digest_algorithm: str, dry_run=False) -> bytes:
         mechanism = self.get_signature_mechanism_for_digest(digest_algorithm).signature_algo
         if mechanism not in ("rsassa_pkcs1v15", "ecdsa"):
-            raise SigningError(f"unsupported signature mechanism {mechanism!r} for the "
-                               "system store (RSA PKCS#1 v1.5 and ECDSA are supported)")
+            raise SigningError(_("unsupported signature mechanism {mechanism!r} for the "
+                                 "system store (RSA PKCS#1 v1.5 and ECDSA are supported)")
+                               .format(mechanism=mechanism))
         if dry_run:
             return bytes(_placeholder_length(self.ident.cert))
         digest = hashlib.new(digest_algorithm, data).digest()

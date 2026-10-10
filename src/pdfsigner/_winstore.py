@@ -7,6 +7,7 @@ from ctypes import wintypes as wt
 
 from asn1crypto import x509
 
+from .i18n import _
 from .signing import SigningError
 from .systemstore import StoreCancelled, StoreIdentity, p1363_to_der
 
@@ -72,22 +73,25 @@ def _message(code: int) -> str:
 
 
 def _check(status: int, what: str) -> None:
+    """``what`` is an already translated failure message with an {error} placeholder."""
     code = status & 0xFFFFFFFF
     if code == 0:
         return
     if code in CANCEL_CODES:
-        raise StoreCancelled("cancelled in the Windows PIN/consent dialog")
-    raise SigningError(f"{what} failed: {_message(code)} (0x{code:08X})")
+        raise StoreCancelled(_("cancelled in the Windows PIN/consent dialog"))
+    raise SigningError(what.format(error=f"{_message(code)} (0x{code:08X})"))
 
 
 class WindowsStore:
-    name = "Windows certificate store (CurrentUser\\My)"
+    @property
+    def name(self) -> str:
+        return _("Windows certificate store (CurrentUser\\My)")
 
     def __init__(self):
         self._store = crypt32.CertOpenSystemStoreW(None, "MY")
         if not self._store:
-            raise SigningError(f"cannot open the certificate store: "
-                               f"{_message(ctypes.get_last_error())}")
+            raise SigningError(_("cannot open the certificate store: {error}").format(
+                error=_message(ctypes.get_last_error())))
         self._contexts: list = []
 
     def identities(self) -> list[StoreIdentity]:
@@ -122,24 +126,27 @@ class WindowsStore:
         if not ok:
             err = ctypes.get_last_error()
             _check(err | 0x80070000 if err and err < 0x10000 else err,
-                   "accessing the private key")
-            raise SigningError("cannot access the private key")
+                   _("accessing the private key failed: {error}"))
+            raise SigningError(_("cannot access the private key"))
         try:
             pad, flags = None, 0
             if mechanism == "rsassa_pkcs1v15":
                 try:
                     pad = BCRYPT_PKCS1_PADDING_INFO(CNG_HASH_IDS[digest_algorithm])
                 except KeyError:
-                    raise SigningError(f"unsupported digest {digest_algorithm}") from None
+                    raise SigningError(_("unsupported digest {digest}").format(
+                        digest=digest_algorithm)) from None
                 flags = BCRYPT_PAD_PKCS1
             pad_ptr = ctypes.byref(pad) if pad is not None else None
             hash_buf = (ctypes.c_ubyte * len(digest)).from_buffer_copy(digest)
             size = wt.DWORD(0)
             _check(ncrypt.NCryptSignHash(key, pad_ptr, hash_buf, len(digest), None, 0,
-                                         ctypes.byref(size), flags), "signing")
+                                         ctypes.byref(size), flags),
+                   _("signing failed: {error}"))
             sig = (ctypes.c_ubyte * size.value)()
             _check(ncrypt.NCryptSignHash(key, pad_ptr, hash_buf, len(digest), sig, size,
-                                         ctypes.byref(size), flags), "signing")
+                                         ctypes.byref(size), flags),
+                   _("signing failed: {error}"))
             raw = bytes(sig[: size.value])
         finally:
             if must_free:
