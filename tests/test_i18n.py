@@ -172,13 +172,15 @@ def test_gui_in_german(german, qapp_de):
         dlg = SplitDialog(3, Path("doc.pdf"))
         box = dlg.findChild(QDialogButtonBox)
         assert box.button(QDialogButtonBox.Cancel).text().replace("&", "") == "Abbrechen"
-        # page tools wrap to a second toolbar row when they don't fit
+        # page tools wrap to a second toolbar row exactly when they don't fit
+        need = win.main_toolbar.sizeHint().width() + win.pages_toolbar.sizeHint().width() + 16
+        for width in (700, 2400):  # the platform may limit the size (screen width)
+            win.resize(width, 600)
+            win._arrange_toolbars()
+            assert win.toolBarBreak(win.pages_toolbar) == (need > win.width())
         win.resize(700, 600)
         win._arrange_toolbars()
-        assert win.toolBarBreak(win.pages_toolbar)
-        win.resize(2400, 600)
-        win._arrange_toolbars()
-        assert not win.toolBarBreak(win.pages_toolbar)
+        assert win.toolBarBreak(win.pages_toolbar)  # the German toolbars never fit in 700 px
     finally:
         win.close()
         from shiboken6 import delete
