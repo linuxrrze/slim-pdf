@@ -31,6 +31,7 @@ from .. import secretstore
 from ..config import CERT_TYPES, PKCS11_EXAMPLE, SECRET_SOURCES, CertProfile, Config
 from ..signing import SigningError, describe_signer, open_signer
 from .dialogs import ask_secret
+from .document import signature_pixmap
 
 SECRET_LABELS = {
     "prompt": "Ask every time",
@@ -115,10 +116,10 @@ class CertManagerDialog(QDialog):
 
         appearance = QGroupBox("Appearance")
         f = QFormLayout(appearance)
-        img_edit = line("image", "PNG with transparent background")
+        img_edit = line("image", "PNG with transparent background, or PDF (vector)")
         img_edit.textChanged.connect(self._update_preview)
         f.addRow("Signature image", _path_row(img_edit, "Signature image",
-                                              "Images (*.png *.jpg *.jpeg);;All files (*)"))
+                                              "Images (*.png *.jpg *.jpeg *.pdf);;All files (*)"))
         self.preview = QLabel()
         self.preview.setFixedHeight(60)
         self.preview.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -288,7 +289,7 @@ class CertManagerDialog(QDialog):
 
     def _update_preview(self) -> None:
         path = self.e["image"].text().strip()
-        pm = QPixmap(str(CertProfile(name="_", image=path).image_path)) if path else QPixmap()
+        pm = signature_pixmap(CertProfile(name="_", image=path).image_path) if path else QPixmap()
         if pm.isNull():
             self.preview.setText("(no image)" if not path else "(cannot load image)")
         else:

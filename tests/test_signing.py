@@ -36,6 +36,7 @@ from conftest import (
     green_bbox,
     make_encrypted,
     make_pdf,
+    make_vector_signature,
     render_page,
     text_bbox,
     validate_all,
@@ -453,6 +454,61 @@ def test_text_sits_below_image(profile, blank_pdf, tmp_path):
     image_centre = (image_ink[0] + image_ink[2]) / 2
     assert abs(image_centre - (field[0] + field[2]) / 2) < 15 * scale
 
+
+
+# --- vector (PDF) signature images ---------------------------------------------------------
+
+
+def test_pdf_signature_image_aspect(tmp_path):
+    vec = make_vector_signature(tmp_path / "sig.pdf", 200, 50)
+    assert image_aspect(vec) == pytest.approx(4.0)
+
+
+@pytest.mark.parametrize("with_text", [False, True])
+def test_pdf_signature_image_is_drawn(profile, p12, blank_pdf, tmp_path, with_text):
+    profile.image = str(make_vector_signature(tmp_path / "sig.pdf", 200, 50))
+    out = tmp_path / "out.pdf"
+    box = box_from_anchor(100, 500, 240, image_aspect(profile.image))
+    with signer_for(profile) as s:
+        sign_pdf(blank_pdf, out, s, profile, page=0, box=box, with_text=with_text)
+    scale = 3
+    img = render_page(out, 0, scale)
+    field = _px_rect(out, 0, box, scale)
+    ink = green_bbox(img, field)
+    assert ink is not None, "vector signature not drawn"
+    # spans most of the field width (it's scaled, not a raster thumbnail)
+    assert ink[2] - ink[0] > 0.6 * (field[2] - field[0])
+    assert green_bbox(img) == ink  # nothing outside the field
+    if with_text:
+        text = text_bbox(img, field)
+        assert text and ink[3] <= text[1]
+    [(_, st)] = validate_all(out, p12[1])
+    assert st.bottom_line
+
+
+def test_pdf_signature_image_is_vector(profile, blank_pdf, tmp_path):
+    """The stamp contains the path itself, not an image XObject."""
+    profile.image = str(make_vector_signature(tmp_path / "sig.pdf", 200, 50))
+    profile.stamp_text = ""
+    out = tmp_path / "out.pdf"
+    with signer_for(profile) as s:
+        sign_pdf(blank_pdf, out, s, profile, page=0, box=(100, 500, 300, 550))
+    data = out.read_bytes()
+    assert b"/Subtype /Image" not in data and b"/Subtype/Image" not in data
+    with open(out, "rb") as fh:
+        r = PdfFileReader(fh)
+        sig_field = r.root["/AcroForm"]["/Fields"][0].get_object()
+        ap = sig_field["/AP"]["/N"]
+        xobjs = ap["/Resources"]["/XObject"]
+        assert any(x.get_object()["/Subtype"] == "/Form" for x in xobjs.values())
+
+
+def test_unreadable_pdf_signature_image(profile, blank_pdf, tmp_path):
+    bad = tmp_path / "bad.pdf"
+    bad.write_bytes(b"not a pdf")
+    profile.image = str(bad)
+    with signer_for(profile) as s, pytest.raises(SigningError, match="cannot read signature PDF"):
+        sign_pdf(blank_pdf, tmp_path / "out.pdf", s, profile, page=0, box=(10, 10, 100, 40))
 
 # --- inspection details -------------------------------------------------------------------
 

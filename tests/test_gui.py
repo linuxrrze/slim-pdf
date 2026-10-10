@@ -636,3 +636,29 @@ def test_dialog_ltv_checkbox(dialog):
     dialog._save()
     assert load_config(dialog.config.path).certs["work"].ltv is True
     assert load_config(dialog.config.path).certs["tok"].ltv is False
+
+
+# --- vector signature images ------------------------------------------------------
+
+
+def test_pdf_signature_image_preview(window, form_pdf, tmp_path):
+    from conftest import make_vector_signature
+
+    window.config.certs["alice"].image = str(make_vector_signature(tmp_path / "v.pdf", 200, 50))
+    window._cert_changed()
+    window.open(form_pdf)
+    click_scene(window.view, 200, 300)
+    w, h = window.view.placement.size
+    assert w / h == pytest.approx(4.0)
+    pm = window.view.placement._pixmap
+    assert pm is not None and not pm.isNull()
+
+
+def test_dialog_pdf_image_preview(dialog, tmp_path):
+    from conftest import make_vector_signature
+
+    dialog.e["image"].setText(str(make_vector_signature(tmp_path / "v.pdf")))
+    assert not dialog.preview.pixmap().isNull()
+    bad = tmp_path / "bad.pdf"
+    bad.write_bytes(b"nope")
+    dialog.e["image"].setText(str(bad))  # no crash, just no preview

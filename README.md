@@ -18,6 +18,7 @@ share the same certificate profiles.
   as an attachment. See [docs/secret-storage.md](docs/secret-storage.md).
 * **Long-term validation** (`ltv = true`): certificate chain and revocation
   info are embedded (PAdES B-LT, or B-LTA with a timestamp server).
+* Signature images can be PNG/JPEG or **PDF (vector)**.
 * Stamps are drawn upright on rotated pages (`/Rotate`).
 * **Verify** signatures (`pdfsigner verify`, and a *Signatures* list in the
   GUI): valid, untrusted or invalid, with what changed after each signature.
@@ -135,8 +136,6 @@ Screenshots are regenerated with
 ## Known gaps / next steps
 
 * **PKCS#11** is tested against SoftHSM, not yet with a physical token.
-* Signature images are raster only (PNG/JPEG). Vector PDF signatures would
-  scale better.
 * The Windows certificate store and the macOS Keychain can't be used as key
   sources (pyHanko has no backend for them), so certificates must be exported
   as `.p12`.

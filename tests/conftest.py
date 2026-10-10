@@ -296,3 +296,33 @@ def sign_with(profile: CertProfile, src: Path, dst: Path, **kw) -> str:
 def write_pem(cert: x509.Certificate, path: Path) -> Path:
     path.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
     return path
+
+
+def make_vector_signature(path: Path, width: float = 200, height: float = 50,
+                          rgb: tuple[float, float, float] = (0, 0.6, 0)) -> Path:
+    """One-page PDF with a stroked 'signature' path, sized width x height pt."""
+    r, g, b = rgb
+    content = (f"{r} {g} {b} RG 3 w 1 J "
+               f"5 {height * 0.3:.1f} m {width * 0.3:.1f} {height * 0.9:.1f} "
+               f"{width * 0.5:.1f} {height * 0.1:.1f} {width - 5} {height * 0.6:.1f} c S").encode()
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {width} {height}] "
+        f"/Resources << >> /Contents 4 0 R >>".encode(),
+        b"<< /Length %d >>\nstream\n" % len(content) + content + b"\nendstream",
+    ]
+    out = io.BytesIO()
+    out.write(b"%PDF-1.7\n")
+    offsets = []
+    for i, obj in enumerate(objects, 1):
+        offsets.append(out.tell())
+        out.write(b"%d 0 obj\n" % i + obj + b"\nendobj\n")
+    xref = out.tell()
+    out.write(b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1))
+    for off in offsets:
+        out.write(b"%010d 00000 n \n" % off)
+    out.write(b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n"
+              % (len(objects) + 1, xref))
+    path.write_bytes(out.getvalue())
+    return path

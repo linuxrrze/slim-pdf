@@ -40,7 +40,7 @@ from ..signing import (
 )
 from .certdialog import CertManagerDialog
 from .dialogs import ask_secret
-from .document import PdfDocument
+from .document import PdfDocument, signature_pixmap
 from .pageview import PageView
 
 STATUS_COLORS = {validation.VALID: "#2e7d32", validation.UNTRUSTED: "#ef8c00",
@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
         p = self.current_profile()
         pixmap, aspect = None, 3.0
         if p and p.image_path and self.image_check.isChecked():
-            pm = QPixmap(str(p.image_path))
+            pm = signature_pixmap(p.image_path)
             if not pm.isNull():
                 pixmap, aspect = pm, image_aspect(p.image_path)
         self.view.set_signature_appearance(pixmap, aspect)

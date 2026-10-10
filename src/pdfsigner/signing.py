@@ -19,6 +19,7 @@ from pathlib import Path
 from PIL import Image
 from pyhanko import stamp
 from pyhanko.pdf_utils import generic
+from pyhanko.pdf_utils.content import ImportedPdfPage
 from pyhanko.pdf_utils.crypt import AuthStatus, PdfKeyNotAvailableError
 from pyhanko.pdf_utils.images import PdfImage
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
@@ -28,7 +29,9 @@ from pyhanko.pdf_utils.layout import (
     Margins,
     SimpleBoxLayoutRule,
 )
+from pyhanko.pdf_utils.misc import PdfError
 from pyhanko.pdf_utils.reader import PdfFileReader
+from pyhanko.pdf_utils.rw_common import find_inherited_value_in_tree
 from pyhanko.pdf_utils.text import TextBoxStyle
 from pyhanko.sign import fields, signers, timestamps
 from pyhanko.sign.fields import MDPPerm
@@ -219,10 +222,31 @@ def inspect_pdf(path: str | os.PathLike, password: str | None = None) -> DocInfo
 # --- appearance --------------------------------------------------------------
 
 
+def is_pdf_image(path: str | os.PathLike) -> bool:
+    return Path(path).suffix.lower() == ".pdf"
+
+
+def _pdf_image_size(path: str | os.PathLike) -> tuple[float, float]:
+    """Size of page 1 of a PDF used as a vector signature image (its MediaBox,
+    which is what pyHanko imports)."""
+    try:
+        with open(path, "rb") as f:
+            reader = PdfFileReader(f, strict=False)
+            page = reader.find_page_for_modification(0)[0].get_object()
+            x1, y1, x2, y2 = (float(v) for v in
+                              find_inherited_value_in_tree(page, "/MediaBox", "/Parent"))
+    except (OSError, PdfError, TypeError, ValueError, IndexError) as e:
+        raise SigningError(f"cannot read signature PDF {path}: {e}") from None
+    return abs(x2 - x1), abs(y2 - y1)
+
+
 def image_aspect(path: str | os.PathLike) -> float:
-    """width / height of a raster image."""
-    with Image.open(path) as im:
-        w, h = im.size
+    """width / height of the signature image (raster, or page 1 of a PDF)."""
+    if is_pdf_image(path):
+        w, h = _pdf_image_size(path)
+    else:
+        with Image.open(path) as im:
+            w, h = im.size
     return w / h
 
 
@@ -246,7 +270,11 @@ def build_stamp_style(
     if image is not None:
         if not image.exists():
             raise SigningError(f"signature image not found: {image}")
-        background = PdfImage(Image.open(image))
+        if is_pdf_image(image):
+            _pdf_image_size(image)  # fail early on unreadable files
+            background = ImportedPdfPage(str(image), page_ix=0)
+        else:
+            background = PdfImage(Image.open(image))
 
     if background is not None and not text:
         return stamp.StaticStampStyle(background=background, border_width=0)

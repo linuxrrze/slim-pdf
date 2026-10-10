@@ -56,7 +56,7 @@ saved to ~/.config/pdfsigner/config.toml
 |---|---|
 | `--type TYPE` | `pkcs12` (default) or `pkcs11`. Rarely needed: `--pkcs11-lib` implies `pkcs11`. |
 | `--p12 FILE` | PKCS#12 file (`.p12`/`.pfx`). `~` and `$VARS` are expanded when used. |
-| `--image FILE` | Signature image (PNG with a transparent background works best). |
+| `--image FILE` | Signature image: PNG/JPEG (a transparent background works best) or a PDF, whose first page is embedded as vector graphics (see below). |
 | `--stamp-text TEXT` | Text below the image. `%(signer)s` = certificate CN, `%(ts)s` = signing time, `\n` = line break. `''` = image only. Default: `Digitally signed by %(signer)s\n%(ts)s`. |
 | `--reason`, `--location`, `--contact` | Stored in the signature; shown by PDF viewers. |
 | `--timestamp-url URL` | RFC 3161 timestamp server, e.g. `http://timestamp.digicert.com`. |
@@ -101,6 +101,19 @@ $ pdfsigner certs remove supervisor --purge-secret     # also delete it from the
 ```
 
 `edit` takes the same options as `add` and changes only the ones you pass.
+
+### Vector signature images
+
+A scanned PNG gets blurry when the stamp is large or the document is
+printed. A PDF signature stays sharp: pdfsigner embeds page 1 of the PDF as
+vector graphics, and its page size determines the aspect ratio. To turn a
+scan into one, trace it (Inkscape: *Path → Trace Bitmap*), set the page to
+the drawing (*Edit → Resize Page to Selection*) and save as PDF. An existing
+SVG only needs the last step.
+
+```console
+$ pdfsigner certs edit work --image ~/certs/signature.pdf
+```
 
 ### Long-term validation (LTV)
 

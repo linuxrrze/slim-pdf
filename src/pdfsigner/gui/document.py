@@ -9,12 +9,40 @@ are handled the same way as when rendering.
 from __future__ import annotations
 
 import ctypes
+import io
 
 import pypdfium2 as pdfium
 import pypdfium2.raw as raw
 
 # FPDF_DeviceToPage works on integer device pixels; oversample for precision.
 _OVERSAMPLE = 64
+
+
+def render_signature_image(path, height_px: int = 300):
+    """PIL RGBA image of page 1 of a PDF signature, transparent background."""
+    pdf = pdfium.PdfDocument(str(path))
+    try:
+        page = pdf[0]
+        scale = height_px / page.get_height()
+        return page.render(scale=scale, fill_color=(255, 255, 255, 0)).to_pil()
+    finally:
+        pdf.close()
+
+
+def signature_pixmap(path):
+    """QPixmap of a signature image (raster or PDF); null pixmap if unreadable."""
+    from PySide6.QtGui import QPixmap
+
+    if str(path).lower().endswith(".pdf"):
+        try:
+            buf = io.BytesIO()
+            render_signature_image(path).save(buf, "PNG")
+        except Exception:  # unreadable PDF: show no preview, signing reports it
+            return QPixmap()
+        pm = QPixmap()
+        pm.loadFromData(buf.getvalue(), "PNG")
+        return pm
+    return QPixmap(str(path))
 
 
 class PdfDocument:
