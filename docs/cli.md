@@ -1,0 +1,359 @@
+# Command line reference
+
+```
+pdfsigner [--config FILE] <command> ...
+
+  certs list | show | add | edit | remove | default | set-secret | test
+  fields FILE
+  sign FILE [target] [options]
+  gui [FILE]
+```
+
+* **Pages** are 1-based.
+* **Coordinates** are PDF points (1/72 inch), with the origin at the
+  bottom-left of the page as stored in the file (before `/Rotate`). An A4
+  page is 595 × 842 pt. `pdfsigner fields` prints the rectangles of existing
+  fields, which is a quick way to orient yourself.
+* **Config file:** `--config FILE`, else `$PDFSIGNER_CONFIG`, else the
+  platform default:
+  * Linux: `~/.config/pdfsigner/config.toml`
+  * macOS: `~/Library/Application Support/pdfsigner/config.toml`
+  * Windows: `%LOCALAPPDATA%\pdfsigner\config.toml`
+* **Windows:** the examples use bash syntax. In PowerShell, continue lines with
+  `` ` `` instead of `\`, and quote with `"…"`. `~` and `$VARS`/`%VARS%` in
+  profile paths are expanded on all platforms.
+* **Exit codes:** `0` OK, `1` error, `3` refused because it would invalidate
+  an existing signature (overridable with `--force`), `130` cancelled at a
+  prompt.
+
+All outputs below come from real runs. Paths are shortened to `~`.
+
+---
+
+## Certificate profiles: `pdfsigner certs`
+
+A *profile* says where the key is (a PKCS#12 file, a KeePass attachment or a
+PKCS#11 token), where its passphrase or PIN comes from, and how the visible
+signature looks. The first profile you add becomes the default.
+
+### Add a PKCS#12 certificate
+
+```console
+$ pdfsigner certs add work --p12 ~/certs/fau-smime.p12 --image ~/certs/signature.png \
+      --reason "Expense claim" --location Erlangen
+saved to ~/.config/pdfsigner/config.toml
+
+$ pdfsigner certs add supervisor --p12 ~/certs/supervisor.p12 --image ~/certs/supervisor.png \
+      --stamp-text 'Approved by %(signer)s\n%(ts)s'
+saved to ~/.config/pdfsigner/config.toml
+```
+
+| Option | Meaning |
+|---|---|
+| `--p12 FILE` | PKCS#12 file (`.p12`/`.pfx`). `~` and `$VARS` are expanded when used. |
+| `--image FILE` | Signature image (PNG with a transparent background works best). |
+| `--stamp-text TEXT` | Text below the image. `%(signer)s` = certificate CN, `%(ts)s` = signing time, `\n` = line break. `''` = image only. Default: `Digitally signed by %(signer)s\n%(ts)s`. |
+| `--reason`, `--location`, `--contact` | Stored in the signature; shown by PDF viewers. |
+| `--timestamp-url URL` | RFC 3161 timestamp server, e.g. `http://timestamp.digicert.com`. |
+| `--secret SOURCE` | `prompt` (default), `keyring`, `keepass` or `none`. See [secret-storage.md](secret-storage.md). |
+| `--default` | Make this the default profile. |
+
+### List, inspect and test
+
+```console
+$ pdfsigner certs list
+* work                 pkcs12  secret=prompt   ~/certs/fau-smime.p12
+  supervisor           pkcs12  secret=prompt   ~/certs/supervisor.p12
+
+$ pdfsigner certs show work
+name                 'work'
+type                 'pkcs12'
+path                 '~/certs/fau-smime.p12'
+image                '~/certs/signature.png'
+stamp_text           'Digitally signed by %(signer)s\n%(ts)s'
+reason               'Expense claim'
+location             'Erlangen'
+secret               'prompt'
+
+$ pdfsigner certs test work
+passphrase for certificate 'work':
+Common Name: Alice Example
+  issuer:  Common Name: Alice Example
+  valid:   2026-10-08 .. 2026-11-08
+```
+
+`*` marks the default profile. `certs test` unlocks the key exactly like
+signing would. Use it to check a new profile or a stored passphrase.
+
+### Change, rename the default, remove
+
+```console
+$ pdfsigner certs edit work --stamp-text ''            # image only from now on
+$ pdfsigner certs edit work --timestamp-url http://timestamp.digicert.com
+$ pdfsigner certs default supervisor
+$ pdfsigner certs remove supervisor --purge-secret     # also delete it from the keyring
+```
+
+`edit` takes the same options as `add` and changes only the ones you pass.
+
+### Store the passphrase in the OS keyring
+
+```console
+$ pdfsigner certs edit work --secret keyring
+$ pdfsigner certs set-secret work
+Passphrase for 'work':
+stored in keyring (keyring.backends.SecretService.Keyring)
+```
+
+On Linux with KeePassXC's *Secret Service integration* enabled, this entry
+ends up in your KeePassXC database. On macOS it goes to the Keychain
+(`keyring.backends.macOS.Keyring`), on Windows to the Credential Manager
+(`keyring.backends.Windows.WinVaultKeyring`).
+
+### Keep the whole certificate in KeePass
+
+The entry's password is the passphrase, and the `.p12` is an attachment on
+the same entry. No key file stays on disk:
+
+```console
+$ pdfsigner certs add vault --secret keepass --keepass-db ~/Passwords.kdbx \
+      --keepass-entry "Certificates/FAU S/MIME" --keepass-attachment fau-smime.p12 \
+      --image ~/certs/signature.png
+$ pdfsigner certs test vault
+KeePass master password for Passwords.kdbx:
+Common Name: Alice Example
+  ...
+```
+
+`--keepass-keyfile FILE` adds a key file. Entry paths are `Group/Sub/Title`.
+A title may itself contain `/`.
+
+### Smartcard / token (PKCS#11)
+
+```console
+$ pdfsigner certs add yubikey --pkcs11-lib /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so \
+      --token-label PIV_II --key-label "SIGN key" --image ~/certs/signature.png
+```
+
+On macOS the OpenSC module is `/Library/OpenSC/lib/opensc-pkcs11.so`, on
+Windows `C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll`.
+`--pkcs11-lib` sets the type to `pkcs11` automatically. `--cert-label`
+defaults to the key label. Requires `pip install 'pdfsigner[pkcs11]'`.
+
+---
+
+## Inspect a document: `pdfsigner fields`
+
+```console
+$ pdfsigner fields expense-claim.pdf
+2 pages
+  Applicant                empty   page 1   60,216,260,282
+  Supervisor               empty   page 1   335,216,535,282
+```
+
+Each row shows the field name, its state, the page and the rectangle
+(`x1,y1,x2,y2`). States:
+
+* `empty`: can be signed.
+* `signed`: already signed.
+* `LOCKED`: an earlier signature locked this field, so signing it would
+  invalidate that signature.
+
+Certified documents show it in the header, e.g. `2 pages, certified
+(FILL_FORMS)`. Use `--password` for encrypted PDFs.
+
+---
+
+## Sign: `pdfsigner sign`
+
+```
+pdfsigner sign FILE [-c PROFILE] [-o OUT | -i]
+               [--field NAME | --page N (--box X1,Y1,X2,Y2 | --at X,Y --width W)]
+               [--no-image] [--no-text] [--force]
+```
+
+The output defaults to `FILE-signed.pdf`. `-o` picks another name, and
+`-i`/`--in-place` overwrites the input (written atomically). Signing is
+always incremental, so earlier signatures stay valid.
+
+### 1. Sign a prepared field
+
+```console
+$ pdfsigner sign expense-claim.pdf --field Applicant
+passphrase for certificate 'work':
+signed field 'Applicant' -> expense-claim-signed.pdf
+```
+
+The stamp fills the field's rectangle. The image keeps its aspect ratio and
+is centred above the text.
+
+### 2. A second signer, in place
+
+```console
+$ pdfsigner sign expense-claim-signed.pdf -i -c supervisor --field Supervisor
+passphrase for certificate 'supervisor':
+signed field 'Supervisor' -> expense-claim-signed.pdf
+```
+
+### 3. Place a new signature anywhere
+
+Give the lower-left corner and a width. The height follows the image's
+aspect ratio:
+
+```console
+$ pdfsigner sign expense-claim-signed.pdf -i --page 2 --at 60,600 --width 150
+passphrase for certificate 'work':
+signed field 'Signature1' -> expense-claim-signed.pdf
+```
+
+Or give an exact box. The image is fitted into it without distortion:
+
+```console
+$ pdfsigner sign letter.pdf --page 1 --box 350,80,510,133
+```
+
+`--field NAME` together with `--page`/`--box` names the new field (default:
+`Signature1`, `Signature2`, …).
+
+### 4. Invisible signature
+
+Without a target you get an invisible signature. It is still a full
+cryptographic signature, just without a stamp:
+
+```console
+$ pdfsigner sign expense-claim-signed.pdf -o final.pdf
+passphrase for certificate 'work':
+signed field 'Signature2' -> final.pdf
+
+$ pdfsigner fields final.pdf
+2 pages
+  Applicant                signed  page 1   60,216,260,282
+  Supervisor               signed  page 1   335,216,535,282
+  Signature1               signed  page 2   60,600,210,650
+  Signature2               signed  page 1   invisible
+```
+
+### Appearance switches
+
+```console
+$ pdfsigner sign contract.pdf --field Buyer --no-text     # image only
+$ pdfsigner sign contract.pdf --field Buyer --no-image    # text only, with a thin border
+```
+
+### Errors and safety checks
+
+The target is checked **before** you're asked for a passphrase:
+
+```console
+$ pdfsigner sign final.pdf --field Applicant
+error: field 'Applicant' is already signed
+
+$ pdfsigner sign expense-claim.pdf --at 60,600 --width 150
+error: --box/--at need --page
+
+$ pdfsigner sign expense-claim.pdf --page 5 --at 60,600 --width 150
+error: page out of range (document has 2)
+
+$ pdfsigner sign approved.pdf --field Second
+error: signing would invalidate an existing signature: field 'Second' is locked by an existing signature (use --force to sign anyway)
+
+$ pdfsigner sign certified.pdf --field Approval
+error: document is certified with 'no changes allowed'; it cannot be signed again
+```
+
+**Locked fields:** an earlier signature can lock fields (FieldMDP). Signing
+one of them exits with code `3`. `--force` signs anyway and knowingly breaks
+the earlier signature.
+
+**"No changes" certification:** a document certified this way can't get
+another signature at all, so `--force` doesn't help here.
+
+On Windows a file can't be replaced while another program has it open. If
+the output (or the input, with `-i`) is open in Acrobat, close it first:
+
+```console
+$ pdfsigner sign contract.pdf -i --field Buyer
+passphrase for certificate 'work':
+error: cannot write contract.pdf: Permission denied (is it open in another program?)
+```
+
+A wrong passphrase:
+
+```console
+$ pdfsigner sign expense-claim.pdf --field Applicant -o x.pdf
+passphrase for certificate 'work':
+error: cannot load PKCS#12 for 'work' (wrong passphrase?): Could not load key material from PKCS#12 data
+```
+
+---
+
+## Scripting examples
+
+Sign every PDF in a folder in the same spot (bottom right of page 1):
+
+```bash
+for f in invoices/*.pdf; do
+  pdfsigner sign "$f" -c work --page 1 --at 400,40 --width 140 -o "signed/$(basename "$f")"
+done
+```
+
+With `--secret prompt` this asks once per file. For batches, use
+`--secret keyring`, or a KeePass profile.
+
+Sign the first empty field, whatever it's called:
+
+```bash
+field=$(pdfsigner fields form.pdf | awk '$2 == "empty" {print $1; exit}')
+pdfsigner sign form.pdf --field "$field"
+```
+
+Use a separate config, e.g. for a shared machine or CI:
+
+```bash
+PDFSIGNER_CONFIG=./signing.toml pdfsigner certs list
+pdfsigner --config ./signing.toml sign report.pdf
+```
+
+---
+
+## Config file format
+
+Both `pdfsigner certs` and the GUI's *Manage…* dialog write this file. You
+can also edit it by hand:
+
+```toml
+default = "work"
+
+[certs.work]
+type = "pkcs12"
+path = "~/certs/fau-smime.p12"
+image = "~/certs/signature.png"
+reason = "Expense claim"
+location = "Erlangen"
+
+[certs.supervisor]
+type = "pkcs12"
+path = "~/certs/supervisor.p12"
+image = "~/certs/supervisor.png"
+stamp_text = "Approved by %(signer)s\n%(ts)s"
+
+[certs.vault]
+type = "pkcs12"
+secret = "keepass"
+keepass_db = "~/Passwords.kdbx"
+keepass_entry = "Certificates/FAU S/MIME"
+keepass_attachment = "fau-smime.p12"
+
+[certs.yubikey]
+type = "pkcs11"
+pkcs11_lib = "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so"
+token_label = "PIV_II"
+key_label = "SIGN key"
+```
+
+All keys: `type`, `path`, `pkcs11_lib`, `token_label`, `key_label`,
+`cert_label`, `image`, `stamp_text`, `reason`, `location`, `contact_info`,
+`timestamp_url`, `secret`, `keepass_db`, `keepass_keyfile`, `keepass_entry`,
+`keepass_attachment`. Unknown keys are rejected, so typos don't go
+unnoticed. The file is written with mode `0600` and **never contains
+secrets**.

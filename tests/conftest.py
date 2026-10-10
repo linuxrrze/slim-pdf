@@ -1,0 +1,284 @@
+import datetime
+import io
+import math
+import os
+import random
+from pathlib import Path
+
+import pypdfium2 as pdfium
+import pytest
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import pkcs12
+from cryptography.x509.oid import NameOID
+from PIL import Image, ImageDraw
+from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+from pyhanko.sign import fields
+
+from pdfsigner.config import CertProfile
+
+PASSPHRASE = "secret"
+
+# GUI tests run headless.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+
+def make_p12(cn: str, passphrase: str = PASSPHRASE) -> tuple[bytes, x509.Certificate]:
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)])
+    now = datetime.datetime.now(datetime.UTC)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - datetime.timedelta(days=1))
+        .not_valid_after(now + datetime.timedelta(days=30))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .add_extension(
+            x509.KeyUsage(True, True, False, False, False, True, False, False, False),
+            critical=True,
+        )
+        .sign(key, hashes.SHA256())
+    )
+    data = pkcs12.serialize_key_and_certificates(
+        cn.encode(), key, cert, None,
+        serialization.BestAvailableEncryption(passphrase.encode()),
+    )
+    return data, cert
+
+
+@pytest.fixture
+def p12(tmp_path) -> tuple[Path, x509.Certificate]:
+    data, cert = make_p12("Alice Example")
+    path = tmp_path / "alice.p12"
+    path.write_bytes(data)
+    return path, cert
+
+
+@pytest.fixture
+def p12_bob(tmp_path) -> tuple[Path, x509.Certificate]:
+    data, cert = make_p12("Bob Example")
+    path = tmp_path / "bob.p12"
+    path.write_bytes(data)
+    return path, cert
+
+
+def draw_signature_image(path: Path, seed: int = 0, color=(20, 40, 150)) -> Path:
+    """Transparent 300x100 (3:1) PNG with a handwriting-like stroke."""
+    rnd = random.Random(seed)
+    k = 4  # supersample for smooth edges
+    w, h = 300 * k, 100 * k
+    # A slanted capital, then a run of uneven small loops trailing upwards.
+    amps = [rnd.uniform(0.5, 1.0) for _ in range(5)]
+    pts = []
+    for i in range(400):  # capital: tall narrow loop
+        t = i / 399 * 2 * math.pi
+        pts.append((40 + 18 * math.sin(t) + 10 * (1 - math.cos(t / 2)), 70 - 50 * (1 - math.cos(t)) / 2))
+    for i in range(1200):
+        t = i / 1199
+        a = amps[min(int(t * len(amps)), len(amps) - 1)]
+        x = 62 + t * 200 + 9 * math.sin(t * 2 * math.pi * 5)
+        y = 62 - 20 * a * (1 - math.cos(t * 2 * math.pi * 5)) / 2 - 14 * t
+        pts.append((x, y))
+    pts = [(x * k, y * k) for x, y in pts]
+    underline = [(120 * k, 84 * k), (200 * k, 80 * k), (285 * k, 72 * k)]
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(im).line(pts, fill=(*color, 255), width=3 * k, joint="curve")
+    ImageDraw.Draw(im).line(underline, fill=(*color, 255), width=2 * k, joint="curve")
+    im.resize((300, 100), Image.LANCZOS).save(path)
+    return path
+
+
+@pytest.fixture
+def sig_image(tmp_path) -> Path:
+    return draw_signature_image(tmp_path / "sig.png")
+
+
+@pytest.fixture
+def profile(p12, sig_image) -> CertProfile:
+    return CertProfile(name="alice", path=str(p12[0]), image=str(sig_image),
+                       secret="none", reason="Test")
+
+
+def make_pdf(path: Path, pages: int = 2, rotate: int = 0) -> Path:
+    doc = pdfium.PdfDocument.new()
+    for _ in range(pages):
+        page = doc.new_page(595, 842)
+        if rotate:
+            page.set_rotation(rotate)
+    buf = io.BytesIO()
+    doc.save(buf)
+    path.write_bytes(buf.getvalue())
+    return path
+
+
+@pytest.fixture
+def blank_pdf(tmp_path) -> Path:
+    return make_pdf(tmp_path / "blank.pdf")
+
+
+@pytest.fixture
+def form_pdf(tmp_path) -> Path:
+    """PDF with two prepared, empty signature fields on page 2."""
+    src = make_pdf(tmp_path / "base.pdf")
+    w = IncrementalPdfFileWriter(io.BytesIO(src.read_bytes()))
+    fields.append_signature_field(w, fields.SigFieldSpec("Applicant", on_page=1,
+                                                         box=(50, 100, 250, 170)))
+    fields.append_signature_field(w, fields.SigFieldSpec("Supervisor", on_page=1,
+                                                         box=(320, 100, 520, 170)))
+    out = tmp_path / "form.pdf"
+    with open(out, "wb") as f:
+        w.write(f)
+    return out
+
+
+def add_sig_field(src: Path, dst: Path, name: str, page: int, box, **kw) -> Path:
+    w = IncrementalPdfFileWriter(io.BytesIO(src.read_bytes()))
+    fields.append_signature_field(w, fields.SigFieldSpec(name, on_page=page, box=box, **kw))
+    buf = io.BytesIO()
+    w.write(buf)
+    dst.write_bytes(buf.getvalue())
+    return dst
+
+
+def make_encrypted(src: Path, dst: Path, user_pw: str) -> Path:
+    from pyhanko.pdf_utils.reader import PdfFileReader
+    from pyhanko.pdf_utils.writer import copy_into_new_writer
+
+    with open(src, "rb") as f:
+        w = copy_into_new_writer(PdfFileReader(f))
+    w.encrypt(owner_pass="owner-" + user_pw, user_pass=user_pw)
+    with open(dst, "wb") as f:
+        w.write(f)
+    return dst
+
+
+# --- validation helpers ---------------------------------------------------------
+
+
+def asn1_cert(cert: x509.Certificate):
+    from asn1crypto import x509 as ax509
+
+    return ax509.Certificate.load(cert.public_bytes(serialization.Encoding.DER))
+
+
+def validate_all(path: Path, *certs: x509.Certificate, password: str | None = None):
+    """[(field name, PdfSignatureStatus)] for every signature in the file."""
+    from pyhanko.pdf_utils.reader import PdfFileReader
+    from pyhanko.sign.validation import validate_pdf_signature
+    from pyhanko_certvalidator import ValidationContext
+
+    with open(path, "rb") as f:
+        r = PdfFileReader(f)
+        if password is not None:
+            r.decrypt(password)
+        vc = ValidationContext(trust_roots=[asn1_cert(c) for c in certs])
+        return [(es.field_name, validate_pdf_signature(es, vc)) for es in r.embedded_signatures]
+
+
+# --- rendering helpers -----------------------------------------------------------
+
+
+def render_page(path: Path, page: int = 0, scale: float = 1.0, password: str | None = None):
+    """PIL RGB image of a page, as displayed (rotation applied, widgets drawn)."""
+    pdf = pdfium.PdfDocument(str(path), password=password)
+    pdf.init_forms()
+    # no_smoothtext: no subpixel colour fringes that look like "blue ink"
+    return pdf[page].render(scale=scale, may_draw_forms=True,
+                            no_smoothtext=True).to_pil().convert("RGB")
+
+
+def _bbox_where(img, pred, region=None):
+    if region is not None:
+        img = img.crop(region)
+    px = img.load()
+    w, h = img.size
+    pts = [(x, y) for y in range(h) for x in range(w) if pred(px[x, y])]
+    if not pts:
+        return None
+    xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+    l, t, r, b = min(xs), min(ys), max(xs) + 1, max(ys) + 1
+    if region is not None:
+        l, t, r, b = l + region[0], t + region[1], r + region[0], b + region[1]
+    return (l, t, r, b)
+
+
+def blue_bbox(img, region=None):
+    """Bounding box of the blue signature ink (the test images are drawn in blue)."""
+    return _bbox_where(img, lambda p: p[2] > 100 and p[2] - p[0] > 60 and p[2] - p[1] > 40,
+                       region)
+
+
+def green_bbox(img, region=None):
+    """Bounding box of green ink. Use green images where stamp text is rendered
+    too: pdfium draws widget text with subpixel antialiasing, whose fringes are
+    blue/orange but never green."""
+    return _bbox_where(img, lambda p: p[1] - p[0] > 60 and p[1] - p[2] > 60, region)
+
+
+def text_bbox(img, region=None):
+    """Bounding box of dark, uncoloured pixels (stamp text)."""
+    return _bbox_where(img, lambda p: sum(p) < 300 and max(p) - min(p) < 60, region)
+
+
+# --- keyring / config --------------------------------------------------------------
+
+
+class MemoryKeyring:
+    """Minimal in-memory keyring backend."""
+
+    priority = 1
+
+    def __init__(self):
+        self.store = {}
+
+    def get_password(self, service, username):
+        return self.store.get((service, username))
+
+    def set_password(self, service, username, password):
+        self.store[(service, username)] = password
+
+    def delete_password(self, service, username):
+        from keyring.errors import PasswordDeleteError
+
+        if (service, username) not in self.store:
+            raise PasswordDeleteError("not found")
+        del self.store[(service, username)]
+
+
+@pytest.fixture
+def mem_keyring():
+    import keyring
+    from keyring.backend import KeyringBackend
+
+    backend = type("MemKR", (MemoryKeyring, KeyringBackend), {})()
+    old = keyring.get_keyring()
+    keyring.set_keyring(backend)
+    yield backend
+    keyring.set_keyring(old)
+
+
+@pytest.fixture
+def cfg_path(tmp_path, monkeypatch) -> Path:
+    path = tmp_path / "config" / "config.toml"
+    monkeypatch.setenv("PDFSIGNER_CONFIG", str(path))
+    return path
+
+
+@pytest.fixture
+def keepass_db(tmp_path, p12):
+    """KeePass DB (master 'master') with entry Certificates/FAU S/MIME holding the
+    passphrase and the .p12 as attachment 'alice.p12'."""
+    from pykeepass import create_database
+
+    db = tmp_path / "vault.kdbx"
+    kp = create_database(str(db), password="master")
+    group = kp.add_group(kp.root_group, "Certificates")
+    entry = kp.add_entry(group, "FAU S/MIME", "alice", PASSPHRASE)
+    entry.add_attachment(kp.add_binary(p12[0].read_bytes()), "alice.p12")
+    kp.add_entry(kp.root_group, "Plain", "bob", "plain-secret")
+    kp.save()
+    return db

@@ -1,0 +1,37 @@
+[project]
+name = "pdfsigner"
+version = "0.1.0"
+description = "Sign PDFs with real certificates (PAdES) and a visible signature image"
+requires-python = ">=3.11"
+dependencies = [
+    "pyhanko>=0.37,<0.38",
+    "pyhanko-certvalidator>=0.32,<0.33",
+    "pillow>=10",
+    "platformdirs>=4",
+    "tomli-w>=1.0",
+]
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.6", "pypdfium2>=4.30"]
+pkcs11 = ["pyhanko[pkcs11]>=0.37,<0.38"]
+keyring = ["keyring>=25"]
+keepass = ["pykeepass>=4.1"]
+all = ["pdfsigner[gui,pkcs11,keyring,keepass]"]
+dev = ["pdfsigner[all]", "pytest>=8", "pytest-cov>=5", "cryptography>=42"]
+
+[project.scripts]
+pdfsigner = "pdfsigner.cli:main"
+
+[project.gui-scripts]
+pdfsigner-gui = "pdfsigner.gui.app:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
