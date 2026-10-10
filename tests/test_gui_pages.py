@@ -49,29 +49,25 @@ def test_thumbnails_follow_navigation(window, blank_pdf):
 
 def test_thumbnails_are_rendered_in_the_background(window, tmp_path, qapp, monkeypatch):
     """A long document opens with placeholders; the thumbnails follow in
-    small batches between events, the visible ones first."""
+    batches between events, the current page first."""
     from conftest import make_pdf
-    from pdfsigner.gui import pagetools
 
     pdf = make_pdf(tmp_path / "long.pdf", pages=60)
-    rendered = []
-    real = window.thumbs._render_batch
+    order = []
+    real = window.thumbs._next_page
 
-    def batch():
-        before = set(window.thumbs._pending)
-        real()
-        rendered.append(before - window.thumbs._pending)
+    def next_page():
+        order.append(real())
+        return order[-1]
 
-    monkeypatch.setattr(pagetools, "BATCH_SECONDS", 0)  # one page per batch
-    monkeypatch.setattr(window.thumbs, "_render_batch", batch)
-    window.thumbs._timer.timeout.disconnect()
-    window.thumbs._timer.timeout.connect(window.thumbs._render_batch)
+    monkeypatch.setattr(window.thumbs, "_next_page", next_page)
     window.open(pdf, page=40)
     assert window.thumbs.count() == 60
-    assert len(window.thumbs._pending) == 60  # nothing rendered while opening
+    assert len(window.thumbs._pending) == 60 and order == []  # nothing rendered yet
     qapp.processEvents()
-    assert rendered[0] == {40}  # the current page first
+    assert order[0] == 40  # the current page first
     window.thumbs.finish_thumbnails()
+    assert sorted(order) == list(range(60))  # each page once
     assert not window.thumbs._pending and not window.thumbs._timer.isActive()
     window.open(pdf)  # a new document starts over
     assert len(window.thumbs._pending) == 60
