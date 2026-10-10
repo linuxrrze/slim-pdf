@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import io
 from dataclasses import dataclass
 from pathlib import Path
 
 from PIL.ImageQt import ImageQt
+from pyhanko.pdf_utils.reader import PdfFileReader
 from PySide6.QtCore import QItemSelectionModel, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import (
@@ -27,6 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import pages
+from ..i18n import _, ngettext
 from ..signing import SigningError
 from .dialogs import ask_secret
 from .document import PdfDocument
@@ -88,15 +91,15 @@ class SplitDialog(QDialog):
 
     def __init__(self, page_count: int, source: Path, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Split PDF")
+        self.setWindowTitle(_("Split PDF"))
         self.page_count = page_count
 
-        self.every_radio = QRadioButton("Every")
+        self.every_radio = QRadioButton(_("Every"))
         self.every_spin = QSpinBox()
         self.every_spin.setRange(1, max(1, page_count))
-        self.parts_radio = QRadioButton("Parts")
+        self.parts_radio = QRadioButton(_("Parts"))
         self.parts_edit = QLineEdit()
-        self.parts_edit.setPlaceholderText("e.g. 1-3; 4-6; 7-  (one file per part)")
+        self.parts_edit.setPlaceholderText(_("e.g. 1-3; 4-6; 7-  (one file per part)"))
         group = QButtonGroup(self)
         group.addButton(self.every_radio)
         group.addButton(self.parts_radio)
@@ -107,7 +110,7 @@ class SplitDialog(QDialog):
         every_row = QHBoxLayout()
         every_row.addWidget(self.every_radio)
         every_row.addWidget(self.every_spin)
-        every_row.addWidget(QLabel("page(s) per file"))
+        every_row.addWidget(QLabel(_("page(s) per file")))
         every_row.addStretch()
         parts_row = QHBoxLayout()
         parts_row.addWidget(self.parts_radio)
@@ -123,8 +126,8 @@ class SplitDialog(QDialog):
         self.pattern_edit = QLineEdit(f"{source.stem}-part{{n}}.pdf")
 
         form = QFormLayout()
-        form.addRow("Folder", folder_row)
-        form.addRow("File names", self.pattern_edit)
+        form.addRow(_("Folder"), folder_row)
+        form.addRow(_("File names"), self.pattern_edit)
         self.error = QLabel()
         self.error.setStyleSheet("color: #c62828")
 
@@ -133,7 +136,8 @@ class SplitDialog(QDialog):
         buttons.rejected.connect(self.reject)
 
         lay = QVBoxLayout(self)
-        lay.addWidget(QLabel(f"{page_count} pages"))
+        lay.addWidget(QLabel(ngettext("{count} page", "{count} pages", page_count).format(
+            count=page_count)))
         lay.addLayout(every_row)
         lay.addLayout(parts_row)
         lay.addLayout(form)
@@ -143,7 +147,7 @@ class SplitDialog(QDialog):
         self.result_paths: list[Path] = []
 
     def _browse(self) -> None:
-        d = QFileDialog.getExistingDirectory(self, "Output folder", self.folder_edit.text())
+        d = QFileDialog.getExistingDirectory(self, _("Output folder"), self.folder_edit.text())
         if d:
             self.folder_edit.setText(d)
 
@@ -154,11 +158,12 @@ class SplitDialog(QDialog):
             else:
                 specs = [s for s in self.parts_edit.text().split(";") if s.strip()]
                 if not specs:
-                    raise pages.PageError("enter at least one part")
+                    raise pages.PageError(_("enter at least one part"))
                 parts = [pages.parse_pages(s, self.page_count) for s in specs]
             pattern = self.pattern_edit.text().strip()
             if "{n}" not in pattern:
-                raise pages.PageError("the file name needs {n} for the part number")
+                # not formatted: {n} is shown literally, it is the placeholder in file names
+                raise pages.PageError(_("the file name needs {n} for the part number"))
         except pages.PageError as e:
             self.error.setText(str(e))
             return
@@ -183,19 +188,20 @@ class MergeDialog(QDialog):
 
     def __init__(self, first: MergeInput | None = None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Merge PDFs")
+        self.setWindowTitle(_("Merge PDFs"))
         self.resize(560, 380)
         self.inputs: list[MergeInput] = [first] if first else []
 
         self.list = QListWidget()
         self.list.currentRowChanged.connect(self._row_changed)
         self.spec_edit = QLineEdit()
-        self.spec_edit.setPlaceholderText("all pages, or e.g. 1-3,5")
+        self.spec_edit.setPlaceholderText(_("all pages, or e.g. 1-3,5"))
         self.spec_edit.textEdited.connect(self._spec_edited)
 
         buttons_col = QVBoxLayout()
-        for text, slot in (("Add files…", self._add), ("Remove", self._remove),
-                           ("Up", lambda: self._move(-1)), ("Down", lambda: self._move(1))):
+        for text, slot in ((_("Add files…"), self._add), (_("Remove"), self._remove),
+                           (_("Up"), lambda: self._move(-1)),
+                           (_("Down"), lambda: self._move(1))):
             b = QPushButton(text)
             b.clicked.connect(slot)
             buttons_col.addWidget(b)
@@ -205,12 +211,12 @@ class MergeDialog(QDialog):
         top.addWidget(self.list, 1)
         top.addLayout(buttons_col)
         spec_row = QHBoxLayout()
-        spec_row.addWidget(QLabel("Pages of the selected file:"))
+        spec_row.addWidget(QLabel(_("Pages of the selected file:")))
         spec_row.addWidget(self.spec_edit, 1)
         self.error = QLabel()
         self.error.setStyleSheet("color: #c62828")
         box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        box.button(QDialogButtonBox.Ok).setText("Merge…")
+        box.button(QDialogButtonBox.Ok).setText(_("Merge…"))
         box.accepted.connect(self._accept)
         box.rejected.connect(self.reject)
 
@@ -225,8 +231,7 @@ class MergeDialog(QDialog):
         self.list.blockSignals(True)
         self.list.clear()
         for m in self.inputs:
-            what = m.spec or "all pages"
-            self.list.addItem(f"{m.label}  ({m.page_count} pages; {what})")
+            self.list.addItem(self._item_text(m))
         self.list.blockSignals(False)
         if select is not None and self.inputs:
             self.list.setCurrentRow(max(0, min(select, len(self.inputs) - 1)))
@@ -240,35 +245,41 @@ class MergeDialog(QDialog):
         row = self.list.currentRow()
         if 0 <= row < len(self.inputs):
             self.inputs[row].spec = text.strip()
-            m = self.inputs[row]
-            self.list.item(row).setText(
-                f"{m.label}  ({m.page_count} pages; {m.spec or 'all pages'})")
+            self.list.item(row).setText(self._item_text(self.inputs[row]))
+
+    @staticmethod
+    def _item_text(m: MergeInput) -> str:
+        return ngettext("{name}  ({count} page; {pages})", "{name}  ({count} pages; {pages})",
+                        m.page_count).format(name=m.label, count=m.page_count,
+                                             pages=m.spec or _("all pages"))
 
     def add_file(self, path: Path) -> bool:
         data = path.read_bytes()
         password = None
-        for _ in range(3):
-            try:
-                n = pages.page_count(data, password)
-                break
-            except SigningError as e:
-                if "password" not in str(e) and "decrypt" not in str(e):
-                    raise
-                password = ask_secret(self, f"Password for {path.name}")
+        if _is_encrypted(data):
+            for _attempt in range(3):
+                password = ask_secret(self, _("Password for {name}").format(name=path.name))
                 if password is None:
                     return False
+                try:
+                    n = pages.page_count(data, password)
+                    break
+                except SigningError:  # wrong password
+                    continue
+            else:
+                raise SigningError(_("wrong password for {name}").format(name=path.name))
         else:
-            raise SigningError(f"wrong password for {path.name}")
+            n = pages.page_count(data)
         self.inputs.append(MergeInput(path.name, data, password, n))
         return True
 
     def _add(self) -> None:
-        files, _ = QFileDialog.getOpenFileNames(self, "Add PDFs", "", "PDF (*.pdf)")
+        files, _filter = QFileDialog.getOpenFileNames(self, _("Add PDFs"), "", "PDF (*.pdf)")
         for f in files:
             try:
                 self.add_file(Path(f))
             except (OSError, SigningError, ValueError) as e:
-                self.error.setText(f"{Path(f).name}: {e}")
+                self.error.setText(_("{name}: {error}").format(name=Path(f).name, error=e))
         self._refresh(len(self.inputs) - 1)
 
     def _remove(self) -> None:
@@ -290,7 +301,7 @@ class MergeDialog(QDialog):
 
     def _accept(self) -> None:
         if len(self.inputs) < 1:
-            self.error.setText("add at least one file")
+            self.error.setText(_("add at least one file"))
             return
         try:
             self.selection()
@@ -300,8 +311,16 @@ class MergeDialog(QDialog):
         self.accept()
 
 
+def _is_encrypted(data: bytes) -> bool:
+    """Whether the PDF needs a password; unreadable files say no (and fail later)."""
+    try:
+        return bool(PdfFileReader(io.BytesIO(data), strict=False).encrypted)
+    except Exception:
+        return False
+
+
 def page_label(pages_: list[int]) -> str:
     if len(pages_) == 1:
-        return f"page {pages_[0] + 1}"
-    return f"{len(pages_)} pages"
+        return _("page {page}").format(page=pages_[0] + 1)
+    return ngettext("{count} page", "{count} pages", len(pages_)).format(count=len(pages_))
 

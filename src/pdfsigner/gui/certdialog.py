@@ -36,16 +36,23 @@ from ..config import (
     CertProfile,
     Config,
 )
+from ..i18n import N_, _
 from ..signing import SigningError, describe_signer, open_signer
 from .dialogs import ask_secret
 from .document import signature_pixmap
 
 SECRET_LABELS = {
-    "prompt": "Ask every time",
-    "keyring": "OS keyring",
-    "keepass": "KeePass database (.kdbx)",
-    "keepassxc": "KeePassXC (keepassxc-cli, YubiKey)",
-    "none": "No passphrase",
+    "prompt": N_("Ask every time"),
+    "keyring": N_("OS keyring"),
+    "keepass": N_("KeePass database (.kdbx)"),
+    "keepassxc": N_("KeePassXC (keepassxc-cli, YubiKey)"),
+    "none": N_("No passphrase"),
+}
+# Shown in the type combo box; the code is its item data and goes into the config.
+TYPE_LABELS = {
+    "pkcs12": "pkcs12",
+    "pkcs11": "pkcs11",
+    "system": N_("system"),
 }
 
 
@@ -58,7 +65,7 @@ def _path_row(edit: QLineEdit, caption: str, filt: str) -> QWidget:
     btn.setFixedWidth(32)
 
     def browse():
-        path, _ = QFileDialog.getOpenFileName(w, caption, edit.text(), filt)
+        path, _filter = QFileDialog.getOpenFileName(w, caption, edit.text(), filt)
         if path:
             edit.setText(path)
 
@@ -70,7 +77,7 @@ def _path_row(edit: QLineEdit, caption: str, filt: str) -> QWidget:
 class CertManagerDialog(QDialog):
     def __init__(self, config: Config, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Certificates")
+        self.setWindowTitle(_("Certificates"))
         self.resize(820, 560)
         self.config = copy.deepcopy(config)
         self._current: str | None = None
@@ -79,11 +86,11 @@ class CertManagerDialog(QDialog):
         # left: list + buttons
         self.list = QListWidget()
         self.list.currentItemChanged.connect(self._on_select)
-        add_btn = QPushButton("Add")
+        add_btn = QPushButton(_("Add"))
         add_btn.clicked.connect(self._add)
-        del_btn = QPushButton("Remove")
+        del_btn = QPushButton(_("Remove"))
         del_btn.clicked.connect(self._remove)
-        default_btn = QPushButton("Make default")
+        default_btn = QPushButton(_("Make default"))
         default_btn.clicked.connect(self._make_default)
         left = QVBoxLayout()
         left.addWidget(self.list)
@@ -103,93 +110,101 @@ class CertManagerDialog(QDialog):
             return w
 
         self.type_combo = QComboBox()
-        self.type_combo.addItems(CERT_TYPES)
-        self.type_combo.currentTextChanged.connect(self._update_visibility)
+        for t in CERT_TYPES:
+            self.type_combo.addItem(_(TYPE_LABELS[t]), t)
+        self.type_combo.currentIndexChanged.connect(self._update_visibility)
 
         general = QFormLayout()
-        general.addRow("Type", self.type_combo)
+        general.addRow(_("Type"), self.type_combo)
 
-        self.p12_box = QGroupBox("PKCS#12 file")
+        self.p12_box = QGroupBox(_("PKCS#12 file"))
         f = QFormLayout(self.p12_box)
-        f.addRow("File", _path_row(line("path", "~/certs/me.p12 (empty if stored in KeePass)"),
-                                   "PKCS#12 file", "PKCS#12 (*.p12 *.pfx);;All files (*)"))
+        f.addRow(_("File"), _path_row(
+            line("path", _("~/certs/me.p12 (empty if stored in KeePass)")),
+            _("PKCS#12 file"), "PKCS#12 (*.p12 *.pfx);;" + _("All files") + " (*)"))
 
-        self.sys_box = QGroupBox("System certificate store (Windows / macOS)")
+        self.sys_box = QGroupBox(_("System certificate store (Windows / macOS)"))
         f = QFormLayout(self.sys_box)
         row = QWidget()
         lay = QHBoxLayout(row)
         lay.setContentsMargins(0, 0, 0, 0)
-        lay.addWidget(line("system_cert", "thumbprint or part of the subject"))
-        choose = QPushButton("Choose…")
+        lay.addWidget(line("system_cert", _("thumbprint or part of the subject")))
+        choose = QPushButton(_("Choose…"))
         choose.clicked.connect(self._choose_system_cert)
         lay.addWidget(choose)
-        f.addRow("Certificate", row)
+        f.addRow(_("Certificate"), row)
 
-        self.p11_box = QGroupBox("PKCS#11 token / smartcard")
+        self.p11_box = QGroupBox(_("PKCS#11 token / smartcard"))
         f = QFormLayout(self.p11_box)
-        f.addRow("Module", _path_row(line("pkcs11_lib", PKCS11_EXAMPLE),
-                                     "PKCS#11 module", "PKCS#11 modules (*.so *.so.* *.dylib *.dll);;All files (*)"))
-        f.addRow("Token label", line("token_label"))
-        f.addRow("Key label", line("key_label"))
-        f.addRow("Key ID", line("key_id", "hex, e.g. 02 (YubiKey PIV slot 9c)"))
-        f.addRow("Cert label", line("cert_label", "default: the certificate with the key's ID"))
-        read_token = QPushButton("Show token contents…")
-        read_token.setToolTip("List the keys and certificates on the token and pick one")
+        f.addRow(_("Module"), _path_row(
+            line("pkcs11_lib", PKCS11_EXAMPLE), _("PKCS#11 module"),
+            _("PKCS#11 modules") + " (*.so *.so.* *.dylib *.dll);;" + _("All files") + " (*)"))
+        f.addRow(_("Token label"), line("token_label"))
+        f.addRow(_("Key label"), line("key_label"))
+        f.addRow(_("Key ID"), line("key_id", _("hex, e.g. 02 (YubiKey PIV slot 9c)")))
+        f.addRow(_("Cert label"),
+                 line("cert_label", _("default: the certificate with the key's ID")))
+        read_token = QPushButton(_("Show token contents…"))
+        read_token.setToolTip(_("List the keys and certificates on the token and pick one"))
         read_token.clicked.connect(self._choose_token_key)
         f.addRow("", read_token)
 
-        appearance = QGroupBox("Appearance")
+        appearance = QGroupBox(_("Appearance"))
         f = QFormLayout(appearance)
-        img_edit = line("image", "PNG with transparent background, or PDF (vector)")
+        img_edit = line("image", _("PNG with transparent background, or PDF (vector)"))
         img_edit.textChanged.connect(self._update_preview)
-        f.addRow("Signature image", _path_row(img_edit, "Signature image",
-                                              "Images (*.png *.jpg *.jpeg *.pdf);;All files (*)"))
+        f.addRow(_("Signature image"), _path_row(
+            img_edit, _("Signature image"),
+            _("Images") + " (*.png *.jpg *.jpeg *.pdf);;" + _("All files") + " (*)"))
         self.preview = QLabel()
         self.preview.setFixedHeight(60)
         self.preview.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         f.addRow("", self.preview)
         self.stamp_text = QPlainTextEdit()
         self.stamp_text.setFixedHeight(48)
-        self.stamp_text.setPlaceholderText("empty = image only; %(signer)s, %(ts)s are replaced")
-        f.addRow("Stamp text", self.stamp_text)
+        self.stamp_text.setPlaceholderText(
+            _("empty = image only; %(signer)s, %(ts)s are replaced"))
+        f.addRow(_("Stamp text"), self.stamp_text)
 
-        meta = QGroupBox("Signature details")
+        meta = QGroupBox(_("Signature details"))
         f = QFormLayout(meta)
-        f.addRow("Reason", line("reason"))
-        f.addRow("Location", line("location"))
-        f.addRow("Contact", line("contact_info"))
-        f.addRow("Timestamp URL", line("timestamp_url", "optional RFC 3161 TSA"))
-        self.ltv_check = QCheckBox("Embed validation data (LTV)")
-        self.ltv_check.setToolTip(
+        f.addRow(_("Reason"), line("reason"))
+        f.addRow(_("Location"), line("location"))
+        f.addRow(_("Contact"), line("contact_info"))
+        f.addRow(_("Timestamp URL"), line("timestamp_url", _("optional RFC 3161 TSA")))
+        self.ltv_check = QCheckBox(_("Embed validation data (LTV)"))
+        self.ltv_check.setToolTip(_(
             "Embed the certificate chain and revocation info so the signature can still "
             "be verified after the certificate expires (PAdES B-LT; B-LTA with a "
-            "timestamp server). Needs network access and a trusted chain while signing.")
+            "timestamp server). Needs network access and a trusted chain while signing."))
         f.addRow("", self.ltv_check)
 
-        secret = QGroupBox("Passphrase / PIN")
+        secret = QGroupBox(_("Passphrase / PIN"))
         f = QFormLayout(secret)
         self.secret_combo = QComboBox()
         for s in SECRET_SOURCES:
-            self.secret_combo.addItem(SECRET_LABELS[s], s)
+            self.secret_combo.addItem(_(SECRET_LABELS[s]), s)
         self.secret_combo.currentIndexChanged.connect(self._update_visibility)
-        f.addRow("Source", self.secret_combo)
-        self.keyring_btn = QPushButton("Store passphrase in keyring…")
+        f.addRow(_("Source"), self.secret_combo)
+        self.keyring_btn = QPushButton(_("Store passphrase in keyring…"))
         self.keyring_btn.clicked.connect(self._store_keyring)
         f.addRow("", self.keyring_btn)
         self.kp_widgets = [
-            ("KeePass file", _path_row(line("keepass_db"), "KeePass database",
-                                       "KeePass (*.kdbx);;All files (*)")),
-            ("Key file", _path_row(line("keepass_keyfile", "optional"), "Key file", "All files (*)")),
-            ("Entry", line("keepass_entry", "Group/Title")),
-            ("Attachment", line("keepass_attachment", "optional: .p12 stored on the entry")),
+            (_("KeePass file"), _path_row(line("keepass_db"), _("KeePass database"),
+                                          "KeePass (*.kdbx);;" + _("All files") + " (*)")),
+            (_("Key file"), _path_row(line("keepass_keyfile", _("optional")), _("Key file"),
+                                      _("All files") + " (*)")),
+            (_("Entry"), line("keepass_entry", _("Group/Title"))),
+            (_("Attachment"),
+             line("keepass_attachment", _("optional: .p12 stored on the entry"))),
         ]
-        self.yubikey_row = line("keepass_yubikey", "optional: slot[:serial], e.g. 2")
+        self.yubikey_row = line("keepass_yubikey", _("optional: slot[:serial], e.g. 2"))
         self.kp_widgets.append(("YubiKey", self.yubikey_row))
         for label, w in self.kp_widgets:
             f.addRow(label, w)
         self._secret_form = f
 
-        test_btn = QPushButton("Test: unlock and show certificate")
+        test_btn = QPushButton(_("Test: unlock and show certificate"))
         test_btn.clicked.connect(self._test)
 
         right = QVBoxLayout()
@@ -211,7 +226,7 @@ class CertManagerDialog(QDialog):
         main.addWidget(self.form, 3)
         outer = QVBoxLayout(self)
         outer.addLayout(main)
-        hint = QLabel(f"Config file: {self.config.path}")
+        hint = QLabel(_("Config file: {path}").format(path=self.config.path))
         hint.setTextInteractionFlags(Qt.TextSelectableByMouse)
         hint.setStyleSheet("color: gray")
         outer.addWidget(hint)
@@ -225,7 +240,8 @@ class CertManagerDialog(QDialog):
         self._loading = True
         self.list.clear()
         for name in self.config.certs:
-            label = f"{name}  (default)" if name == self.config.default else name
+            label = (_("{name}  (default)").format(name=name) if name == self.config.default
+                     else name)
             item = QListWidgetItem(label)
             item.setData(Qt.UserRole, name)
             self.list.addItem(item)
@@ -252,12 +268,13 @@ class CertManagerDialog(QDialog):
             self._load_form(self.config.certs[self._current])
 
     def _add(self) -> None:
-        name, ok = QInputDialog.getText(self, "New certificate", "Name:")
+        name, ok = QInputDialog.getText(self, _("New certificate"), _("Name:"))
         name = name.strip()
         if not ok or not name:
             return
         if name in self.config.certs:
-            QMessageBox.warning(self, "Certificates", f"{name!r} already exists")
+            QMessageBox.warning(self, _("Certificates"),
+                                _("{name!r} already exists").format(name=name))
             return
         if self._current:
             self._store_form()
@@ -270,7 +287,8 @@ class CertManagerDialog(QDialog):
     def _remove(self) -> None:
         if not self._current:
             return
-        if QMessageBox.question(self, "Certificates", f"Remove {self._current!r}?") \
+        if QMessageBox.question(self, _("Certificates"),
+                                _("Remove {name!r}?").format(name=self._current)) \
                 != QMessageBox.Yes:
             return
         self.config.remove(self._current)
@@ -286,7 +304,7 @@ class CertManagerDialog(QDialog):
     # form ---------------------------------------------------------------------
 
     def _load_form(self, p: CertProfile) -> None:
-        self.type_combo.setCurrentText(p.type)
+        self.type_combo.setCurrentIndex(max(0, self.type_combo.findData(p.type)))
         for attr, w in self.e.items():
             w.setText(getattr(p, attr))
         self.stamp_text.setPlainText(p.stamp_text)
@@ -297,7 +315,7 @@ class CertManagerDialog(QDialog):
 
     def _store_form(self) -> CertProfile:
         p = self.config.certs[self._current]
-        p.type = self.type_combo.currentText()
+        p.type = self.type_combo.currentData()
         for attr, w in self.e.items():
             setattr(p, attr, w.text().strip())
         p.stamp_text = self.stamp_text.toPlainText()
@@ -306,15 +324,15 @@ class CertManagerDialog(QDialog):
         return p
 
     def _update_visibility(self) -> None:
-        is_p12 = self.type_combo.currentText() == "pkcs12"
-        self.p12_box.setVisible(is_p12)
-        self.p11_box.setVisible(self.type_combo.currentText() == "pkcs11")
-        self.sys_box.setVisible(self.type_combo.currentText() == "system")
+        cert_type = self.type_combo.currentData()
+        self.p12_box.setVisible(cert_type == "pkcs12")
+        self.p11_box.setVisible(cert_type == "pkcs11")
+        self.sys_box.setVisible(cert_type == "system")
         # Windows/macOS ask for PINs themselves
-        self.secret_box.setVisible(self.type_combo.currentText() != "system")
+        self.secret_box.setVisible(cert_type != "system")
         source = self.secret_combo.currentData()
         self.keyring_btn.setVisible(source == "keyring")
-        for _, w in self.kp_widgets:
+        for _label, w in self.kp_widgets:
             self._secret_form.setRowVisible(w, source in KEEPASS_SOURCES)
         self._secret_form.setRowVisible(self.yubikey_row, source == "keepassxc")
 
@@ -322,7 +340,7 @@ class CertManagerDialog(QDialog):
         path = self.e["image"].text().strip()
         pm = signature_pixmap(CertProfile(name="_", image=path).image_path) if path else QPixmap()
         if pm.isNull():
-            self.preview.setText("(no image)" if not path else "(cannot load image)")
+            self.preview.setText(_("(no image)") if not path else _("(cannot load image)"))
         else:
             self.preview.setPixmap(pm.scaledToHeight(56, Qt.SmoothTransformation))
 
@@ -331,16 +349,18 @@ class CertManagerDialog(QDialog):
     def _store_keyring(self) -> None:
         if not self._current:
             return
-        secret = ask_secret(self, f"Passphrase/PIN for '{self._current}'")
+        secret = ask_secret(self, _("Passphrase/PIN for '{name}'").format(name=self._current))
         if secret is None:
             return
         try:
             secretstore.keyring_set(self._current, secret)
         except Exception as e:  # keyring backends raise various errors
-            QMessageBox.critical(self, "Keyring", f"Could not store secret:\n{e}")
+            QMessageBox.critical(self, _("Keyring"),
+                                 _("Could not store secret:\n{error}").format(error=e))
             return
         QMessageBox.information(
-            self, "Keyring", f"Stored in {secretstore.keyring_backend_name()}")
+            self, _("Keyring"),
+            _("Stored in {backend}").format(backend=secretstore.keyring_backend_name()))
 
     def _choose_system_cert(self) -> None:
         try:
@@ -350,38 +370,42 @@ class CertManagerDialog(QDialog):
             finally:
                 backend.close()
         except SigningError as e:
-            QMessageBox.critical(self, "System certificate store", str(e))
+            QMessageBox.critical(self, _("System certificate store"), str(e))
             return
         if not identities:
-            QMessageBox.information(self, "System certificate store",
-                                    f"No certificates with a private key in the {backend.name}.")
+            QMessageBox.information(
+                self, _("System certificate store"),
+                _("No certificates with a private key in the {store}.").format(
+                    store=backend.name))
             return
         items = [i.describe() for i in identities]
-        choice, ok = QInputDialog.getItem(self, "System certificate store",
-                                          "Certificate:", items, 0, False)
+        choice, ok = QInputDialog.getItem(self, _("System certificate store"),
+                                          _("Certificate:"), items, 0, False)
         if ok:
             self.e["system_cert"].setText(identities[items.index(choice)].thumbprint)
 
     def _choose_token_key(self) -> None:
         module = self.e["pkcs11_lib"].text().strip()
         if not module:
-            QMessageBox.information(self, "PKCS#11 token", "Enter the PKCS#11 module first.")
+            QMessageBox.information(self, _("PKCS#11 token"),
+                                    _("Enter the PKCS#11 module first."))
             return
         try:
             found = tokens.list_tokens(
                 module, ask_pin=lambda label: ask_secret(
-                    self, f"PIN for token '{label}' (Cancel: certificates only)"))
+                    self, _("PIN for token '{label}' (Cancel: certificates only)").format(
+                        label=label)))
         except SigningError as e:
-            QMessageBox.critical(self, "PKCS#11 token", str(e))
+            QMessageBox.critical(self, _("PKCS#11 token"), str(e))
             return
         choices = [(t, e) for t in found for e in t.entries if e.id]
         if not choices:
-            QMessageBox.information(self, "PKCS#11 token",
-                                    "No keys or certificates with an ID found." if found
-                                    else "No token found.")
+            QMessageBox.information(self, _("PKCS#11 token"),
+                                    _("No keys or certificates with an ID found.") if found
+                                    else _("No token found."))
             return
         items = [f"{t.label}: {e.describe()}" for t, e in choices]
-        choice, ok = QInputDialog.getItem(self, "PKCS#11 token", "Key / certificate:",
+        choice, ok = QInputDialog.getItem(self, _("PKCS#11 token"), _("Key / certificate:"),
                                           items, 0, False)
         if ok:
             t, e = choices[items.index(choice)]
@@ -402,9 +426,9 @@ class CertManagerDialog(QDialog):
         except secretstore.Cancelled:
             return
         except (ValueError, SigningError, secretstore.SecretError) as e:
-            QMessageBox.critical(self, "Test failed", str(e))
+            QMessageBox.critical(self, _("Test failed"), str(e))
             return
-        QMessageBox.information(self, "Certificate OK", info)
+        QMessageBox.information(self, _("Certificate OK"), info)
 
     def _save(self) -> None:
         if self._current:
@@ -413,7 +437,7 @@ class CertManagerDialog(QDialog):
             try:
                 p.validate()
             except ValueError as e:
-                QMessageBox.warning(self, "Invalid certificate", str(e))
+                QMessageBox.warning(self, _("Invalid certificate"), str(e))
                 self._refresh_list(p.name)
                 return
         self.config.save()
