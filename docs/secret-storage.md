@@ -163,7 +163,11 @@ ykman piv certificates import 9c alice.p12
 
 Afterwards you can delete the `.p12`, or keep it in KeePass as a backup.
 The PIN source is independent (`prompt`, `keyring`, `keepass` or
-`keepassxc`).
+`keepassxc`). With a **card reader that has a PIN pad**, use
+`secret = "none"`: pdfsigner then logs in through the reader, and you type
+the PIN there. That doesn't work for keys that want the PIN before every
+signature (slot 9c's default): PKCS#11 libraries can only send that PIN
+themselves, so such keys need a PIN source here, or `--pin-policy once`.
 
 Slot 9c asks for the PIN before every signature (the YubiKey's default PIN
 policy for it). pdfsigner sends the PIN again for such keys, so you still

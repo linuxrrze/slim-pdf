@@ -2121,6 +2121,21 @@ msgstr[0] ""
 
 #: src/pdfsigner/signing.py
 #, python-brace-format
+msgid "no token found by {module}: is the card inserted and the reader connected? If GnuPG uses the card, 'gpgconf --kill scdaemon' releases it."
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "no token labelled {label!r} (tokens: {tokens})"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "{count} tokens found ({tokens}); set token_label to choose one"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
 msgid "cannot read {path}: {error}"
 msgstr ""
 
@@ -2153,6 +2168,11 @@ msgstr ""
 #: src/pdfsigner/tokens.py
 #, python-brace-format
 msgid "PKCS#11 ({module}): {error}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "the key of '{name}' needs the PIN for every signature, which pdfsigner has to send itself: use a PIN source (secret = prompt, keyring, ...) instead of 'none', or a key whose PIN policy is 'once'"
 msgstr ""
 
 #: src/pdfsigner/signing.py

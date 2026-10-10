@@ -330,19 +330,35 @@ def test_p12_from_bytes_ignores_path(p12):
         assert "Alice" in s.signing_cert.subject.human_friendly
 
 
-def test_pkcs11_session_is_opened_and_closed(monkeypatch, p12):
-    """Wiring check without a token (test_pkcs11_softhsm.py uses a real one)."""
-    calls = {}
+class FakeToken:
+    """Stands in for a python-pkcs11 Token: records how it was opened."""
 
-    class FakeSession:
-        closed = False
+    def __init__(self, label, flags):
+        self.label, self.flags, self.opened = label, flags, []
 
-        def close(self):
-            FakeSession.closed = True
-
-    def open_session(lib, token_criteria=None, user_pin=None):
-        calls["open"] = (lib, token_criteria.label, user_pin)
+    def open(self, **kw):
+        self.opened.append(kw)
         return FakeSession()
+
+
+class FakeSession:
+    closed = False
+
+    def close(self):
+        FakeSession.closed = True
+
+
+@pytest.fixture
+def fake_token(monkeypatch):
+    """A fake PKCS#11 module with the given tokens; the key and certificate
+    lookup is stubbed (test_pkcs11_softhsm.py uses real tokens)."""
+    import pkcs11
+    from pkcs11 import Attribute, TokenFlag
+
+    from pdfsigner import signing
+
+    tokens = []
+    calls = {}
 
     class FakeSigner:
         signing_cert = None
@@ -350,27 +366,79 @@ def test_pkcs11_session_is_opened_and_closed(monkeypatch, p12):
         def __init__(self, session, **kw):
             calls["signer"] = kw
 
-    fake = types.SimpleNamespace(open_pkcs11_session=open_session, PKCS11Signer=FakeSigner)
-    monkeypatch.setitem(sys.modules, "pyhanko.sign.pkcs11", fake)
-    monkeypatch.setattr("pyhanko.sign.pkcs11", fake, raising=False)
-    from pkcs11 import Attribute
-
-    from pdfsigner import signing
+    monkeypatch.setattr(pkcs11, "lib", lambda path: types.SimpleNamespace(
+        get_tokens=lambda: list(tokens), path=path))
+    monkeypatch.setattr("pyhanko.sign.pkcs11.PKCS11Signer", FakeSigner)
     key = {Attribute.LABEL: "SIGN key", Attribute.ID: b"\x02",
-           Attribute.ALWAYS_AUTHENTICATE: True}
+           Attribute.ALWAYS_AUTHENTICATE: False}
     monkeypatch.setattr(signing, "_find_token_key", lambda session, profile: (key, "CERT"))
     monkeypatch.setattr(signing, "_use_raw_mechanism", lambda session, key: True)
+    FakeSession.closed = False
+    return types.SimpleNamespace(tokens=tokens, calls=calls, key=key, flags=TokenFlag,
+                                 PROTECTED_AUTH=pkcs11.PROTECTED_AUTH)
 
-    p = CertProfile(name="tok", type="pkcs11", pkcs11_lib="/lib/opensc.so",
-                    token_label="My Card", key_id="02")
-    with open_signer(p, Credentials(secret="123456")) as s:
-        assert isinstance(s, FakeSigner)
+
+def _tok_profile(**kw):
+    return CertProfile(name="tok", type="pkcs11", pkcs11_lib="/lib/opensc.so", key_id="02",
+                       **kw)
+
+
+def test_pkcs11_session_is_opened_and_closed(fake_token):
+    from pkcs11 import Attribute
+
+    init = fake_token.flags.TOKEN_INITIALIZED
+    card = FakeToken("My Card", init)
+    fake_token.tokens[:] = [FakeToken("Other", init), card, FakeToken("", 0)]
+    fake_token.key[Attribute.ALWAYS_AUTHENTICATE] = True
+    with open_signer(_tok_profile(token_label="My Card"), Credentials(secret="123456")) as s:
         assert not FakeSession.closed
     assert FakeSession.closed
-    assert calls == {"open": (str(Path("/lib/opensc.so")), "My Card", "123456"),
-                     "signer": dict(signing_cert="CERT", key_label="SIGN key", key_id=b"\x02",
-                                    use_raw_mechanism=True,
-                                    base_sign_kwargs={"pin": "123456"})}
+    assert card.opened == [{"user_pin": "123456"}]
+    assert fake_token.calls["signer"] == dict(
+        signing_cert="CERT", key_label="SIGN key", key_id=b"\x02", use_raw_mechanism=True,
+        base_sign_kwargs={"pin": "123456"})
+
+
+def test_pkcs11_pin_pad_and_no_login(fake_token):
+    """No PIN source ('none'): log in on the reader's PIN pad if there is
+    one, else open without logging in."""
+    flags = fake_token.flags
+    pinpad = FakeToken("Card", flags.TOKEN_INITIALIZED | flags.PROTECTED_AUTHENTICATION_PATH)
+    fake_token.tokens[:] = [pinpad]
+    with open_signer(_tok_profile(secret="none"), Credentials()):
+        pass
+    assert pinpad.opened == [{"user_pin": fake_token.PROTECTED_AUTH}]
+    plain = FakeToken("Card", flags.TOKEN_INITIALIZED)
+    fake_token.tokens[:] = [plain]
+    with open_signer(_tok_profile(secret="none"), Credentials()):
+        pass
+    assert plain.opened == [{}]
+
+
+def test_pkcs11_pin_for_every_signature_needs_a_pin_source(fake_token):
+    from pkcs11 import Attribute
+
+    fake_token.tokens[:] = [FakeToken("Card", fake_token.flags.TOKEN_INITIALIZED
+                                      | fake_token.flags.PROTECTED_AUTHENTICATION_PATH)]
+    fake_token.key[Attribute.ALWAYS_AUTHENTICATE] = True
+    with pytest.raises(SigningError, match="PIN for every signature.*secret = prompt"):
+        with open_signer(_tok_profile(secret="none"), Credentials()):
+            pass
+    assert FakeSession.closed
+
+
+@pytest.mark.parametrize("tokens, label, message", [
+    ([], "", "no token found.*card inserted.*gpgconf --kill scdaemon"),
+    ([("A", 1), ("B", 1)], "", r"2 tokens found \('A', 'B'\); set token_label"),
+    ([("A", 1)], "Z", r"no token labelled 'Z' \(tokens: 'A'\)"),
+    ([("A", 0)], "A", "no token found"),  # not initialised: an empty slot
+])
+def test_pkcs11_token_selection_errors(fake_token, tokens, label, message):
+    init = fake_token.flags.TOKEN_INITIALIZED
+    fake_token.tokens[:] = [FakeToken(n, init if i else 0) for n, i in tokens]
+    with pytest.raises(SigningError, match=message):
+        with open_signer(_tok_profile(token_label=label), Credentials(secret="1")):
+            pass
 
 
 def test_unknown_type():

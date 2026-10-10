@@ -493,6 +493,42 @@ def _find_token_key(session, profile: CertProfile):
     return key, asn1_x509.Certificate.load(certs[0][Attribute.VALUE])
 
 
+def _open_token(profile: CertProfile, pin: str | None):
+    """Session on the profile's token, logged in with ``pin``; without a PIN
+    through the reader's PIN pad if the token has one (CKF_PROTECTED_AUTH),
+    else not at all (tokens that don't need a login).
+
+    The token is the initialised one with ``token_label``; without a label
+    there must be exactly one (cards with two PINs show up as two tokens).
+    """
+    import pkcs11
+    from pkcs11 import TokenFlag
+
+    module = str(expand(profile.pkcs11_lib))
+    lib = pkcs11.lib(module)
+    tokens = [t for t in lib.get_tokens() if t.flags & TokenFlag.TOKEN_INITIALIZED]
+    label = profile.token_label.strip()
+    matching = [t for t in tokens if t.label.strip() == label] if label else tokens
+    names = ", ".join(repr(t.label.strip()) for t in tokens)
+    if not tokens:
+        raise SigningError(_(
+            "no token found by {module}: is the card inserted and the reader connected? If "
+            "GnuPG uses the card, 'gpgconf --kill scdaemon' releases it.").format(
+                module=profile.pkcs11_lib))
+    if not matching:
+        raise SigningError(_("no token labelled {label!r} (tokens: {tokens})").format(
+            label=label, tokens=names))
+    if len(matching) > 1:
+        raise SigningError(_("{count} tokens found ({tokens}); set token_label to choose "
+                             "one").format(count=len(matching), tokens=names))
+    token = matching[0]
+    if pin:
+        return token.open(user_pin=pin)
+    if token.flags & TokenFlag.PROTECTED_AUTHENTICATION_PATH:
+        return token.open(user_pin=pkcs11.PROTECTED_AUTH)  # PIN pad on the reader
+    return token.open()
+
+
 def _use_raw_mechanism(session, key) -> bool:
     """True if the token can only sign pre-hashed data (CKM_ECDSA, CKM_RSA_PKCS),
     not hash-and-sign (CKM_ECDSA_SHA256, ...), as with SoftHSM's ECDSA and many
@@ -545,7 +581,6 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
 
     if profile.type == "pkcs11":
         try:
-            from pyhanko.config.pkcs11 import TokenCriteria
             from pyhanko.sign import pkcs11
         except ImportError as e:
             raise SigningError(_("PKCS#11 support needs 'pyhanko[pkcs11]'")) from e
@@ -567,11 +602,7 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
                 module=profile.pkcs11_lib, error=msg))
 
         try:
-            session = pkcs11.open_pkcs11_session(
-                str(expand(profile.pkcs11_lib)),
-                token_criteria=TokenCriteria(label=profile.token_label or None),
-                user_pin=creds.secret,
-            )
+            session = _open_token(profile, creds.secret)
         except PKCS11Error as e:
             raise token_error(e) from None
         try:
@@ -580,6 +611,14 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
                 # Keys like YubiKey PIV slot 9c want the PIN again for every
                 # signature (a context-specific login right before C_Sign).
                 always_auth = bool(_p11_attr(key, Attribute.ALWAYS_AUTHENTICATE))
+                if always_auth and not creds.secret:
+                    # python-pkcs11 can only send a PIN for that, not hand
+                    # over to a reader's PIN pad
+                    raise SigningError(_(
+                        "the key of '{name}' needs the PIN for every signature, which "
+                        "pdfsigner has to send itself: use a PIN source (secret = prompt, "
+                        "keyring, ...) instead of 'none', or a key whose PIN policy is "
+                        "'once'").format(name=profile.name))
                 signer = pkcs11.PKCS11Signer(
                     session, signing_cert=cert,
                     key_label=_p11_attr(key, Attribute.LABEL) or None,

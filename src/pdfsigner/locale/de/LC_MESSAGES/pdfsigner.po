@@ -2202,6 +2202,21 @@ msgstr[1] "{n} Zertifikate für Schlüssel {key} auf dem Token, cert_label setze
 
 #: src/pdfsigner/signing.py
 #, python-brace-format
+msgid "no token found by {module}: is the card inserted and the reader connected? If GnuPG uses the card, 'gpgconf --kill scdaemon' releases it."
+msgstr "{module} findet kein Token: Ist die Karte eingesteckt und das Lesegerät angeschlossen? Wenn GnuPG die Karte verwendet, gibt 'gpgconf --kill scdaemon' sie frei."
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "no token labelled {label!r} (tokens: {tokens})"
+msgstr "kein Token mit dem Label {label!r} (Token: {tokens})"
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "{count} tokens found ({tokens}); set token_label to choose one"
+msgstr "{count} Token gefunden ({tokens}); token_label wählt eines aus"
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
 msgid "cannot read {path}: {error}"
 msgstr "{path} kann nicht gelesen werden: {error}"
 
@@ -2235,6 +2250,11 @@ msgstr "PKCS#11 ({module}): das Token hat das Signieren verweigert: {error}"
 #, python-brace-format
 msgid "PKCS#11 ({module}): {error}"
 msgstr "PKCS#11 ({module}): {error}"
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "the key of '{name}' needs the PIN for every signature, which pdfsigner has to send itself: use a PIN source (secret = prompt, keyring, ...) instead of 'none', or a key whose PIN policy is 'once'"
+msgstr "der Schlüssel von '{name}' braucht die PIN bei jeder Signatur, und die muss pdfsigner selbst senden: eine PIN-Quelle (secret = prompt, keyring, ...) statt 'none' verwenden oder einen Schlüssel mit der PIN-Richtlinie 'once'"
 
 #: src/pdfsigner/signing.py
 #, python-brace-format
