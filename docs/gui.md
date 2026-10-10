@@ -93,7 +93,9 @@ is opened:
 
 * green: **valid**;
 * orange: **untrusted**, i.e. intact but the certificate doesn't chain to a
-  trusted root (e.g. self-signed);
+  trusted root (e.g. self-signed). Intermediate certificates a signature
+  lacks are downloaded once and cached (see
+  [cli.md](cli.md#check-signatures-pdfsigner-verify));
 * red: **invalid**, i.e. the content was modified or changed in a way the
   signature doesn't allow.
 

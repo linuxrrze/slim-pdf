@@ -611,8 +611,10 @@ class MainWindow(QMainWindow):
         self.sigs_list.clear()
         self.reports = []
         try:
-            self.reports = validation.verify_pdf(self.data, trust=self.config.trust,
-                                                 password=self.pdf_password)
+            data, trust, password = self.data, self.config.trust, self.pdf_password
+            # in a thread: a missing intermediate certificate may be downloaded
+            self.reports = background.run(self, lambda ask: validation.verify_pdf(
+                data, trust=trust, password=password))
         except Exception as e:  # never block opening a document
             self.sigs_list.addItem(_("Validation failed: {error}").format(error=e))
             return ""

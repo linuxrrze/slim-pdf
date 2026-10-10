@@ -61,16 +61,17 @@ def test_thumbnails_are_rendered_in_the_background(window, tmp_path, qapp, monke
         return order[-1]
 
     monkeypatch.setattr(window.thumbs, "_next_page", next_page)
-    window.open(pdf, page=40)
+    window.open(pdf, page=40)  # (rendering may start while the signatures are checked)
     assert window.thumbs.count() == 60
-    assert len(window.thumbs._pending) == 60 and order == []  # nothing rendered yet
     qapp.processEvents()
     assert order[0] == 40  # the current page first
     window.thumbs.finish_thumbnails()
     assert sorted(order) == list(range(60))  # each page once
     assert not window.thumbs._pending and not window.thumbs._timer.isActive()
+    order.clear()
     window.open(pdf)  # a new document starts over
-    assert len(window.thumbs._pending) == 60
+    window.thumbs.finish_thumbnails()
+    assert sorted(order) == list(range(60))
 
 
 def test_rotate_undo_save(window, blank_pdf):

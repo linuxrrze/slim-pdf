@@ -451,7 +451,7 @@ def cmd_verify(cfg: Config, args) -> int:
     pdf_password = _pdf_password(src, args.password, _("PDF password"))
     reports = verify_pdf(src, trust=[*cfg.trust, *args.trust],
                          system_trust=not args.no_system_trust, online=args.online,
-                         password=pdf_password)
+                         password=pdf_password, fetch_issuers=not args.no_download)
     if not reports:
         raise SigningError(_("document has no signatures"))
     status_text = {VALID: _("VALID"), UNTRUSTED: _("UNTRUSTED"), INVALID: _("INVALID")}
@@ -712,6 +712,8 @@ def build_parser() -> argparse.ArgumentParser:
                           "config's trust list"))
     p.add_argument("--online", action="store_true",
                    help=_("fetch revocation info (OCSP/CRL) from the network"))
+    p.add_argument("--no-download", action="store_true",
+                   help=_("don't download intermediate certificates a signature lacks"))
     p.add_argument("--details", action="store_true", help=_("print pyHanko's full report"))
     p.add_argument("--password", help=_(PASSWORD_HELP))
     p.set_defaults(func=cmd_verify)

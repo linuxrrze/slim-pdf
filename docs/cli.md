@@ -528,6 +528,18 @@ Applicant: VALID
   ...
 ```
 
+**Intermediate certificates.** Personal certificates are usually issued by
+an intermediate CA, which a root signed: "GEANT Personal CA 4", for example,
+by "USERTrust RSA Certification Authority" from Mozilla's list. A signature
+can only be trusted if it carries that intermediate, and signatures made with
+a token or another program often don't. A missing intermediate is then
+downloaded from the address in the signer's certificate (as PDF viewers do),
+once: it is kept in a cache (`~/.cache/pdfsigner/intermediates.pem` on Linux).
+When signing, pdfsigner puts the intermediates into the signature, so its own
+signatures validate everywhere without a download.
+
+* `--no-download` doesn't download missing intermediates (the cache is still
+  used); such signatures then show as untrusted.
 * `--online` fetches revocation information (OCSP/CRL) from the network.
   Without it, only revocation data embedded in the document (LTV) is used,
   and a missing revocation check is not an error. `ltv:` in the output

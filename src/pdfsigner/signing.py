@@ -826,6 +826,7 @@ def sign_pdf(
     pdf_password: str | None = None,
     allow_breaking: bool = False,
     trust: Sequence[str] = (),
+    fetch_issuers: bool = True,
 ) -> str:
     """Sign ``src`` (path or bytes) into ``dst`` (may be the same file).
     Returns the field name.
@@ -894,6 +895,7 @@ def sign_pdf(
                               params=params, box_size=size), rotation
         )
 
+    _embed_chain(signer, trust, fetch=fetch_issuers)
     pdf_signer = signers.PdfSigner(
         meta, signer, timestamper=timestamper, stamp_style=style, new_field_spec=new_spec
     )
@@ -918,6 +920,19 @@ def sign_pdf(
 
     _atomic_write(Path(dst), out.getvalue())
     return field_name
+
+
+def _embed_chain(signer: signers.Signer, trust: Sequence[str], *, fetch: bool) -> None:
+    """Put the intermediates up to a trusted root into the signature, so it
+    validates anywhere: tokens and system stores usually only hand over the
+    signer's own certificate (see chain.py; missing ones are downloaded once
+    when ``fetch``)."""
+    from . import chain, validation
+
+    roots = validation.load_trust_roots(trust) + list(validation.system_trust_roots())
+    registry = signer.cert_registry
+    missing = chain.complete_chain(signer.signing_cert, list(registry), roots, fetch=fetch)
+    registry.register_multiple(missing)
 
 
 def _atomic_write(path: Path, data: bytes) -> None:

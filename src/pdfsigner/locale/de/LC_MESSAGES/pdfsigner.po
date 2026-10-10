@@ -894,6 +894,10 @@ msgid "fetch revocation info (OCSP/CRL) from the network"
 msgstr "Sperrinformationen (OCSP/CRL) aus dem Netz abrufen"
 
 #: src/pdfsigner/cli.py
+msgid "don't download intermediate certificates a signature lacks"
+msgstr "fehlende Zwischenzertifikate einer Signatur nicht herunterladen"
+
+#: src/pdfsigner/cli.py
 msgid "print pyHanko's full report"
 msgstr "vollständigen Bericht von pyHanko ausgeben"
 
@@ -2679,8 +2683,9 @@ msgid "the certificate is not meant for signatures (key usage)"
 msgstr "das Zertifikat ist nicht für Signaturen vorgesehen (Schlüsselverwendung)"
 
 #: src/pdfsigner/validation.py
-msgid "the certificate doesn't chain to a trusted root"
-msgstr "das Zertifikat führt nicht zu einer vertrauenswürdigen Stammzertifizierungsstelle"
+#, python-brace-format
+msgid "the certificate doesn't chain to a trusted root (issuer {issuer!r} not trusted, or not found)"
+msgstr "das Zertifikat führt zu keiner vertrauenswürdigen Wurzel (Aussteller {issuer!r} nicht vertrauenswürdig oder nicht gefunden)"
 
 #: src/pdfsigner/validation.py
 msgid "the certificate's revocation status is not known yet"
@@ -2689,6 +2694,10 @@ msgstr "der Widerrufsstatus des Zertifikats ist noch nicht bekannt"
 #: src/pdfsigner/validation.py
 msgid "the certificate (or its CA) is revoked"
 msgstr "das Zertifikat (oder seine CA) ist widerrufen"
+
+#: src/pdfsigner/validation.py
+msgid "the certificate doesn't chain to a trusted root"
+msgstr "das Zertifikat führt nicht zu einer vertrauenswürdigen Stammzertifizierungsstelle"
 
 #: src/pdfsigner/validation.py
 msgid "the signed content was modified"

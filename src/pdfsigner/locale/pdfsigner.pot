@@ -868,6 +868,10 @@ msgid "fetch revocation info (OCSP/CRL) from the network"
 msgstr ""
 
 #: src/pdfsigner/cli.py
+msgid "don't download intermediate certificates a signature lacks"
+msgstr ""
+
+#: src/pdfsigner/cli.py
 msgid "print pyHanko's full report"
 msgstr ""
 
@@ -2596,7 +2600,8 @@ msgid "the certificate is not meant for signatures (key usage)"
 msgstr ""
 
 #: src/pdfsigner/validation.py
-msgid "the certificate doesn't chain to a trusted root"
+#, python-brace-format
+msgid "the certificate doesn't chain to a trusted root (issuer {issuer!r} not trusted, or not found)"
 msgstr ""
 
 #: src/pdfsigner/validation.py
@@ -2605,6 +2610,10 @@ msgstr ""
 
 #: src/pdfsigner/validation.py
 msgid "the certificate (or its CA) is revoked"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the certificate doesn't chain to a trusted root"
 msgstr ""
 
 #: src/pdfsigner/validation.py

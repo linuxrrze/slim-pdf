@@ -36,6 +36,7 @@ from pyhanko_certvalidator import ValidationContext
 
 from .config import expand
 from .i18n import N_, _
+from . import chain
 from .signing import SigningError, _open_reader
 
 log = logging.getLogger(__name__)
@@ -92,13 +93,21 @@ def system_trust_roots() -> tuple[x509.Certificate, ...]:
                      for _type, _headers, der in pem.unarmor(f.read(), multiple=True))
 
 
-def validation_context(trust=(), *, system_trust: bool = True, online: bool = False,
-                       revocation_mode: str = "soft-fail", dss=None) -> ValidationContext:
-    """Validation context; with ``dss``, preloaded with the document's LTV data."""
+def trust_roots(trust=(), *, system_trust: bool = True) -> list:
     roots = load_trust_roots(trust)
     if system_trust:
         roots += system_trust_roots()
-    kwargs = dict(trust_roots=roots, allow_fetching=online, revocation_mode=revocation_mode)
+    return roots
+
+
+def validation_context(trust=(), *, system_trust: bool = True, online: bool = False,
+                       revocation_mode: str = "soft-fail", dss=None,
+                       other_certs=()) -> ValidationContext:
+    """Validation context; with ``dss``, preloaded with the document's LTV data.
+    ``other_certs``: intermediates the signatures may lack (see chain.py)."""
+    roots = trust_roots(trust, system_trust=system_trust)
+    kwargs = dict(trust_roots=roots, allow_fetching=online, revocation_mode=revocation_mode,
+                  other_certs=list(other_certs))
     if dss is not None:
         return dss.as_validation_context(kwargs)
     return ValidationContext(**kwargs)
@@ -137,7 +146,9 @@ def _trust_problem(indic, cert) -> str:
         usage = cert.key_usage_value.native if cert.key_usage_value else None
         if usage is not None and not {"digital_signature", "non_repudiation"} & set(usage):
             return _("the certificate is not meant for signatures (key usage)")
-        return _("the certificate doesn't chain to a trusted root")
+        issuer = cert.issuer.native.get("common_name") or cert.issuer.human_friendly
+        return _("the certificate doesn't chain to a trusted root (issuer {issuer!r} not "
+                 "trusted, or not found)").format(issuer=issuer)
     if name in ("TRY_LATER", "REVOCATION_OUT_OF_BOUNDS_NO_POE"):
         return _("the certificate's revocation status is not known yet")
     if name in ("REVOKED_NO_POE", "REVOKED_CA_NO_POE"):
@@ -203,8 +214,11 @@ def report(sig, st, revision: int, revisions: int) -> SignatureReport:
 
 
 def verify_pdf(path: Path | str | bytes, *, trust=(), system_trust: bool = True,
-               online: bool = False, password: str | None = None) -> list[SignatureReport]:
-    """Validate every signature in the document, oldest first."""
+               online: bool = False, password: str | None = None,
+               fetch_issuers: bool = True) -> list[SignatureReport]:
+    """Validate every signature in the document, oldest first. Intermediate
+    certificates a signature lacks are downloaded once (``fetch_issuers``)
+    and cached, see chain.py."""
     data = path if isinstance(path, bytes) else Path(path).read_bytes()
     reader = _open_reader(data, password)
     sigs = reader.embedded_regular_signatures  # document timestamps aren't signers
@@ -214,8 +228,16 @@ def verify_pdf(path: Path | str | bytes, *, trust=(), system_trust: bool = True,
         dss = None
     revisions = reader.xrefs.total_revisions
     results = []
+    roots = trust_roots(trust, system_trust=system_trust)
+    dss_certs = list(dss.load_certs()) if dss is not None else []
     for sig in sigs:
-        vc = validation_context(trust, system_trust=system_trust, online=online, dss=dss)
+        try:
+            known = [*sig.other_embedded_certs, *dss_certs]
+            missing = chain.complete_chain(sig.signer_cert, known, roots, fetch=fetch_issuers)
+        except (ValueError, KeyError):  # a broken signature: validation reports it
+            missing = []
+        vc = validation_context(trust, system_trust=system_trust, online=online, dss=dss,
+                                other_certs=missing)
         try:
             st = validate_pdf_signature(sig, vc)
         except SignatureValidationError as e:

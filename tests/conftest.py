@@ -51,6 +51,20 @@ def make_p12(cn: str, passphrase: str = PASSPHRASE) -> tuple[bytes, x509.Certifi
 
 
 @pytest.fixture(autouse=True)
+def no_downloads(tmp_path_factory, monkeypatch):
+    """Intermediate certificates are cached in a temporary folder, and never
+    downloaded from the internet; tests of chain.py serve them locally."""
+    from pdfsigner import chain
+
+    monkeypatch.setenv("PDFSIGNER_CACHE_DIR", str(tmp_path_factory.mktemp("cache")))
+
+    def offline(url):
+        raise OSError(f"tests don't download ({url})")
+
+    monkeypatch.setattr(chain, "download", offline)
+
+
+@pytest.fixture(autouse=True)
 def english(monkeypatch):
     """Tests check English messages, whatever the machine's locale; tests of
     the German catalog switch explicitly."""
