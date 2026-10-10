@@ -10,6 +10,7 @@ from pdfsigner.config import (
     expand,
     load_config,
     normalize_hex,
+    supported_cert_types,
 )
 
 
@@ -148,3 +149,9 @@ def test_hand_edited_config_is_validated(tmp_path, toml, message):
     p.write_text(toml, encoding="utf-8")
     with pytest.raises(ValueError, match=message):
         load_config(p)
+
+
+def test_supported_cert_types():
+    assert supported_cert_types("linux") == ("pkcs12", "pkcs11")
+    assert supported_cert_types("win32") == supported_cert_types("darwin") == (
+        "pkcs12", "pkcs11", "system")

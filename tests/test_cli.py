@@ -329,3 +329,10 @@ def test_pdf_password_from_stdin_env_or_prompt(form_pdf, tmp_path, monkeypatch, 
     assert run("fields", enc) == 0
     assert asked == ["PDF password"]
     assert run("fields", form_pdf) == 0 and len(asked) == 1  # not encrypted: no prompt
+
+
+def test_system_profile_on_an_unsupported_platform_notes_it(cfg_path, capsys, monkeypatch):
+    monkeypatch.setattr(cli, "supported_cert_types", lambda: ("pkcs12", "pkcs11"))
+    assert run("certs", "add", "store", "--system-cert", "Alice") == 0  # e.g. a shared config
+    assert "only work on Windows and macOS" in capsys.readouterr().err
+    assert load_config(cfg_path).certs["store"].type == "system"

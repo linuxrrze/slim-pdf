@@ -211,8 +211,8 @@ msgstr[1] "{n} durch Kommas getrennte Zahlen erwartet"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
-msgid "one of {types}"
-msgstr "eines von {types}"
+msgid "one of {types} (system: Windows and macOS only)"
+msgstr "eins von {types} (system: nur Windows und macOS)"
 
 #: src/pdfsigner/cli.py
 msgid "path to the .p12/.pfx file"
@@ -299,6 +299,10 @@ msgstr "YubiKey-Slot[:Seriennummer] für die Datenbank (nur keepassxc)"
 #: src/pdfsigner/cli.py
 msgid "make this the default certificate"
 msgstr "dieses Zertifikat als Standard festlegen"
+
+#: src/pdfsigner/cli.py
+msgid "note: profiles of type 'system' only work on Windows and macOS"
+msgstr "Hinweis: Profile vom Typ 'system' funktionieren nur unter Windows und macOS"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
@@ -1740,6 +1744,11 @@ msgstr "{name!r} existiert bereits"
 #, python-brace-format
 msgid "Remove {name!r}?"
 msgstr "{name!r} entfernen?"
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "{type} (not available on this system)"
+msgstr "{type} (auf diesem System nicht verfügbar)"
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "(no image)"

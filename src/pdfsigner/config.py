@@ -20,6 +20,14 @@ from platformdirs import user_config_dir
 from .i18n import LANGUAGES, N_, _
 
 CERT_TYPES = ("pkcs12", "pkcs11", "system")
+SYSTEM_STORE_PLATFORMS = ("win32", "darwin")  # Windows certificate store, macOS keychain
+
+
+def supported_cert_types(platform: str | None = None) -> tuple[str, ...]:
+    """Profile types that work here: "system" only on Windows and macOS. Other
+    types still load (a config file may be shared between machines)."""
+    platform = platform or sys.platform
+    return tuple(t for t in CERT_TYPES if t != "system" or platform in SYSTEM_STORE_PLATFORMS)
 
 # Where the secret (PKCS#12 passphrase or PKCS#11 PIN) comes from.
 #   prompt  - ask interactively every time

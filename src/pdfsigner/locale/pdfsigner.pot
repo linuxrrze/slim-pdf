@@ -193,7 +193,7 @@ msgstr[0] ""
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
-msgid "one of {types}"
+msgid "one of {types} (system: Windows and macOS only)"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -280,6 +280,10 @@ msgstr ""
 
 #: src/pdfsigner/cli.py
 msgid "make this the default certificate"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "note: profiles of type 'system' only work on Windows and macOS"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -1667,6 +1671,11 @@ msgstr ""
 #: src/pdfsigner/gui/certdialog.py
 #, python-brace-format
 msgid "Remove {name!r}?"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "{type} (not available on this system)"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py

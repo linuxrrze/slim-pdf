@@ -733,6 +733,11 @@ def test_dialog_system_store(dialog, monkeypatch):
     key = ec.generate_private_key(ec.SECP256R1())
     backend = FakeBackend([(issue(ca, "Store Alice", key), key)])
     monkeypatch.setattr(certdialog.systemstore, "get_backend", lambda: backend)
+    # as on Windows/macOS, where the type is offered
+    monkeypatch.setattr(certdialog, "supported_cert_types",
+                        lambda: ("pkcs12", "pkcs11", "system"))
+    dialog = CertManagerDialog(dialog.config)
+    dialog.show()
 
     dialog.type_combo.setCurrentText("system")
     assert dialog.sys_box.isVisible()
@@ -747,6 +752,29 @@ def test_dialog_system_store(dialog, monkeypatch):
     dialog._save()
     saved = load_config(dialog.config.path).certs["work"]
     assert (saved.type, saved.system_cert) == ("system", tp)
+    from shiboken6 import delete
+
+    delete(dialog)  # not after the QApplication at exit
+
+
+def test_dialog_offers_only_supported_types(dialog, monkeypatch, tmp_path):
+    """On Linux there is no "system" type to choose; a profile of that type
+    from a shared config file is still shown (and kept) as it is."""
+    monkeypatch.setattr(certdialog, "supported_cert_types", lambda: ("pkcs12", "pkcs11"))
+    cfg = dialog.config
+    cfg.put(CertProfile(name="store", type="system", system_cert="AB" * 20))
+    d = CertManagerDialog(cfg)
+    d.show()
+    types = [d.type_combo.itemData(i) for i in range(d.type_combo.count())]
+    assert types == ["pkcs12", "pkcs11"]
+    select(d, "store")
+    assert d.type_combo.currentData() == "system"
+    assert "not available on this system" in d.type_combo.currentText()
+    d._save()
+    assert load_config(cfg.path).certs["store"].type == "system"
+    from shiboken6 import delete
+
+    delete(d)  # not after the QApplication at exit
 
 
 def test_dialog_system_store_unavailable(dialog, monkeypatch):

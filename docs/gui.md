@@ -164,9 +164,11 @@ image:
 
 ![Certificate manager: KeePass profile](images/gui-certs-keepass.png)
 
-For type *system* (Windows certificate store / macOS keychain), *Choose…*
-lists the certificates in the store; the passphrase section disappears
-because the operating system asks for PINs itself.
+For type *system* (Windows certificate store / macOS keychain, offered only
+on those systems), *Choose…* lists the certificates in the store; the
+passphrase section disappears because the operating system asks for PINs
+itself. A *system* profile in a config file shared with Linux shows there as
+"not available on this system" and is kept unchanged.
 
 Smartcard or USB token via PKCS#11:
 

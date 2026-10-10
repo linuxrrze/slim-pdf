@@ -30,13 +30,13 @@ from PySide6.QtWidgets import (
 
 from .. import secretstore, systemstore, tokens
 from ..config import (
-    CERT_TYPES,
     KEEPASS_SOURCES,
     PKCS11_EXAMPLE,
     SECRET_SOURCES,
     CertProfile,
     Config,
     new_profile,
+    supported_cert_types,
 )
 from ..i18n import N_, _
 from ..signing import SigningError, describe_signer, open_signer
@@ -113,7 +113,7 @@ class CertManagerDialog(QDialog):
             return w
 
         self.type_combo = QComboBox()
-        for t in CERT_TYPES:
+        for t in supported_cert_types():
             self.type_combo.addItem(_(TYPE_LABELS[t]), t)
         self.type_combo.currentIndexChanged.connect(self._update_visibility)
 
@@ -307,6 +307,11 @@ class CertManagerDialog(QDialog):
     # form ---------------------------------------------------------------------
 
     def _load_form(self, p: CertProfile) -> None:
+        if self.type_combo.findData(p.type) < 0:
+            # e.g. a Windows "system" profile in a config shared with Linux:
+            # show it as it is (saving keeps the type), but marked
+            self.type_combo.addItem(_("{type} (not available on this system)").format(
+                type=_(TYPE_LABELS[p.type])), p.type)
         self.type_combo.setCurrentIndex(max(0, self.type_combo.findData(p.type)))
         for attr, w in self.e.items():
             w.setText(getattr(p, attr))

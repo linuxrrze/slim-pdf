@@ -22,6 +22,7 @@ from .config import (
     Config,
     load_config,
     new_profile,
+    supported_cert_types,
 )
 from .i18n import N_, _, ngettext
 from .secretstore import Cancelled, SecretError, resolve_credentials
@@ -105,7 +106,7 @@ def _floats(s: str, n: int) -> tuple[float, ...]:
 
 PROFILE_OPTS = {
     # option -> (CertProfile attribute, help; translated and formatted in _add_profile_opts)
-    "--type": ("type", N_("one of {types}")),
+    "--type": ("type", N_("one of {types} (system: Windows and macOS only)")),
     "--p12": ("path", N_("path to the .p12/.pfx file")),
     "--pkcs11-lib": ("pkcs11_lib", N_("PKCS#11 module, e.g. {example}")),
     "--token-label": ("token_label", N_("PKCS#11 token label")),
@@ -160,6 +161,11 @@ def _apply_profile_opts(profile: CertProfile, args) -> CertProfile:
             profile.type = "pkcs11"
         elif args.system_cert:
             profile.type = "system"
+    if (args.type or ("system" if args.system_cert else None)) == "system" \
+            and "system" not in supported_cert_types():
+        # allowed (a config file may be shared with a Windows or Mac), but useless here
+        print(_("note: profiles of type 'system' only work on Windows and macOS"),
+              file=sys.stderr)
     return profile
 
 
