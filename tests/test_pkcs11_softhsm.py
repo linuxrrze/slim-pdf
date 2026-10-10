@@ -461,3 +461,35 @@ def test_sign_with_key_types_cards_use(typed_keys, oid, blank_pdf, tmp_path):
         sign_pdf(blank_pdf, out, s, profile, page=0, box=(50, 50, 250, 110))
     [(_, st)] = validate_all(out, ca)
     assert st.bottom_line
+
+
+def test_find_modules(tmp_path, monkeypatch):
+    from pdfsigner import tokens
+
+    (tmp_path / "lib").mkdir()
+    opensc = tmp_path / "lib" / "opensc-pkcs11.so"
+    proxy = tmp_path / "lib" / "p11-kit-proxy.so"
+    proxy.write_bytes(b"")
+    monkeypatch.setattr(tokens, "KNOWN_MODULES", {"linux": [str(tmp_path / "*" / "opensc-*.so")]})
+    monkeypatch.setattr(tokens, "P11_KIT_PROXY", [str(proxy)])
+    assert tokens.find_modules("linux") == [str(proxy)]  # fallback: nothing found directly
+    opensc.write_bytes(b"")
+    (tmp_path / "lib" / "link-opensc-pkcs11.so").symlink_to(opensc)  # same module twice
+    monkeypatch.setattr(tokens, "KNOWN_MODULES",
+                        {"linux": [str(opensc), str(tmp_path / "lib" / "link-*.so")]})
+    assert tokens.find_modules("linux") == [str(opensc)]
+    assert tokens.find_modules("win32") == []
+
+
+def test_cli_certs_pkcs11_without_module(piv, cfg_path, monkeypatch, capsys):
+    from pdfsigner import tokens
+
+    lib, _, _ = piv
+    monkeypatch.setattr(tokens, "find_modules", lambda: [lib, "/no/such/module.so"])
+    assert cli.main(["certs", "pkcs11", "--token-label", PIV_TOKEN]) == 0
+    captured = capsys.readouterr()
+    assert f"module {lib}:" in captured.out and f"token '{PIV_TOKEN}'" in captured.out
+    assert "/no/such/module.so" in captured.err  # reported, but doesn't stop the others
+    monkeypatch.setattr(tokens, "find_modules", lambda: [])
+    assert cli.main(["certs", "pkcs11"]) == 1
+    assert "no PKCS#11 module found" in capsys.readouterr().err

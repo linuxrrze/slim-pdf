@@ -254,6 +254,10 @@ software token; the token line is shortened.)
 
 Without `--login` only the certificates are listed; most tokens show private
 keys only after the PIN. `--token-label` limits the list to one token.
+Without a module, `certs pkcs11` asks every module installed in the usual
+places (OpenSC, Yubico's ykcs11; on Linux p11-kit's proxy if neither is
+there). In the GUI, *Show token contents…* does the same when the module
+field is empty, and fills in the module of the key you pick.
 
 | Module | Linux (Debian/Ubuntu) | macOS | Windows |
 |---|---|---|---|

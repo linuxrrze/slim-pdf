@@ -341,14 +341,28 @@ msgid "no certificates with a private key in the {store}"
 msgstr "keine Zertifikate mit privatem Schlüssel im {store}"
 
 #: src/pdfsigner/cli.py
+msgid "no PKCS#11 module found in the usual places: install OpenSC or your card's software, or give the module's path"
+msgstr "kein PKCS#11-Modul an den üblichen Orten gefunden: OpenSC oder die Software der Karte installieren oder den Pfad des Moduls angeben"
+
+#: src/pdfsigner/cli.py
 #, python-brace-format
 msgid "PIN for token '{label}'"
 msgstr "PIN für Token '{label}'"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "{module}: {error}"
+msgstr "{module}: {error}"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "no token found ({module})"
 msgstr "kein Token gefunden ({module})"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "module {module}:"
+msgstr "Modul {module}:"
 
 #: src/pdfsigner/cli.py
 msgid "(no objects)"
@@ -625,6 +639,11 @@ msgstr "Zertifikate im Windows-/macOS-Zertifikatsspeicher auflisten"
 #: src/pdfsigner/cli.py
 msgid "list the keys and certificates on a PKCS#11 token"
 msgstr "Schlüssel und Zertifikate auf einem PKCS#11-Token auflisten"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "PKCS#11 module, e.g. {example} (default: all modules found in the usual places)"
+msgstr "PKCS#11-Modul, z. B. {example} (Standard: alle an den üblichen Orten gefundenen Module)"
 
 #: src/pdfsigner/cli.py
 msgid "only this token"
@@ -1763,8 +1782,8 @@ msgid "PKCS#11 token"
 msgstr "PKCS#11-Token"
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "Enter the PKCS#11 module first."
-msgstr "Bitte zuerst das PKCS#11-Modul angeben."
+msgid "No PKCS#11 module found in the usual places. Install OpenSC or your card's software, or enter the module's path."
+msgstr "Kein PKCS#11-Modul an den üblichen Orten gefunden. OpenSC oder die Software der Karte installieren oder den Pfad des Moduls eingeben."
 
 #: src/pdfsigner/gui/certdialog.py
 #, python-brace-format

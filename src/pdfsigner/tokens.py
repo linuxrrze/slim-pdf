@@ -6,8 +6,10 @@ login, so :func:`list_tokens` lists them only when given the PIN.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from .config import expand
 from .i18n import _
@@ -44,6 +46,7 @@ class TokenEntry:
 
 @dataclass
 class TokenInfo:
+    module: str
     label: str
     manufacturer: str
     model: str
@@ -103,6 +106,46 @@ def _read(session, logged_in: bool) -> list[TokenEntry]:
     return entries
 
 
+# Usual install locations of PKCS#11 modules for smartcards and tokens.
+# p11-kit's proxy (Linux) bundles all modules registered with p11-kit, so it
+# is only offered when no module is found directly.
+KNOWN_MODULES = {
+    "linux": [
+        "/usr/lib/*/opensc-pkcs11.so", "/usr/lib64/opensc-pkcs11.so",
+        "/usr/lib64/pkcs11/opensc-pkcs11.so", "/usr/lib/opensc-pkcs11.so",
+        "/usr/lib/*/libykcs11.so*", "/usr/lib64/libykcs11.so*", "/usr/local/lib/libykcs11.so*",
+    ],
+    "darwin": [
+        "/Library/OpenSC/lib/opensc-pkcs11.so", "/opt/homebrew/lib/opensc-pkcs11.so",
+        "/usr/local/lib/opensc-pkcs11.so", "/opt/homebrew/lib/libykcs11.dylib",
+        "/usr/local/lib/libykcs11.dylib",
+    ],
+    "win32": [
+        r"C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll",
+        r"C:\Program Files\Yubico\Yubico PIV Tool\bin\libykcs11.dll",
+    ],
+}
+P11_KIT_PROXY = ["/usr/lib/*/p11-kit-proxy.so", "/usr/lib64/p11-kit-proxy.so"]
+
+
+def find_modules(platform: str | None = None) -> list[str]:
+    """Installed PKCS#11 modules from KNOWN_MODULES, without duplicates."""
+    import glob
+    import sys
+
+    platform = platform or ("linux" if sys.platform.startswith("linux") else sys.platform)
+    found: dict[str, str] = {}
+    for patterns in (KNOWN_MODULES.get(platform, []),
+                     P11_KIT_PROXY if platform == "linux" else []):
+        if found:  # the proxy only as a fallback
+            break
+        for pattern in patterns:
+            for path in sorted(glob.glob(pattern)):
+                if Path(path).is_file():
+                    found.setdefault(os.path.realpath(path), path)
+    return list(found.values())
+
+
 def list_tokens(module: str, token_label: str | None = None,
                 ask_pin: Callable[[str], str | None] | None = None) -> list[TokenInfo]:
     """Initialised tokens of ``module`` and their keys/certificates.
@@ -126,7 +169,7 @@ def list_tokens(module: str, token_label: str | None = None,
             module=module, error=str(e) or type(e).__name__)) from None
     result = []
     for t in tokens:
-        info = TokenInfo(label=_text(t.label), manufacturer=_text(t.manufacturer_id),
+        info = TokenInfo(module=module, label=_text(t.label), manufacturer=_text(t.manufacturer_id),
                          model=_text(t.model), serial=_text(t.serial), logged_in=False)
         pin = ask_pin(info.label) if ask_pin else None
         try:

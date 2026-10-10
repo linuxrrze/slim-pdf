@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
@@ -387,17 +388,22 @@ class CertManagerDialog(QDialog):
 
     def _choose_token_key(self) -> None:
         module = self.e["pkcs11_lib"].text().strip()
-        if not module:
-            QMessageBox.information(self, _("PKCS#11 token"),
-                                    _("Enter the PKCS#11 module first."))
+        modules = [module] if module else tokens.find_modules()
+        if not modules:
+            QMessageBox.information(self, _("PKCS#11 token"), _(
+                "No PKCS#11 module found in the usual places. Install OpenSC or your card's "
+                "software, or enter the module's path."))
             return
-        try:
-            found = tokens.list_tokens(
-                module, ask_pin=lambda label: ask_secret(
+        found, errors = [], []
+        for m in modules:
+            try:
+                found += tokens.list_tokens(m, ask_pin=lambda label: ask_secret(
                     self, _("PIN for token '{label}' (Cancel: certificates only)").format(
                         label=label)))
-        except SigningError as e:
-            QMessageBox.critical(self, _("PKCS#11 token"), str(e))
+            except SigningError as e:
+                errors.append(str(e))
+        if errors and not found:
+            QMessageBox.critical(self, _("PKCS#11 token"), "\n".join(errors))
             return
         choices = [(t, e) for t in found for e in t.entries if e.id]
         if not choices:
@@ -405,11 +411,14 @@ class CertManagerDialog(QDialog):
                                     _("No keys or certificates with an ID found.") if found
                                     else _("No token found."))
             return
-        items = [f"{t.label}: {e.describe()}" for t, e in choices]
+        several = len({t.module for t, _e in choices}) > 1
+        items = [(f"{Path(t.module).name} – " if several else "") + f"{t.label}: {e.describe()}"
+                 for t, e in choices]
         choice, ok = QInputDialog.getItem(self, _("PKCS#11 token"), _("Key / certificate:"),
                                           items, 0, False)
         if ok:
             t, e = choices[items.index(choice)]
+            self.e["pkcs11_lib"].setText(t.module)
             self.e["token_label"].setText(t.label)
             self.e["key_id"].setText(e.id_hex)
             self.e["key_label"].clear()

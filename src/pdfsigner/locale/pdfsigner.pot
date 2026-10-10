@@ -323,13 +323,27 @@ msgid "no certificates with a private key in the {store}"
 msgstr ""
 
 #: src/pdfsigner/cli.py
+msgid "no PKCS#11 module found in the usual places: install OpenSC or your card's software, or give the module's path"
+msgstr ""
+
+#: src/pdfsigner/cli.py
 #, python-brace-format
 msgid "PIN for token '{label}'"
 msgstr ""
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "{module}: {error}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "no token found ({module})"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "module {module}:"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -600,6 +614,11 @@ msgstr ""
 
 #: src/pdfsigner/cli.py
 msgid "list the keys and certificates on a PKCS#11 token"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "PKCS#11 module, e.g. {example} (default: all modules found in the usual places)"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -1689,7 +1708,7 @@ msgid "PKCS#11 token"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "Enter the PKCS#11 module first."
+msgid "No PKCS#11 module found in the usual places. Install OpenSC or your card's software, or enter the module's path."
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py

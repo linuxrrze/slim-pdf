@@ -789,7 +789,7 @@ def test_dialog_choose_token_key(dialog, monkeypatch):
     def list_tokens(module, token_label=None, ask_pin=None):
         assert module == "/x.so"
         ask_pin("YubiKey PIV #1")
-        return [tokens.TokenInfo("YubiKey PIV #1", "Yubico", "YubiKey", "1", True, [
+        return [tokens.TokenInfo("/x.so", "YubiKey PIV #1", "Yubico", "YubiKey", "1", True, [
             tokens.TokenEntry(b"\x01", "Private key for PIV Authentication", "EC"),
             tokens.TokenEntry(b"\x02", "Private key for Digital Signature", "EC", True,
                               "X.509 Certificate for Digital Signature", "CN=Alice",
@@ -798,6 +798,7 @@ def test_dialog_choose_token_key(dialog, monkeypatch):
         ])]
 
     monkeypatch.setattr(certdialog.tokens, "list_tokens", list_tokens)
+    boxes = Boxes(monkeypatch, certdialog)  # a failure must not block on a real dialog
     offered = []
 
     def get_item(parent, title, label, items, *a):
@@ -809,6 +810,7 @@ def test_dialog_choose_token_key(dialog, monkeypatch):
     assert asked == ["PIN for token 'YubiKey PIV #1' (Cancel: certificates only)"]
     assert len(offered) == 2  # objects without an ID can't be selected
     assert "PIN for every signature" in offered[1]
+    assert boxes.kinds() == []
     assert (dialog.e["token_label"].text(), dialog.e["key_id"].text(),
             dialog.e["key_label"].text()) == ("YubiKey PIV #1", "02", "")
 
@@ -819,8 +821,9 @@ def test_dialog_choose_token_key_errors(dialog, monkeypatch):
     boxes = Boxes(monkeypatch, certdialog)
     select(dialog, "tok")
     dialog.e["pkcs11_lib"].setText("")
+    monkeypatch.setattr(certdialog.tokens, "find_modules", lambda: [])
     dialog._choose_token_key()
-    assert boxes.kinds() == ["information"] and "module" in boxes.text()
+    assert boxes.kinds() == ["information"] and "No PKCS#11 module found" in boxes.text()
 
     dialog.e["pkcs11_lib"].setText("/x.so")
 
@@ -934,3 +937,31 @@ def test_huge_page_render_is_capped(window, tmp_path):
     # geometry stays right: the item still covers the whole page in scene units
     rect = window.view._page_item.sceneBoundingRect()
     assert rect.width() == pytest.approx(14400, rel=0.01)
+
+
+def test_dialog_choose_token_key_searches_modules(dialog, monkeypatch):
+    """Empty module field: every module found is asked, and the choice fills
+    in the module too."""
+    from pdfsigner import tokens
+    from pdfsigner.signing import SigningError
+
+    select(dialog, "tok")
+    dialog.e["pkcs11_lib"].setText("")
+    monkeypatch.setattr(certdialog.tokens, "find_modules",
+                        lambda: ["/a/opensc.so", "/b/ykcs11.so"])
+    monkeypatch.setattr(certdialog, "ask_secret", lambda parent, prompt: None)
+
+    def list_tokens(module, token_label=None, ask_pin=None):
+        if module == "/a/opensc.so":
+            raise SigningError("no token found")
+        return [tokens.TokenInfo(module, "YubiKey PIV #2", "Yubico", "YubiKey", "2", False, [
+            tokens.TokenEntry(b"\x02", cert_label="X.509 Certificate for Digital Signature",
+                              subject="CN=Bob", not_after="2027-01-01")])]
+
+    monkeypatch.setattr(certdialog.tokens, "list_tokens", list_tokens)
+    Boxes(monkeypatch, certdialog)
+    monkeypatch.setattr(certdialog.QInputDialog, "getItem",
+                        staticmethod(lambda parent, title, label, items, *a: (items[0], True)))
+    dialog._choose_token_key()
+    assert (dialog.e["pkcs11_lib"].text(), dialog.e["token_label"].text(),
+            dialog.e["key_id"].text()) == ("/b/ykcs11.so", "YubiKey PIV #2", "02")

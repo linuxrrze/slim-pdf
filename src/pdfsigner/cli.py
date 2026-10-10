@@ -265,13 +265,26 @@ def cmd_certs_system(cfg: Config, args) -> int:
 def cmd_certs_pkcs11(cfg: Config, args) -> int:
     from . import tokens
 
+    modules = [args.module] if args.module else tokens.find_modules()
+    if not modules:
+        raise SigningError(_("no PKCS#11 module found in the usual places: install OpenSC or "
+                             "your card's software, or give the module's path"))
     ask = ((lambda label: _ask(_("PIN for token '{label}'").format(label=label)))
            if args.login else None)
-    found = tokens.list_tokens(args.module, args.token_label, ask)
+    found = []
+    for module in modules:
+        try:
+            found += tokens.list_tokens(module, args.token_label, ask)
+        except SigningError as e:
+            if args.module:
+                raise
+            print(_("{module}: {error}").format(module=module, error=e), file=sys.stderr)
     if not found:
-        print(_("no token found ({module})").format(module=args.module))
+        print(_("no token found ({module})").format(module=", ".join(modules)))
         return 0
     for t in found:
+        if not args.module:
+            print(_("module {module}:").format(module=t.module))
         print(t.describe())
         for e in t.entries:
             print(f"  {e.describe()}")
@@ -279,10 +292,11 @@ def cmd_certs_pkcs11(cfg: Config, args) -> int:
             print("  " + _("(no objects)"))
         if not t.logged_in:
             print("  " + _("(private keys are usually only listed after logging in: --login)"))
-    token = f" --token-label {_quote(found[0].label)}" if len(found) > 1 else ""
+    first = found[0]
+    token = f" --token-label {_quote(first.label)}" if len(found) > 1 else ""
     print()
     print(_("profile: pdfsigner certs add NAME --pkcs11-lib {module} --key-id ID{token}").format(
-        module=_quote(args.module), token=token))
+        module=_quote(first.module), token=token))
     return 0
 
 
@@ -603,8 +617,9 @@ def build_parser() -> argparse.ArgumentParser:
     csub.add_parser("system", help=_("list certificates in the Windows/macOS store")
                     ).set_defaults(func=cmd_certs_system)
     p = csub.add_parser("pkcs11", help=_("list the keys and certificates on a PKCS#11 token"))
-    p.add_argument("module", help=_("PKCS#11 module, e.g. {example}").format(
-        example=PKCS11_EXAMPLE))
+    p.add_argument("module", nargs="?",
+                   help=_("PKCS#11 module, e.g. {example} (default: all modules found in "
+                          "the usual places)").format(example=PKCS11_EXAMPLE))
     p.add_argument("--token-label", help=_("only this token"))
     p.add_argument("--login", action="store_true",
                    help=_("ask for the PIN to list the private keys too"))
