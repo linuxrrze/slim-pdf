@@ -38,6 +38,7 @@ from ..signing import (
     image_aspect,
     inspect_pdf,
     open_signer,
+    printable,
     sign_pdf,
 )
 from .certdialog import CertManagerDialog
@@ -516,12 +517,13 @@ class MainWindow(QMainWindow):
             return ""
         for r in self.reports:
             when = r.timestamp or r.signed_at
-            text = f"{r.field}: {r.status}\n   {r.signer.removeprefix('Common Name: ')}"
+            signer = printable(r.signer.removeprefix("Common Name: "))
+            text = f"{printable(r.field)}: {r.status}\n   {signer}"
             if when:
                 text += f", {when:%Y-%m-%d %H:%M}"
             item = QListWidgetItem(_dot(STATUS_COLORS[r.status]), text)
             item.setData(Qt.UserRole, r.field)
-            item.setToolTip("\n".join([r.coverage, *r.problems]))
+            item.setToolTip("\n".join(map(printable, [r.coverage, *r.problems])))
             self.sigs_list.addItem(item)
         if not self.reports:
             return ""
@@ -541,13 +543,13 @@ class MainWindow(QMainWindow):
         if r is None:
             return
         box = QMessageBox(self)
-        box.setWindowTitle(f"Signature '{r.field}'")
+        box.setWindowTitle(f"Signature '{printable(r.field)}'")
         box.setIcon(QMessageBox.Information if r.ok else QMessageBox.Warning)
         lines = [f"<b>{r.status.upper()}</b>", f"Signer: {r.signer}", f"Issuer: {r.issuer}",
                  f"Covers: {r.coverage}", *(f"Problem: {p}" for p in r.problems)]
-        lines = [lines[0], *map(html.escape, lines[1:])]
+        lines = [lines[0], *(html.escape(printable(line)) for line in lines[1:])]
         box.setText("<br>".join(lines))
-        box.setDetailedText(r.details)
+        box.setDetailedText(printable(r.details, keep_newlines=True))
         box.exec()
 
     def _fill_fields(self) -> None:
@@ -555,7 +557,7 @@ class MainWindow(QMainWindow):
         for f in self.info.fields if self.info else []:
             state = "signed" if f.filled else ("LOCKED" if f.locked else "empty")
             where = f"p. {f.page + 1}" if f.page is not None else "invisible"
-            item = QListWidgetItem(f"{f.name}\n   {state}, {where}")
+            item = QListWidgetItem(f"{printable(f.name)}\n   {state}, {where}")
             item.setData(Qt.UserRole, f.name)
             if f.filled or f.locked or f.rect is None:
                 item.setFlags(item.flags() & ~Qt.ItemIsSelectable)

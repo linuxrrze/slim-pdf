@@ -12,6 +12,7 @@ import io
 import math
 import os
 import tempfile
+import unicodedata
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -98,6 +99,24 @@ class DocInfo:
             return ("the document is certified, and a new visible signature field breaks "
                     f"the certification; {hint} instead")
         return None
+
+
+def printable(text: str, keep_newlines: bool = False) -> str:
+    """Text from a PDF or certificate, made safe to show.
+
+    Control and format characters (escape sequences, carriage returns,
+    bidi overrides, extra lines) are shown escaped, e.g. ``\\x1b``, so a
+    crafted field name or signer name can't move the terminal cursor or fake
+    another line such as "Contract: VALID".
+    """
+    out = []
+    for ch in str(text):
+        if (ch == "\n" and keep_newlines) or unicodedata.category(ch) not in (
+                "Cc", "Cf", "Zl", "Zp"):
+            out.append(ch)
+        else:
+            out.append(ch.encode("unicode_escape").decode("ascii"))
+    return "".join(out)
 
 
 # --- inspection --------------------------------------------------------------

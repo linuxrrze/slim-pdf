@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
-from ..signing import SigField
+from ..signing import SigField, printable
 from .document import PdfDocument
 
 DEFAULT_WIDTH = 150.0  # points
@@ -161,7 +161,7 @@ class FieldItem(QGraphicsRectItem):
         super().__init__(rect)
         self.field = f
         self.setZValue(5)
-        tip = f"{f.name}: " + ("signed" if f.filled else "locked" if f.locked else
+        tip = f"{printable(f.name)}: " + ("signed" if f.filled else "locked" if f.locked else
                                "empty - click to sign this field")
         self.setToolTip(tip)
         if self.clickable:

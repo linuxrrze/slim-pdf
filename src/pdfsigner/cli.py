@@ -35,6 +35,7 @@ from .signing import (
     image_aspect,
     inspect_pdf,
     open_signer,
+    printable,
     sign_pdf,
 )
 
@@ -243,7 +244,7 @@ def cmd_fields(cfg: Config, args) -> int:
         state = "signed" if f.filled else ("LOCKED" if f.locked else "empty")
         where = (f"page {f.page + 1}" if f.page is not None else "page ?")
         rect = ",".join(f"{v:.0f}" for v in f.rect) if f.rect else "invisible"
-        print(f"  {f.name:24} {state:7} {where:8} {rect}")
+        print(f"  {printable(f.name):24} {state:7} {where:8} {rect}")
     return 0
 
 
@@ -310,10 +311,10 @@ def cmd_verify(cfg: Config, args) -> int:
     if not reports:
         raise SigningError("document has no signatures")
     for r in reports:
-        print(f"{r.field}: {r.status.upper()}")
+        print(f"{printable(r.field)}: {r.status.upper()}")
         if r.signer:
-            print(f"  signer:   {r.signer}")
-            print(f"  issuer:   {r.issuer}")
+            print(f"  signer:   {printable(r.signer)}")
+            print(f"  issuer:   {printable(r.issuer)}")
         if r.timestamp:
             print(f"  time:     {r.timestamp:%Y-%m-%d %H:%M:%S %z} (timestamp)")
         elif r.signed_at:
@@ -324,11 +325,12 @@ def cmd_verify(cfg: Config, args) -> int:
             print("  ltv:      validation data embedded")
         for label, value in (("reason", r.reason), ("location", r.location)):
             if value:
-                print(f"  {label + ':':9} {value}")
+                print(f"  {label + ':':9} {printable(value)}")
         for problem in r.problems:
-            print(f"  problem:  {problem}")
+            print(f"  problem:  {printable(problem)}")
         if args.details and r.details:
-            print("\n  " + r.details.strip().replace("\n", "\n  "))
+            details = printable(r.details.strip(), keep_newlines=True)
+            print("\n  " + details.replace("\n", "\n  "))
         print()
     statuses = {r.status for r in reports}
     if INVALID in statuses:

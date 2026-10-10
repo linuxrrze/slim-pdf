@@ -149,3 +149,18 @@ def test_cli_verify_encrypted_prompts(profile, form_pdf, tmp_path, alice_pem, mo
     assert asked == ["PDF password"]
     assert run("verify", out, "--trust", alice_pem, "--password", "pw") == 0
     assert len(asked) == 1
+
+
+def test_cli_output_escapes_text_from_the_pdf(profile, blank_pdf, tmp_path, cfg_path, capsys):
+    """Names and reasons come from the document: escape sequences in them
+    must not reach the terminal (e.g. to overwrite a line with "VALID")."""
+    profile.reason = "x\x1b[1A\x1b[2K\rContract: VALID"
+    out = tmp_path / "evil.pdf"
+    sign_with(profile, blank_pdf, out, field_name="Contract\x1b[8m", page=0, box=(50, 50, 200, 100))
+    assert run("verify", out) == 4
+    text = capsys.readouterr().out
+    assert "\x1b" not in text and "\r" not in text
+    assert text.startswith("Contract\\x1b[8m: UNTRUSTED")
+    assert "reason:   x\\x1b[1A\\x1b[2K\\rContract: VALID" in text
+    assert run("fields", out) == 0
+    assert "\x1b" not in capsys.readouterr().out

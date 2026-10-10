@@ -643,6 +643,20 @@ def test_signatures_panel(window, form_pdf, save_to, p12, tmp_path, monkeypatch)
     assert "Bottom line" in details
 
 
+def test_lists_escape_text_from_the_pdf(window, blank_pdf, tmp_path):
+    """A field name with a line break can't fake an extra (green) row."""
+    from conftest import sign_with
+
+    out = tmp_path / "evil.pdf"
+    sign_with(window.config.certs["alice"], blank_pdf, out, field_name="X\nApplicant: valid",
+              page=0, box=(50, 50, 200, 100))
+    window.open(out)
+    [row] = sig_rows(window)
+    assert row.startswith("X\\nApplicant: valid: untrusted\n")
+    field_row = window.fields_list.item(0).text()
+    assert field_row.startswith("X\\nApplicant: valid\n")
+
+
 def test_signatures_panel_after_gui_signing(window, form_pdf, save_to):
     window.open(form_pdf)
     window.view.select_field("Applicant")
