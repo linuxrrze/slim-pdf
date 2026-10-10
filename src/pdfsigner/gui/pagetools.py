@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
 
 from .. import pages
 from ..i18n import _, ngettext
-from ..signing import SigningError
+from ..signing import PasswordError, SigningError
 from .dialogs import ask_secret
 from .document import PdfDocument
 
@@ -264,7 +264,7 @@ class MergeDialog(QDialog):
                 try:
                     n = pages.page_count(data, password)
                     break
-                except SigningError:  # wrong password
+                except PasswordError:  # wrong password
                     continue
             else:
                 raise SigningError(_("wrong password for {name}").format(name=path.name))

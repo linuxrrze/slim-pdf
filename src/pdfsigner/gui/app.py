@@ -32,6 +32,7 @@ from .. import i18n, pages, secretstore, validation
 from ..config import Config, load_config
 from ..i18n import N_, _, ngettext
 from ..signing import (
+    PasswordError,
     SigningBlocked,
     SigningError,
     _atomic_write,
@@ -306,10 +307,10 @@ class MainWindow(QMainWindow):
         try:
             data = Path(path).read_bytes()
             info = inspect_pdf(data, password)
+        except PasswordError:  # required, or the one given was wrong
+            pw = ask_secret(self, _("Password for {name}").format(name=path.name))
+            return pw is not None and self.open(path, pw, page=page)
         except SigningError as e:
-            if "password" in str(e):
-                pw = ask_secret(self, _("Password for {name}").format(name=path.name))
-                return pw is not None and self.open(path, pw, page=page)
             QMessageBox.critical(self, _("Open"), str(e))
             return False
         except Exception as e:  # malformed PDFs raise all sorts of things
