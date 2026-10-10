@@ -204,9 +204,43 @@ def test_cancel_and_missing_db(fake_cli, tmp_path):
 
 def test_cli_not_found(monkeypatch, tmp_path):
     monkeypatch.delenv("PDFSIGNER_KEEPASSXC_CLI", raising=False)
-    monkeypatch.setattr(secretstore.shutil, "which", lambda name: None)
+    monkeypatch.setenv("PATH", str(tmp_path))
     monkeypatch.setattr(secretstore, "KEEPASSXC_CLI_CANDIDATES", {})
     with pytest.raises(SecretError, match="keepassxc-cli not found"):
+        secretstore.keepassxc_cli()
+
+
+def _exe(d, name="keepassxc-cli"):
+    d.mkdir(exist_ok=True)
+    p = d / (name + (".exe" if sys.platform == "win32" else ""))
+    p.write_text("#!/bin/sh\n", encoding="utf-8")
+    p.chmod(0o755)
+    return p
+
+
+def test_cli_never_from_current_directory(monkeypatch, tmp_path):
+    """A keepassxc-cli planted in the working directory must not be used."""
+    monkeypatch.delenv("PDFSIGNER_KEEPASSXC_CLI", raising=False)
+    monkeypatch.setattr(secretstore, "KEEPASSXC_CLI_CANDIDATES", {})
+    planted = _exe(tmp_path / "Downloads")
+    real = _exe(tmp_path / "bin")
+    monkeypatch.chdir(planted.parent)
+    monkeypatch.setenv("PATH", os.pathsep.join([".", "", "Downloads", str(real.parent)]))
+    assert os.path.normcase(secretstore.keepassxc_cli()) == os.path.normcase(str(real))
+    monkeypatch.setenv("PATH", os.pathsep.join([".", ""]))
+    with pytest.raises(SecretError, match="not found"):
+        secretstore.keepassxc_cli()
+
+
+def test_cli_rejects_relative_hit(monkeypatch, tmp_path):
+    """What shutil.which does on Windows: the current directory first."""
+    monkeypatch.delenv("PDFSIGNER_KEEPASSXC_CLI", raising=False)
+    monkeypatch.setattr(secretstore, "KEEPASSXC_CLI_CANDIDATES", {})
+    real = _exe(tmp_path / "bin")
+    monkeypatch.setenv("PATH", str(real.parent))
+    monkeypatch.setattr(secretstore.shutil, "which",
+                        lambda name, path=None: os.path.join(".", name + ".EXE"))
+    with pytest.raises(SecretError, match="not found"):
         secretstore.keepassxc_cli()
 
 

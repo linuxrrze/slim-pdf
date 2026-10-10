@@ -98,9 +98,11 @@ pdfsigner certs add vault-yk --secret keepassxc --keepass-db ~/Passwords.kdbx \
   private temporary directory that is deleted right away (the `.p12` itself
   is still encrypted with its passphrase). `attachment-export --stdout` isn't
   used because it corrupts binary files.
-* `keepassxc-cli` is found on the `PATH`, in the default install location
+* `keepassxc-cli` is taken from `$PDFSIGNER_KEEPASSXC_CLI` if set, else from
+  the `PATH`, else from the default install location
   (`/Applications/KeePassXC.app/…` on macOS, `C:\Program Files\KeePassXC\`
-  on Windows), or via `$PDFSIGNER_KEEPASSXC_CLI`.
+  on Windows). It is never taken from the current directory, even where
+  Windows would normally look there, since it receives the master password.
 * It is slower than option 2 (two process starts, each deriving the database
   key).
 

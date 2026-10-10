@@ -198,12 +198,30 @@ KEEPASSXC_CLI_CANDIDATES = {
 CLI_TIMEOUT = 120  # seconds; leaves time to touch a YubiKey
 
 
+def _same_dir(a: str, b: str) -> bool:
+    return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b))
+
+
+def _which_absolute(name: str) -> str | None:
+    """Like shutil.which, but never from the current directory: on Windows
+    shutil.which looks there first, and relative PATH entries ("." or empty)
+    do the same everywhere. A keepassxc-cli planted in e.g. the Downloads
+    folder would otherwise get the master password."""
+    for d in os.environ.get("PATH", "").split(os.pathsep):
+        if not d or not os.path.isabs(d):
+            continue
+        found = shutil.which(name, path=d)
+        if found and os.path.isabs(found) and _same_dir(os.path.dirname(found), d):
+            return found
+    return None
+
+
 def keepassxc_cli() -> str:
     """Path of keepassxc-cli: $PDFSIGNER_KEEPASSXC_CLI, PATH, or the default install."""
     env = os.environ.get("PDFSIGNER_KEEPASSXC_CLI")
     if env:
         return env
-    found = shutil.which("keepassxc-cli")
+    found = _which_absolute("keepassxc-cli")
     if found:
         return found
     for p in KEEPASSXC_CLI_CANDIDATES.get(sys.platform, []):
