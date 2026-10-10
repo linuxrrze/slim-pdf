@@ -27,6 +27,8 @@ MIN_WIDTH = 30.0
 HANDLE = 10.0  # resize handle size in screen pixels
 
 
+MAX_PAGE_PIXELS = 40_000_000  # ~160 MB as RGBA
+
 class SignatureItem(QGraphicsObject):
     """Movable signature preview; the corner handle scales it keeping the aspect ratio."""
 
@@ -346,7 +348,11 @@ class PageView(QGraphicsView):
         if self.doc is None or self._page_item is None:
             return
         dpr = self.devicePixelRatioF()
-        scale = self.zoom * dpr
+        w, h = self.doc.display_size(self.page)
+        # A huge page (or a crafted MediaBox) at high zoom would need gigabytes:
+        # above the cap, render less sharply instead.
+        cap = 0.999 * (MAX_PAGE_PIXELS / max(w * h, 1.0)) ** 0.5  # pdfium rounds up
+        scale = min(self.zoom * dpr, cap)
         img = self.doc.render(self.page, scale)
         pm = QPixmap.fromImage(ImageQt(img))
         pm.setDevicePixelRatio(1.0)

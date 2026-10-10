@@ -911,3 +911,26 @@ def test_signature_followed_by_changes_is_marked(window, form_pdf, p12_bob, tmp_
     first, second = sig_rows(window)
     assert first.endswith("then changed (allowed): see tooltip")
     assert "then changed" not in second
+
+
+def test_huge_page_render_is_capped(window, tmp_path):
+    """14400 pt (the PDF maximum) at 600 % would be ~7 gigapixels."""
+    import io
+
+    from pypdf import PdfWriter
+
+    from pdfsigner.gui.pageview import MAX_PAGE_PIXELS
+
+    w = PdfWriter()
+    w.add_blank_page(14400, 14400)
+    buf = io.BytesIO()
+    w.write(buf)
+    big = tmp_path / "big.pdf"
+    big.write_bytes(buf.getvalue())
+    window.open(big)
+    window.view.set_zoom(6.0)
+    pm = window.view._page_item.pixmap()
+    assert pm.width() * pm.height() <= MAX_PAGE_PIXELS
+    # geometry stays right: the item still covers the whole page in scene units
+    rect = window.view._page_item.sceneBoundingRect()
+    assert rect.width() == pytest.approx(14400, rel=0.01)
