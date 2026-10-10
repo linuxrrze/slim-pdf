@@ -19,11 +19,11 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -57,6 +57,25 @@ TYPE_LABELS = {
     "pkcs11": "pkcs11",
     "system": N_("system"),
 }
+# The type column of the certificate list.
+TYPE_NAMES = {
+    "pkcs12": N_("PKCS#12 file"),
+    "pkcs11": N_("PKCS#11 token"),
+    "system": N_("System certificate store"),
+}
+
+
+def _summary(p: CertProfile) -> str:
+    """Which certificate a profile uses, in a few words, for the list."""
+    if p.type == "system":
+        return p.system_cert
+    if p.type == "pkcs11":
+        key = p.key_id and _("key ID {id}").format(id=p.key_id) or p.key_label
+        parts = [p.token_label or Path(p.pkcs11_lib).name, key]
+        return " – ".join(x for x in parts if x)
+    if p.secret in KEEPASS_SOURCES and not p.path:
+        return _("KeePass: {entry}").format(entry=p.keepass_entry)
+    return p.path
 
 
 def _path_row(edit: QLineEdit, caption: str, filt: str, field: QWidget | None = None) -> QWidget:
@@ -79,32 +98,146 @@ def _path_row(edit: QLineEdit, caption: str, filt: str, field: QWidget | None = 
 
 
 class CertManagerDialog(QDialog):
+    """The list of certificate profiles. Profiles are edited in
+    :class:`CertEditDialog`; every change is saved to the config file at once."""
+
     def __init__(self, config: Config, parent=None):
         super().__init__(parent)
         self.setWindowTitle(_("Certificates"))
-        fit_to_screen(self, 860, 760)
+        fit_to_screen(self, 720, 400)
         self.config = copy.deepcopy(config)
-        self._current: str | None = None
-        self._loading = False
+        self.changed = False  # the config file was written
 
-        # left: list + buttons
-        self.list = QListWidget()
-        self.list.currentItemChanged.connect(self._on_select)
-        add_btn = QPushButton(_("Add"))
-        add_btn.clicked.connect(self._add)
-        del_btn = QPushButton(_("Remove"))
-        del_btn.clicked.connect(self._remove)
-        default_btn = QPushButton(_("Make default"))
-        default_btn.clicked.connect(self._make_default)
-        left = QVBoxLayout()
-        left.addWidget(self.list)
-        row = QHBoxLayout()
-        for b in (add_btn, del_btn):
-            row.addWidget(b)
-        left.addLayout(row)
-        left.addWidget(default_btn)
+        self.list = QTreeWidget()
+        self.list.setHeaderLabels([_("Name"), _("Type"), _("Certificate")])
+        self.list.setRootIsDecorated(False)
+        self.list.setAllColumnsShowFocus(True)
+        self.list.header().setStretchLastSection(True)
+        self.list.currentItemChanged.connect(self._update_buttons)
+        self.list.itemActivated.connect(lambda item, column: self._edit())
 
-        # right: form
+        self.add_btn = QPushButton(_("Add…"))
+        self.add_btn.clicked.connect(self._add)
+        self.edit_btn = QPushButton(_("Edit…"))
+        self.edit_btn.clicked.connect(self._edit)
+        self.remove_btn = QPushButton(_("Remove"))
+        self.remove_btn.clicked.connect(self._remove)
+        self.default_btn = QPushButton(_("Make default"))
+        self.default_btn.clicked.connect(self._make_default)
+        side = QVBoxLayout()
+        for b in (self.add_btn, self.edit_btn, self.remove_btn, self.default_btn):
+            side.addWidget(b)
+        side.addStretch()
+
+        main = QHBoxLayout()
+        main.addWidget(self.list, 1)
+        main.addLayout(side)
+        buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        buttons.rejected.connect(self.reject)
+        outer = QVBoxLayout(self)
+        outer.addLayout(main)
+        hint = ElidedLabel(_("Config file: {path}").format(path=self.config.path))
+        hint.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        hint.setStyleSheet("color: gray")
+        outer.addWidget(hint)
+        outer.addWidget(buttons)
+
+        self._refresh_list()
+
+    def current(self) -> str | None:
+        item = self.list.currentItem()
+        return item.data(0, Qt.UserRole) if item else None
+
+    def _refresh_list(self, select: str | None = None) -> None:
+        select = select or self.current() or self.config.default
+        self.list.clear()
+        for name, p in self.config.certs.items():
+            label = (_("{name}  (default)").format(name=name) if name == self.config.default
+                     else name)
+            kind = _(TYPE_NAMES[p.type]) if p.type in TYPE_NAMES else p.type
+            item = QTreeWidgetItem([label, kind, _summary(p)])
+            item.setData(0, Qt.UserRole, name)
+            item.setToolTip(2, _summary(p))
+            if name == self.config.default:
+                font = item.font(0)
+                font.setBold(True)
+                item.setFont(0, font)
+            self.list.addTopLevelItem(item)
+            if name == select:
+                self.list.setCurrentItem(item)
+        if self.list.currentItem() is None and self.list.topLevelItemCount():
+            self.list.setCurrentItem(self.list.topLevelItem(0))
+        for column in (0, 1):
+            self.list.resizeColumnToContents(column)
+        self._update_buttons()
+
+    def _update_buttons(self, *args) -> None:
+        name = self.current()
+        for b in (self.edit_btn, self.remove_btn):
+            b.setEnabled(name is not None)
+        self.default_btn.setEnabled(name is not None and name != self.config.default)
+
+    def _exec_editor(self, dlg: CertEditDialog) -> int:
+        return dlg.exec()  # a hook for the tests
+
+    def _open_editor(self, name: str | None) -> None:
+        dlg = CertEditDialog(self.config, name, self)
+        if self._exec_editor(dlg):
+            self.changed = True
+            self._refresh_list(dlg.name)
+
+    def _add(self) -> None:
+        self._open_editor(None)
+
+    def _edit(self) -> None:
+        if self.current():
+            self._open_editor(self.current())
+
+    def _write(self) -> bool:
+        try:
+            self.config.save()
+        except OSError as e:
+            QMessageBox.critical(self, _("Certificates"),
+                                 _("Could not save the configuration:\n{error}").format(error=e))
+            return False
+        self.changed = True
+        return True
+
+    def _remove(self) -> None:
+        name = self.current()
+        if not name:
+            return
+        if QMessageBox.question(self, _("Certificates"),
+                                _("Remove {name!r}?").format(name=name)) != QMessageBox.Yes:
+            return
+        self.config.remove(name)
+        self._write()
+        self._refresh_list()
+
+    def _make_default(self) -> None:
+        name = self.current()
+        if name:
+            self.config.default = name
+            self._write()
+            self._refresh_list(name)
+
+
+class CertEditDialog(QDialog):
+    """Edit one profile of ``config`` (``name``), or a new one (``name=None``).
+    *Save* checks it, puts it into ``config`` and writes the config file."""
+
+    def __init__(self, config: Config, name: str | None, parent=None):
+        super().__init__(parent)
+        self.config = config
+        self.name = name
+        self.setWindowTitle(_("Edit certificate {name!r}").format(name=name) if name
+                            else _("New certificate"))
+        fit_to_screen(self, 640, 760)
+
+        self.name_edit = QLineEdit(name or "")
+        self.name_edit.setReadOnly(name is not None)
+        self.name_edit.setPlaceholderText(_("e.g. Work, YubiKey"))
+
         self.e = {}  # attribute -> widget
 
         def line(attr, placeholder=""):
@@ -119,6 +252,7 @@ class CertManagerDialog(QDialog):
         self.type_combo.currentIndexChanged.connect(self._update_visibility)
 
         general = QFormLayout()
+        general.addRow(_("Name"), self.name_edit)
         general.addRow(_("Type"), self.type_combo)
 
         self.p12_box = QGroupBox(_("PKCS#12 file"))
@@ -238,86 +372,13 @@ class CertManagerDialog(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
-
-        main = QHBoxLayout()
-        main.addLayout(left, 1)
-        main.addWidget(scrollable(self.form), 3)  # the form is taller than small screens
         outer = QVBoxLayout(self)
-        outer.addLayout(main)
-        hint = ElidedLabel(_("Config file: {path}").format(path=self.config.path))
-        hint.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        hint.setStyleSheet("color: gray")
-        outer.addWidget(hint)
+        outer.addWidget(scrollable(self.form))  # the form is taller than small screens
         outer.addWidget(buttons)
 
-        self._refresh_list()
-
-    # list ---------------------------------------------------------------------
-
-    def _refresh_list(self, select: str | None = None) -> None:
-        self._loading = True
-        self.list.clear()
-        for name in self.config.certs:
-            label = (_("{name}  (default)").format(name=name) if name == self.config.default
-                     else name)
-            item = QListWidgetItem(label)
-            item.setData(Qt.UserRole, name)
-            self.list.addItem(item)
-        self._loading = False
-        select = select or self._current or self.config.default
-        for i in range(self.list.count()):
-            if self.list.item(i).data(Qt.UserRole) == select:
-                self.list.setCurrentRow(i)
-                break
-        else:
-            if self.list.count():
-                self.list.setCurrentRow(0)
-            else:
-                self._current = None
-        self.form.setEnabled(self.list.count() > 0)
-
-    def _on_select(self, cur, prev) -> None:
-        if self._loading:
-            return
-        if prev is not None and self._current:
-            self._store_form()
-        self._current = cur.data(Qt.UserRole) if cur else None
-        if self._current:
-            self._load_form(self.config.certs[self._current])
-
-    def _add(self) -> None:
-        name, ok = QInputDialog.getText(self, _("New certificate"), _("Name:"))
-        name = name.strip()
-        if not ok or not name:
-            return
-        if name in self.config.certs:
-            QMessageBox.warning(self, _("Certificates"),
-                                _("{name!r} already exists").format(name=name))
-            return
-        if self._current:
-            self._store_form()
-        self.config.certs[name] = new_profile(name)
-        if not self.config.default:
-            self.config.default = name
-        self._current = name
-        self._refresh_list(name)
-
-    def _remove(self) -> None:
-        if not self._current:
-            return
-        if QMessageBox.question(self, _("Certificates"),
-                                _("Remove {name!r}?").format(name=self._current)) \
-                != QMessageBox.Yes:
-            return
-        self.config.remove(self._current)
-        self._current = None
-        self._refresh_list()
-
-    def _make_default(self) -> None:
-        if self._current:
-            self._store_form()
-            self.config.default = self._current
-            self._refresh_list(self._current)
+        self._load_form(config.certs[name] if name else new_profile(""))
+        if name is None:
+            self.name_edit.setFocus()
 
     # form ---------------------------------------------------------------------
 
@@ -336,8 +397,13 @@ class CertManagerDialog(QDialog):
         self._update_visibility()
         self._update_preview()
 
+    def _profile_name(self) -> str:
+        return self.name or self.name_edit.text().strip()
+
     def _store_form(self) -> CertProfile:
-        p = self.config.certs[self._current]
+        """The profile as the form shows it (``config`` is not changed)."""
+        p = copy.deepcopy(self.config.certs[self.name]) if self.name else new_profile("")
+        p.name = self._profile_name()
         p.type = self.type_combo.currentData()
         for attr, w in self.e.items():
             setattr(p, attr, w.text().strip())
@@ -370,13 +436,15 @@ class CertManagerDialog(QDialog):
     # actions ------------------------------------------------------------------
 
     def _store_keyring(self) -> None:
-        if not self._current:
+        name = self._profile_name()
+        if not name:
+            QMessageBox.warning(self, _("Keyring"), _("Enter a name for the certificate first."))
             return
-        secret = ask_secret(self, _("Passphrase/PIN for '{name}'").format(name=self._current))
+        secret = ask_secret(self, _("Passphrase/PIN for '{name}'").format(name=name))
         if secret is None:
             return
         try:
-            secretstore.keyring_set(self._current, secret)
+            secretstore.keyring_set(name, secret)
         except Exception as e:  # keyring backends raise various errors
             QMessageBox.critical(self, _("Keyring"),
                                  _("Could not store secret:\n{error}").format(error=e))
@@ -446,8 +514,6 @@ class CertManagerDialog(QDialog):
             self.e["cert_label"].clear()
 
     def _test(self) -> None:
-        if not self._current:
-            return
         p = self._store_form()
         try:
             p.validate()
@@ -462,14 +528,33 @@ class CertManagerDialog(QDialog):
         QMessageBox.information(self, _("Certificate OK"), info)
 
     def _save(self) -> None:
-        if self._current:
-            self._store_form()
-        for p in self.config.certs.values():
-            try:
-                p.validate()
-            except ValueError as e:
-                QMessageBox.warning(self, _("Invalid certificate"), str(e))
-                self._refresh_list(p.name)
-                return
-        self.config.save()
+        p = self._store_form()
+        if not p.name:
+            QMessageBox.warning(self, _("Invalid certificate"), _("The certificate needs a name."))
+            return
+        if self.name is None and p.name in self.config.certs:
+            QMessageBox.warning(self, _("Invalid certificate"),
+                                _("{name!r} already exists").format(name=p.name))
+            return
+        try:
+            p.validate()
+        except ValueError as e:
+            QMessageBox.warning(self, _("Invalid certificate"), str(e))
+            return
+        old = (copy.deepcopy(self.config.certs.get(p.name)), self.config.default)
+        self.config.certs[p.name] = p
+        if not self.config.default:
+            self.config.default = p.name
+        try:
+            self.config.save()
+        except OSError as e:
+            self.config.default = old[1]  # keep config and file in step
+            if old[0] is None:
+                del self.config.certs[p.name]
+            else:
+                self.config.certs[p.name] = old[0]
+            QMessageBox.critical(self, _("Certificates"),
+                                 _("Could not save the configuration:\n{error}").format(error=e))
+            return
+        self.name = p.name
         self.accept()

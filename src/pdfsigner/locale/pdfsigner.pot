@@ -1431,12 +1431,47 @@ msgid "system"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
+msgid "PKCS#12 file"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "PKCS#11 token"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "System certificate store"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "key ID {id}"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "KeePass: {entry}"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
 #: src/pdfsigner/gui/settings.py
 msgid "Certificates"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "Add"
+msgid "Name"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Type"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#: src/pdfsigner/gui/settings.py
+msgid "Add…"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Edit…"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -1449,11 +1484,38 @@ msgid "Make default"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "Type"
+#, python-brace-format
+msgid "Config file: {path}"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "PKCS#12 file"
+#, python-brace-format
+msgid "{name}  (default)"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid ""
+"Could not save the configuration:\n"
+"{error}"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "Remove {name!r}?"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "Edit certificate {name!r}"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "New certificate"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "e.g. Work, YubiKey"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -1639,34 +1701,6 @@ msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 #, python-brace-format
-msgid "Config file: {path}"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-#, python-brace-format
-msgid "{name}  (default)"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "New certificate"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "Name:"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-#, python-brace-format
-msgid "{name!r} already exists"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-#, python-brace-format
-msgid "Remove {name!r}?"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-#, python-brace-format
 msgid "{type} (not available on this system)"
 msgstr ""
 
@@ -1679,12 +1713,16 @@ msgid "(cannot load image)"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-#, python-brace-format
-msgid "Passphrase/PIN for '{name}'"
+msgid "Keyring"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "Keyring"
+msgid "Enter a name for the certificate first."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "Passphrase/PIN for '{name}'"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -1700,20 +1738,12 @@ msgid "Stored in {backend}"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "System certificate store"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
 #, python-brace-format
 msgid "No certificates with a private key in the {store}."
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Certificate:"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "PKCS#11 token"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -1747,6 +1777,15 @@ msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Invalid certificate"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The certificate needs a name."
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+#, python-brace-format
+msgid "{name!r} already exists"
 msgstr ""
 
 #: src/pdfsigner/gui/dialogs.py
@@ -1795,10 +1834,6 @@ msgstr ""
 
 #: src/pdfsigner/gui/settings.py
 msgid "Signatures by these certificates, or by certificates they issued, are shown as valid; Mozilla's root list is always trusted. Use this for your organisation's CA or for colleagues' self-signed certificates."
-msgstr ""
-
-#: src/pdfsigner/gui/settings.py
-msgid "Add…"
 msgstr ""
 
 #: src/pdfsigner/gui/settings.py

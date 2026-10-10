@@ -148,23 +148,33 @@ profiles.
 ## Managing certificates
 
 *Manage…* opens the certificate manager. It edits the same config file as
-`pdfsigner certs`, and changes are written when you press **Save**.
+`pdfsigner certs`. It lists the profiles with their type and certificate:
 
-* **Add** / **Remove** / **Make default** profiles.
-* **Test: unlock and show certificate** unlocks the key and shows its
-  subject and validity, which is a quick check that a passphrase or KeePass
-  entry is right.
+![Certificate manager](images/gui-certs.png)
+
+* **Add…** opens the editor for a new profile, **Edit…** (or a double-click)
+  the editor for the selected one.
+* **Remove** and **Make default** act on the selected profile.
+
+Every change is written to the config file right away: the editor's **Save**
+for one profile, *Remove* and *Make default* immediately. **Cancel** in the
+editor discards its changes.
+
+In the editor, the name is set when the profile is created and can't be
+changed afterwards. **Test: unlock and show certificate** unlocks the key and
+shows its subject and validity, which is a quick check that a passphrase or
+KeePass entry is right; it uses the form as it is, before saving.
 
 PKCS#12 file, passphrase in the OS keyring (for example KeePassXC via Secret
 Service):
 
-![Certificate manager: PKCS#12 profile](images/gui-certs-p12.png)
+![Certificate editor: PKCS#12 profile](images/gui-certs-p12.png)
 
 Certificate and passphrase both stored in a KeePass database, with the `.p12`
 as an attachment. The stamp text is empty here, so the stamp shows only the
 image:
 
-![Certificate manager: KeePass profile](images/gui-certs-keepass.png)
+![Certificate editor: KeePass profile](images/gui-certs-keepass.png)
 
 For type *system* (Windows certificate store / macOS keychain, offered only
 on those systems), *Choose…* lists the certificates in the store; the
@@ -174,7 +184,7 @@ itself. A *system* profile in a config file shared with Linux shows there as
 
 Smartcard or USB token via PKCS#11:
 
-![Certificate manager: PKCS#11 profile](images/gui-certs-pkcs11.png)
+![Certificate editor: PKCS#11 profile](images/gui-certs-pkcs11.png)
 
 The *Module* list offers the PKCS#11 modules found on this system (see
 [cli.md](cli.md#smartcard--token-pkcs11) for where pdfsigner looks); another

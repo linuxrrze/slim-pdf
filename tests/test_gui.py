@@ -13,7 +13,7 @@ from pyhanko.sign import fields  # noqa: E402
 from pdfsigner.config import CertProfile, Config, load_config  # noqa: E402
 from pdfsigner.gui import app as gui_app  # noqa: E402
 from pdfsigner.gui import certdialog  # noqa: E402
-from pdfsigner.gui.certdialog import CertManagerDialog  # noqa: E402
+from pdfsigner.gui.certdialog import CertEditDialog, CertManagerDialog  # noqa: E402
 from pdfsigner.gui.pageview import FieldItem, SignatureItem  # noqa: E402
 from pdfsigner.signing import inspect_pdf  # noqa: E402
 
@@ -472,11 +472,17 @@ def test_open_garbage_shows_error(window, tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def dialog(qapp, tmp_path, p12, sig_image):
+def certs_cfg(tmp_path, p12, sig_image):
     cfg = Config(path=tmp_path / "config.toml")
     cfg.put(CertProfile(name="work", path=str(p12[0]), image=str(sig_image)))
-    cfg.put(CertProfile(name="tok", type="pkcs11", pkcs11_lib="/x.so", secret="keyring"))
-    d = CertManagerDialog(cfg)
+    cfg.put(CertProfile(name="tok", type="pkcs11", pkcs11_lib="/x.so", key_id="02",
+                        secret="keyring"))
+    return cfg
+
+
+@pytest.fixture
+def manager(qapp, certs_cfg):
+    d = CertManagerDialog(certs_cfg)
     d.show()
     yield d
     d.close()
@@ -485,44 +491,121 @@ def dialog(qapp, tmp_path, p12, sig_image):
     delete(d)  # not at interpreter exit, after the QApplication (crashes)
 
 
-def select(d, name):
-    for i in range(d.list.count()):
-        if d.list.item(i).data(Qt.UserRole) == name:
-            d.list.setCurrentRow(i)
+@pytest.fixture
+def open_editor(qapp, certs_cfg):
+    """open_editor(name) -> an editor for that profile (None: a new one)."""
+    made = []
+
+    def make(name, cfg=None):
+        d = CertEditDialog(cfg or certs_cfg, name)
+        d.show()
+        made.append(d)
+        return d
+
+    yield make
+    from shiboken6 import delete
+
+    for d in made:
+        d.close()
+        delete(d)
+
+
+@pytest.fixture
+def dialog(open_editor):
+    return open_editor("work")
+
+
+def rows(manager):
+    return [[manager.list.topLevelItem(i).text(c) for c in range(3)]
+            for i in range(manager.list.topLevelItemCount())]
+
+
+def select(manager, name):
+    for i in range(manager.list.topLevelItemCount()):
+        item = manager.list.topLevelItem(i)
+        if item.data(0, Qt.UserRole) == name:
+            manager.list.setCurrentItem(item)
             return
     raise AssertionError(name)
 
 
-def test_dialog_loads_profiles(dialog):
-    assert [dialog.list.item(i).text() for i in range(dialog.list.count())] == [
-        "work  (default)", "tok"]
-    assert dialog._current == "work"
-    assert dialog.p12_box.isVisible() and not dialog.p11_box.isVisible()
-    assert dialog.preview.pixmap() is not None and not dialog.preview.pixmap().isNull()
-    select(dialog, "tok")
-    assert dialog.p11_box.isVisible() and not dialog.p12_box.isVisible()
-    assert dialog.keyring_btn.isVisible()
-    assert dialog.e["pkcs11_lib"].text() == "/x.so"
+def editing(manager, monkeypatch, fill, save=True):
+    """Let the next editor the manager opens be filled in by ``fill`` and saved
+    (or cancelled); returns the editors opened."""
+    opened = []
+
+    def exec_editor(dlg):
+        opened.append(dlg)
+        fill(dlg)
+        if save:
+            dlg._save()
+        return dlg.result()
+
+    monkeypatch.setattr(manager, "_exec_editor", exec_editor)
+    return opened
 
 
-def test_dialog_edit_add_default_save(dialog, monkeypatch, tmp_path):
-    dialog.e["reason"].setText("Approval")
-    select(dialog, "tok")  # edits are kept when switching
-    select(dialog, "work")
-    assert dialog.e["reason"].text() == "Approval"
+def test_manager_lists_profiles(manager, p12):
+    """Only the list: the profiles' settings are in the editor."""
+    assert rows(manager) == [["work  (default)", "PKCS#12 file", str(p12[0])],
+                             ["tok", "PKCS#11 token", "x.so – key ID 02"]]
+    assert manager.current() == "work"
+    assert manager.edit_btn.isEnabled() and manager.remove_btn.isEnabled()
+    assert not manager.default_btn.isEnabled()  # already the default
+    select(manager, "tok")
+    assert manager.default_btn.isEnabled()
+    assert manager.findChild(QtWidgets.QGroupBox) is None  # no form in the list window
 
-    monkeypatch.setattr(certdialog.QInputDialog, "getText", lambda *a, **k: ("vault", True))
-    dialog._add()
-    assert dialog._current == "vault"
-    dialog.secret_combo.setCurrentIndex(dialog.secret_combo.findData("keepass"))
-    assert dialog._secret_form.isRowVisible(dialog.e["keepass_entry"])
-    dialog.e["keepass_db"].setText("~/Passwords.kdbx")
-    dialog.e["keepass_entry"].setText("Certificates/FAU S/MIME")
-    dialog.e["keepass_attachment"].setText("fau.p12")
-    dialog.stamp_text.setPlainText("")
-    dialog._make_default()
-    dialog._save()
-    assert dialog.result() == QtWidgets.QDialog.Accepted
+
+def test_manager_empty(qapp, tmp_path):
+    d = CertManagerDialog(Config(path=tmp_path / "config.toml"))
+    assert rows(d) == [] and d.current() is None
+    assert not d.edit_btn.isEnabled() and not d.remove_btn.isEnabled()
+    assert not d.default_btn.isEnabled() and d.add_btn.isEnabled()
+    from shiboken6 import delete
+
+    delete(d)
+
+
+def test_editor_loads_profile(open_editor):
+    work = open_editor("work")
+    assert work.windowTitle() == "Edit certificate 'work'"
+    assert work.name_edit.text() == "work" and work.name_edit.isReadOnly()
+    assert work.p12_box.isVisible() and not work.p11_box.isVisible()
+    assert work.preview.pixmap() is not None and not work.preview.pixmap().isNull()
+    tok = open_editor("tok")
+    assert tok.p11_box.isVisible() and not tok.p12_box.isVisible()
+    assert tok.keyring_btn.isVisible()
+    assert tok.e["pkcs11_lib"].text() == "/x.so"
+    new = open_editor(None)
+    assert new.windowTitle() == "New certificate"
+    assert new.name_edit.text() == "" and not new.name_edit.isReadOnly()
+
+
+def test_manager_edit_add_default(manager, monkeypatch, tmp_path):
+    def approve(dlg):
+        dlg.e["reason"].setText("Approval")
+
+    opened = editing(manager, monkeypatch, approve)
+    manager._edit()
+    assert [e.name for e in opened] == ["work"]
+    assert manager.changed
+    assert load_config(tmp_path / "config.toml").certs["work"].reason == "Approval"
+
+    def vault(dlg):
+        dlg.name_edit.setText("vault")
+        dlg.secret_combo.setCurrentIndex(dlg.secret_combo.findData("keepass"))
+        assert dlg._secret_form.isRowVisible(dlg.e["keepass_entry"])
+        dlg.e["keepass_db"].setText("~/Passwords.kdbx")
+        dlg.e["keepass_entry"].setText("Certificates/FAU S/MIME")
+        dlg.e["keepass_attachment"].setText("fau.p12")
+        dlg.stamp_text.setPlainText("")
+
+    editing(manager, monkeypatch, vault)
+    manager._add()
+    assert manager.current() == "vault"  # the new profile is selected
+    assert rows(manager)[2] == ["vault", "PKCS#12 file", "KeePass: Certificates/FAU S/MIME"]
+    manager._make_default()
 
     cfg = load_config(tmp_path / "config.toml")
     assert cfg.default == "vault"
@@ -530,6 +613,16 @@ def test_dialog_edit_add_default_save(dialog, monkeypatch, tmp_path):
     v = cfg.certs["vault"]
     assert (v.secret, v.keepass_entry, v.keepass_attachment, v.stamp_text) == (
         "keepass", "Certificates/FAU S/MIME", "fau.p12", "")
+    assert rows(manager)[2][0] == "vault  (default)"
+
+
+def test_manager_cancelled_edit_changes_nothing(manager, monkeypatch, tmp_path):
+    opened = editing(manager, monkeypatch, lambda dlg: dlg.e["reason"].setText("Approval"),
+                     save=False)
+    manager.list.itemActivated.emit(manager.list.currentItem(), 0)  # double-click / Enter
+    assert [e.name for e in opened] == ["work"]
+    assert not manager.changed and not (tmp_path / "config.toml").exists()
+    assert manager.config.certs["work"].reason == ""
 
 
 def test_dialog_rejects_invalid(dialog, monkeypatch, tmp_path):
@@ -537,18 +630,35 @@ def test_dialog_rejects_invalid(dialog, monkeypatch, tmp_path):
     dialog.e["path"].setText("")
     dialog._save()
     assert boxes.kinds() == ["warning"] and "needs a path" in boxes.text()
+    assert dialog.result() != QtWidgets.QDialog.Accepted
     assert not (tmp_path / "config.toml").exists()
+    assert dialog.config.certs["work"].path  # unchanged
 
 
-def test_dialog_add_duplicate_and_remove(dialog, monkeypatch):
+def test_editor_name_checks(open_editor, monkeypatch, tmp_path):
     boxes = Boxes(monkeypatch, certdialog)
-    monkeypatch.setattr(certdialog.QInputDialog, "getText", lambda *a, **k: ("work", True))
-    dialog._add()
-    assert boxes.kinds() == ["warning"]
-    select(dialog, "tok")
-    dialog._remove()  # question answered Yes
-    assert list(dialog.config.certs) == ["work"]
-    assert dialog.list.count() == 1
+    new = open_editor(None)
+    new.e["path"].setText("x.p12")
+    new._save()
+    assert boxes.kinds() == ["warning"] and "needs a name" in boxes.text()
+    new.name_edit.setText("work")
+    new._save()
+    assert boxes.kinds()[-1] == "warning" and "already exists" in boxes.text()
+    assert not (tmp_path / "config.toml").exists()
+    new.name_edit.setText("second")
+    new._save()
+    assert new.result() == QtWidgets.QDialog.Accepted
+    assert list(load_config(tmp_path / "config.toml").certs) == ["work", "tok", "second"]
+
+
+def test_manager_remove(manager, monkeypatch, tmp_path):
+    Boxes(monkeypatch, certdialog)  # question answered Yes
+    select(manager, "work")
+    manager._remove()
+    assert list(manager.config.certs) == ["tok"] and manager.config.default == "tok"
+    assert rows(manager) == [["tok  (default)", "PKCS#11 token", "x.so – key ID 02"]]
+    cfg = load_config(tmp_path / "config.toml")
+    assert list(cfg.certs) == ["tok"] and cfg.default == "tok"
 
 
 def test_dialog_test_button(dialog, monkeypatch):
@@ -561,18 +671,24 @@ def test_dialog_test_button(dialog, monkeypatch):
     assert boxes.kinds()[-1] == "critical"
 
 
-def test_dialog_store_keyring(dialog, monkeypatch, mem_keyring):
+def test_dialog_store_keyring(open_editor, monkeypatch, mem_keyring):
     monkeypatch.setattr(certdialog, "ask_secret", lambda parent, prompt: "1234")
-    Boxes(monkeypatch, certdialog)
-    select(dialog, "tok")
-    dialog._store_keyring()
+    boxes = Boxes(monkeypatch, certdialog)
+    open_editor("tok")._store_keyring()
     assert mem_keyring.store[("pdfsigner", "tok")] == "1234"
+    new = open_editor(None)
+    new._store_keyring()  # a new profile needs its name first
+    assert boxes.kinds()[-1] == "warning" and "name" in boxes.text()
+    new.name_edit.setText("card")
+    new._store_keyring()
+    assert mem_keyring.store[("pdfsigner", "card")] == "1234"
 
 
 def test_manage_updates_main_window(window, monkeypatch, tmp_path):
     def fake_exec(self):
         self.config.certs["new"] = CertProfile(name="new", path="x.p12")
-        return True
+        self.changed = True
+        return 0  # closed
 
     monkeypatch.setattr(CertManagerDialog, "exec", fake_exec)
     window.manage_certs()
@@ -673,14 +789,12 @@ def test_validation_failure_does_not_block_open(window, form_pdf, monkeypatch):
     assert sig_rows(window) == ["Validation failed: broken"]
 
 
-def test_dialog_ltv_checkbox(dialog):
+def test_dialog_ltv_checkbox(dialog, open_editor):
     assert not dialog.ltv_check.isChecked()
     dialog.ltv_check.setChecked(True)
-    select(dialog, "tok")
-    assert not dialog.ltv_check.isChecked()
-    select(dialog, "work")
-    assert dialog.ltv_check.isChecked()
+    assert not open_editor("tok").ltv_check.isChecked()
     dialog._save()
+    assert open_editor("work").ltv_check.isChecked()
     assert load_config(dialog.config.path).certs["work"].ltv is True
     assert load_config(dialog.config.path).certs["tok"].ltv is False
 
@@ -723,7 +837,7 @@ def test_dialog_keepassxc_rows(dialog):
     assert not form.isRowVisible(dialog.yubikey_row)
 
 
-def test_dialog_system_store(dialog, monkeypatch):
+def test_dialog_system_store(open_editor, monkeypatch):
     from test_systemstore import FakeBackend
     from cryptography.hazmat.primitives.asymmetric import ec
     from pki import MiniPKI
@@ -736,9 +850,7 @@ def test_dialog_system_store(dialog, monkeypatch):
     # as on Windows/macOS, where the type is offered
     monkeypatch.setattr(certdialog, "supported_cert_types",
                         lambda: ("pkcs12", "pkcs11", "system"))
-    dialog = CertManagerDialog(dialog.config)
-    dialog.show()
-
+    dialog = open_editor("work")
     dialog.type_combo.setCurrentText("system")
     assert dialog.sys_box.isVisible()
     assert not dialog.p12_box.isVisible() and not dialog.p11_box.isVisible()
@@ -752,29 +864,21 @@ def test_dialog_system_store(dialog, monkeypatch):
     dialog._save()
     saved = load_config(dialog.config.path).certs["work"]
     assert (saved.type, saved.system_cert) == ("system", tp)
-    from shiboken6 import delete
-
-    delete(dialog)  # not after the QApplication at exit
 
 
-def test_dialog_offers_only_supported_types(dialog, monkeypatch, tmp_path):
+def test_dialog_offers_only_supported_types(open_editor, certs_cfg, monkeypatch):
     """On Linux there is no "system" type to choose; a profile of that type
     from a shared config file is still shown (and kept) as it is."""
     monkeypatch.setattr(certdialog, "supported_cert_types", lambda: ("pkcs12", "pkcs11"))
-    cfg = dialog.config
+    cfg = certs_cfg
     cfg.put(CertProfile(name="store", type="system", system_cert="AB" * 20))
-    d = CertManagerDialog(cfg)
-    d.show()
-    types = [d.type_combo.itemData(i) for i in range(d.type_combo.count())]
-    assert types == ["pkcs12", "pkcs11"]
-    select(d, "store")
+    types = [open_editor(None).type_combo.itemData(i) for i in range(2)]
+    assert types == ["pkcs12", "pkcs11"] and open_editor(None).type_combo.count() == 2
+    d = open_editor("store")
     assert d.type_combo.currentData() == "system"
     assert "not available on this system" in d.type_combo.currentText()
     d._save()
     assert load_config(cfg.path).certs["store"].type == "system"
-    from shiboken6 import delete
-
-    delete(d)  # not after the QApplication at exit
 
 
 def test_dialog_system_store_unavailable(dialog, monkeypatch):
@@ -805,10 +909,10 @@ def test_main_broken_config(qapp, cfg_path, monkeypatch):
     assert boxes.kinds() == ["critical"] and "unknown secret source" in boxes.text()
 
 
-def test_dialog_choose_token_key(dialog, monkeypatch):
+def test_dialog_choose_token_key(open_editor, monkeypatch):
     from pdfsigner import tokens
 
-    select(dialog, "tok")
+    dialog = open_editor("tok")
     dialog.e["key_label"].setText("old label")
     asked = []
     monkeypatch.setattr(certdialog, "ask_secret",
@@ -843,11 +947,11 @@ def test_dialog_choose_token_key(dialog, monkeypatch):
             dialog.e["key_label"].text()) == ("YubiKey PIV #1", "02", "")
 
 
-def test_dialog_choose_token_key_errors(dialog, monkeypatch):
+def test_dialog_choose_token_key_errors(open_editor, monkeypatch):
     from pdfsigner.signing import SigningError
 
     boxes = Boxes(monkeypatch, certdialog)
-    select(dialog, "tok")
+    dialog = open_editor("tok")
     dialog.e["pkcs11_lib"].setText("")
     monkeypatch.setattr(certdialog.tokens, "find_modules", lambda: [])
     dialog._choose_token_key()
@@ -967,13 +1071,13 @@ def test_huge_page_render_is_capped(window, tmp_path):
     assert rect.width() == pytest.approx(14400, rel=0.01)
 
 
-def test_dialog_choose_token_key_searches_modules(dialog, monkeypatch):
+def test_dialog_choose_token_key_searches_modules(open_editor, monkeypatch):
     """Empty module field: every module found is asked, and the choice fills
     in the module too."""
     from pdfsigner import tokens
     from pdfsigner.signing import SigningError
 
-    select(dialog, "tok")
+    dialog = open_editor("tok")
     dialog.e["pkcs11_lib"].setText("")
     monkeypatch.setattr(certdialog.tokens, "find_modules",
                         lambda: ["/a/opensc.so", "/b/ykcs11.so"])
@@ -1037,7 +1141,8 @@ def test_windows_fit_small_screens(qapp, p12, lang, tmp_path, monkeypatch):
     cfg.put(CertProfile(name="w", path=str(p12[0]), secret="keepassxc", keepass_db="d.kdbx",
                         keepass_entry="e"))
     avail = qapp.primaryScreen().availableGeometry()
-    windows = [gui_app.MainWindow(cfg), CertManagerDialog(cfg), SettingsDialog(cfg)]
+    windows = [gui_app.MainWindow(cfg), CertManagerDialog(cfg), CertEditDialog(cfg, "w"),
+               SettingsDialog(cfg)]
     try:
         for w in windows:
             w.show()
@@ -1059,17 +1164,12 @@ def test_windows_fit_small_screens(qapp, p12, lang, tmp_path, monkeypatch):
             delete(w)
 
 
-def test_dialog_module_field_offers_the_modules_found(dialog, monkeypatch):
+def test_dialog_module_field_offers_the_modules_found(open_editor, monkeypatch):
     """The module field lists the modules found; picking one fills the profile,
     and a path that isn't in the list can still be entered."""
-    from shiboken6 import delete
-
     monkeypatch.setattr(certdialog.tokens, "find_modules",
                         lambda: ["/usr/lib/opensc-pkcs11.so", "/usr/lib/libykcs11.so"])
-    cfg = dialog.config
-    cfg.put(CertProfile(name="card", type="pkcs11", pkcs11_lib="/x.so", secret="keyring"))
-    d = CertManagerDialog(cfg)
-    select(d, "card")
+    d = open_editor("tok")
     combo = d.module_combo
     assert [combo.itemText(i) for i in range(combo.count())] == [
         "/usr/lib/opensc-pkcs11.so", "/usr/lib/libykcs11.so"]
@@ -1079,4 +1179,3 @@ def test_dialog_module_field_offers_the_modules_found(dialog, monkeypatch):
     d.e["pkcs11_lib"].setText("/opt/vendor/lib/libvendor-pkcs11.so")
     assert d._store_form().pkcs11_lib == "/opt/vendor/lib/libvendor-pkcs11.so"
     assert combo.count() == 2
-    delete(d)  # not after the QApplication at exit

@@ -27,7 +27,7 @@ from pyhanko.sign import fields  # noqa: E402
 
 from pdfsigner.config import CertProfile, Config  # noqa: E402
 from pdfsigner.gui import app as gui_app  # noqa: E402
-from pdfsigner.gui.certdialog import CertManagerDialog  # noqa: E402
+from pdfsigner.gui.certdialog import CertEditDialog, CertManagerDialog  # noqa: E402
 
 OUT = ROOT / "docs" / "images"
 A4_H = 842
@@ -210,11 +210,15 @@ def main() -> None:
 
     docs_cfg = Config(certs={"FAU S/MIME": alice, "Vault (KeePass)": vault, "YubiKey PIV": token},
                       default="FAU S/MIME", path=Path("~/.config/pdfsigner/config.toml"))
+    d = CertManagerDialog(docs_cfg, win)
+    d.show()
+    QTest.qWaitForWindowExposed(d)
+    grab(d, "gui-certs.png")
+    d.close()
     for name, shot in (("FAU S/MIME", "gui-certs-p12.png"),
                        ("Vault (KeePass)", "gui-certs-keepass.png"),
                        ("YubiKey PIV", "gui-certs-pkcs11.png")):
-        d = CertManagerDialog(docs_cfg, win)
-        d._refresh_list(name)
+        d = CertEditDialog(docs_cfg, name, win)
         d.show()
         QTest.qWaitForWindowExposed(d)
         grab(d, shot)

@@ -340,7 +340,8 @@ class MainWindow(QMainWindow):
 
     def manage_certs(self) -> None:
         dlg = CertManagerDialog(self.config, self)
-        if dlg.exec():
+        dlg.exec()
+        if dlg.changed:  # changes are saved as they are made
             self.config = dlg.config
             self._reload_certs()
 
