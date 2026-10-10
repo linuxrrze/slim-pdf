@@ -1057,3 +1057,26 @@ def test_windows_fit_small_screens(qapp, p12, lang, tmp_path, monkeypatch):
         for w in windows:
             w.close()
             delete(w)
+
+
+def test_dialog_module_field_offers_the_modules_found(dialog, monkeypatch):
+    """The module field lists the modules found; picking one fills the profile,
+    and a path that isn't in the list can still be entered."""
+    from shiboken6 import delete
+
+    monkeypatch.setattr(certdialog.tokens, "find_modules",
+                        lambda: ["/usr/lib/opensc-pkcs11.so", "/usr/lib/libykcs11.so"])
+    cfg = dialog.config
+    cfg.put(CertProfile(name="card", type="pkcs11", pkcs11_lib="/x.so", secret="keyring"))
+    d = CertManagerDialog(cfg)
+    select(d, "card")
+    combo = d.module_combo
+    assert [combo.itemText(i) for i in range(combo.count())] == [
+        "/usr/lib/opensc-pkcs11.so", "/usr/lib/libykcs11.so"]
+    assert d.e["pkcs11_lib"].text() == "/x.so"  # the profile's, not the first found
+    combo.setCurrentIndex(1)
+    assert d._store_form().pkcs11_lib == "/usr/lib/libykcs11.so"
+    d.e["pkcs11_lib"].setText("/opt/vendor/lib/libvendor-pkcs11.so")
+    assert d._store_form().pkcs11_lib == "/opt/vendor/lib/libvendor-pkcs11.so"
+    assert combo.count() == 2
+    delete(d)  # not after the QApplication at exit

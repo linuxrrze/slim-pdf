@@ -59,11 +59,12 @@ TYPE_LABELS = {
 }
 
 
-def _path_row(edit: QLineEdit, caption: str, filt: str) -> QWidget:
+def _path_row(edit: QLineEdit, caption: str, filt: str, field: QWidget | None = None) -> QWidget:
+    """``field`` (default: ``edit`` itself) with a "…" button to browse for a file."""
     w = QWidget()
     lay = QHBoxLayout(w)
     lay.setContentsMargins(0, 0, 0, 0)
-    lay.addWidget(edit)
+    lay.addWidget(field or edit)
     btn = QPushButton("…")
     btn.setFixedWidth(32)
 
@@ -139,9 +140,23 @@ class CertManagerDialog(QDialog):
 
         self.p11_box = QGroupBox(_("PKCS#11 token / smartcard"))
         f = QFormLayout(self.p11_box)
+        # editable: the modules found on this system, or any path
+        self.module_combo = QComboBox()
+        self.module_combo.setEditable(True)
+        self.module_combo.setInsertPolicy(QComboBox.NoInsert)
+        self.module_combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.module_combo.setMinimumContentsLength(20)  # long paths mustn't widen the dialog
+        self.module_combo.addItems(tokens.find_modules())
+        self.module_combo.setToolTip(_(
+            "The PKCS#11 modules found on this system; or enter the path of another one. "
+            "Empty: Show token contents… asks all modules found."))
+        self.e["pkcs11_lib"] = self.module_combo.lineEdit()
+        self.module_combo.setCurrentIndex(-1)
+        self.e["pkcs11_lib"].setPlaceholderText(PKCS11_EXAMPLE)
         f.addRow(_("Module"), _path_row(
-            line("pkcs11_lib", PKCS11_EXAMPLE), _("PKCS#11 module"),
-            _("PKCS#11 modules") + " (*.so *.so.* *.dylib *.dll);;" + _("All files") + " (*)"))
+            self.e["pkcs11_lib"], _("PKCS#11 module"),
+            _("PKCS#11 modules") + " (*.so *.so.* *.dylib *.dll);;" + _("All files") + " (*)",
+            self.module_combo))
         f.addRow(_("Token label"), line("token_label"))
         f.addRow(_("Key label"), line("key_label"))
         f.addRow(_("Key ID"), line("key_id", _("hex, e.g. 02 (YubiKey PIV slot 9c)")))

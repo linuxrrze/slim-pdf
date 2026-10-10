@@ -255,10 +255,24 @@ software token; the token line is shortened.)
 
 Without `--login` only the certificates are listed; most tokens show private
 keys only after the PIN. `--token-label` limits the list to one token.
-Without a module, `certs pkcs11` asks every module installed in the usual
-places (OpenSC, Yubico's ykcs11; on Linux p11-kit's proxy if neither is
-there). In the GUI, *Show token contents…* does the same when the module
-field is empty, and fills in the module of the key you pick.
+Without a module, `certs pkcs11` asks every module it finds, and names them
+first:
+
+* **Linux:** the modules registered with p11-kit (the `*.module` files in
+  `/usr/share/p11-kit/modules`, `/etc/pkcs11/modules` and
+  `~/.config/pkcs11/modules`, which most distribution packages install),
+  then the usual places: OpenSC, Yubico's ykcs11, the distribution's
+  `pkcs11` library directory, SafeNet/Thales (`libeTPkcs11.so`,
+  `libIDPrimePKCS11.so`), CardOS (`libcardos11.so`) and `/opt/*/lib*/*pkcs11*.so`.
+  Modules without signing keys (p11-kit's CA list, GNOME Keyring, NSS) are
+  left out, as are p11-kit entries with `disable-in: pdfsigner` or an
+  `enable-in` list without `pdfsigner`. If nothing is found, p11-kit's proxy
+  module is tried.
+* **macOS, Windows:** OpenSC and Yubico's module in their install locations.
+
+A module in another place can always be given as the argument (or in the
+profile). In the GUI, the *Module* field lists the modules found, and
+*Show token contents…* asks all of them when the field is empty.
 
 | Module | Linux (Debian/Ubuntu) | macOS | Windows |
 |---|---|---|---|

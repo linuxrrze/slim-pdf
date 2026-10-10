@@ -111,13 +111,19 @@ def _read(session, logged_in: bool) -> list[TokenEntry]:
 
 
 # Usual install locations of PKCS#11 modules for smartcards and tokens.
-# p11-kit's proxy (Linux) bundles all modules registered with p11-kit, so it
-# is only offered when no module is found directly.
 KNOWN_MODULES = {
     "linux": [
         "/usr/lib/*/opensc-pkcs11.so", "/usr/lib64/opensc-pkcs11.so",
-        "/usr/lib64/pkcs11/opensc-pkcs11.so", "/usr/lib/opensc-pkcs11.so",
+        "/usr/lib/opensc-pkcs11.so",
         "/usr/lib/*/libykcs11.so*", "/usr/lib64/libykcs11.so*", "/usr/local/lib/libykcs11.so*",
+        # the distributions' directory for PKCS#11 modules
+        "/usr/lib/*/pkcs11/*.so", "/usr/lib64/pkcs11/*.so", "/usr/lib/pkcs11/*.so",
+        # vendor software: SafeNet/Thales Authentication Client, Thales IDPrime,
+        # Atos CardOS API, and packages that install below /opt
+        "/usr/lib/libeTPkcs11.so", "/usr/lib64/libeTPkcs11.so",
+        "/usr/lib/libIDPrimePKCS11.so", "/usr/lib64/libIDPrimePKCS11.so",
+        "/usr/lib/libcardos11.so", "/usr/lib64/libcardos11.so",
+        "/opt/*/lib/*pkcs11*.so", "/opt/*/lib64/*pkcs11*.so",
     ],
     "darwin": [
         "/Library/OpenSC/lib/opensc-pkcs11.so", "/opt/homebrew/lib/opensc-pkcs11.so",
@@ -129,7 +135,20 @@ KNOWN_MODULES = {
         r"C:\Program Files\Yubico\Yubico PIV Tool\bin\libykcs11.dll",
     ],
 }
+# p11-kit's registry (Linux): packages describe their module in a *.module
+# file; a file in a later directory replaces the one of the same name.
+# The user's own directory is added by _p11_kit_config_dirs().
+P11_KIT_CONFIG = ["/usr/share/p11-kit/modules", "/etc/pkcs11/modules"]
+# Where p11-kit looks for a module that is given without a directory.
+P11_KIT_MODULE_DIRS = ["/usr/lib/*/pkcs11", "/usr/lib64/pkcs11", "/usr/lib/pkcs11"]
+# p11-kit's proxy bundles all registered modules, so it is only offered when
+# no module is found directly.
 P11_KIT_PROXY = ["/usr/lib/*/p11-kit-proxy.so", "/usr/lib64/p11-kit-proxy.so"]
+# Modules without signing keys: p11-kit's CA list, proxy and remote client,
+# GNOME Keyring, NSS' built-in roots and software store.
+NOT_FOR_SIGNING = {"p11-kit-trust.so", "p11-kit-client.so", "p11-kit-proxy.so",
+                   "gnome-keyring-pkcs11.so", "libnssckbi.so", "libsoftokn3.so"}
+PROGRAM = "pdfsigner"  # our name in p11-kit's enable-in / disable-in
 
 
 def _pin_status(flags) -> str:
@@ -143,21 +162,68 @@ def _pin_status(flags) -> str:
     return ""
 
 
+def _p11_kit_config_dirs() -> list[str]:
+    user = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return [*P11_KIT_CONFIG, os.path.join(user, "pkcs11", "modules")]
+
+
+def _p11_kit_modules() -> list[str]:
+    """Modules registered with p11-kit, unless their entry excludes us."""
+    import glob
+
+    files: dict[str, Path] = {}
+    for d in _p11_kit_config_dirs():
+        try:
+            for f in sorted(Path(d).glob("*.module")):
+                files[f.name] = f
+        except OSError:
+            continue
+    modules = []
+    for name in sorted(files):
+        try:
+            text = files[name].read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        conf = {}
+        for line in text.splitlines():
+            key, sep, value = line.partition(":")
+            if sep and not key.lstrip().startswith("#"):
+                conf[key.strip().lower()] = value.strip()
+        module = conf.get("module", "")
+        if (not module or conf.get("trust-policy", "").lower() in ("yes", "true")
+                or PROGRAM in conf.get("disable-in", "").split()
+                or ("enable-in" in conf and PROGRAM not in conf["enable-in"].split())):
+            continue
+        if os.path.isabs(module):
+            modules.append(module)
+        else:
+            for d in P11_KIT_MODULE_DIRS:
+                modules += sorted(glob.glob(os.path.join(d, module)))
+    return modules
+
+
 def find_modules(platform: str | None = None) -> list[str]:
-    """Installed PKCS#11 modules from KNOWN_MODULES, without duplicates."""
+    """Installed PKCS#11 modules, without duplicates and without modules that
+    hold no keys: on Linux those registered with p11-kit first, then those in
+    the usual places (KNOWN_MODULES)."""
     import glob
     import sys
 
+    def existing(paths):
+        return [p for p in paths if Path(p).is_file()]
+
     platform = platform or ("linux" if sys.platform.startswith("linux") else sys.platform)
+    candidates = _p11_kit_modules() if platform == "linux" else []
+    for pattern in KNOWN_MODULES.get(platform, []):
+        candidates += sorted(glob.glob(pattern))
     found: dict[str, str] = {}
-    for patterns in (KNOWN_MODULES.get(platform, []),
-                     P11_KIT_PROXY if platform == "linux" else []):
-        if found:  # the proxy only as a fallback
-            break
-        for pattern in patterns:
-            for path in sorted(glob.glob(pattern)):
-                if Path(path).is_file():
-                    found.setdefault(os.path.realpath(path), path)
+    for path in existing(candidates):
+        real = os.path.realpath(path)
+        if not {os.path.basename(path), os.path.basename(real)} & NOT_FOR_SIGNING:
+            found.setdefault(real, path)
+    if not found and platform == "linux":  # the proxy only as a fallback
+        for path in existing(p for pattern in P11_KIT_PROXY for p in sorted(glob.glob(pattern))):
+            found.setdefault(os.path.realpath(path), path)
     return list(found.values())
 
 

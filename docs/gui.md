@@ -176,6 +176,12 @@ Smartcard or USB token via PKCS#11:
 
 ![Certificate manager: PKCS#11 profile](images/gui-certs-pkcs11.png)
 
+The *Module* list offers the PKCS#11 modules found on this system (see
+[cli.md](cli.md#smartcard--token-pkcs11) for where pdfsigner looks); another
+module's path can be typed in or chosen with "…". With the field empty,
+*Show token contents…* asks every module found and fills in the module of
+the key you pick.
+
 The signature image can be a PNG/JPEG or a PDF (embedded as vector
 graphics, see [cli.md](cli.md#vector-signature-images)).
 

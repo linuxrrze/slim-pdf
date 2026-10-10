@@ -131,7 +131,9 @@ OpenSC's.
 | OpenSC | `/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so` | `/Library/OpenSC/lib/opensc-pkcs11.so` | `C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll` |
 
 `pdfsigner certs pkcs11` (or *Show token contents…* in the GUI) finds these
-modules by itself and lists tokens, keys, certificates and the PIN state.
+modules by itself, on Linux also every module registered with p11-kit and
+common vendor modules (see [cli.md](cli.md#smartcard--token-pkcs11)), and
+lists tokens, keys, certificates and the PIN state.
 
 ### Which cards
 

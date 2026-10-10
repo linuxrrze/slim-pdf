@@ -352,6 +352,11 @@ msgstr "kein PKCS#11-Modul an den üblichen Orten gefunden: OpenSC oder die Soft
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "PKCS#11 modules found: {modules}"
+msgstr "Gefundene PKCS#11-Module: {modules}"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "PIN for token '{label}'"
 msgstr "PIN für Token '{label}'"
 
@@ -663,8 +668,8 @@ msgstr "Schlüssel und Zertifikate auf einem PKCS#11-Token auflisten"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
-msgid "PKCS#11 module, e.g. {example} (default: all modules found in the usual places)"
-msgstr "PKCS#11-Modul, z. B. {example} (Standard: alle an den üblichen Orten gefundenen Module)"
+msgid "PKCS#11 module, e.g. {example} (default: all modules found on this system)"
+msgstr "PKCS#11-Modul, z. B. {example} (Standard: alle auf diesem System gefundenen Module)"
 
 #: src/pdfsigner/cli.py
 msgid "only this token"
@@ -1544,6 +1549,10 @@ msgstr "Auswählen…"
 #: src/pdfsigner/gui/certdialog.py
 msgid "PKCS#11 token / smartcard"
 msgstr "PKCS#11-Token / Smartcard"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The PKCS#11 modules found on this system; or enter the path of another one. Empty: Show token contents… asks all modules found."
+msgstr "Die auf diesem System gefundenen PKCS#11-Module; oder den Pfad eines anderen eingeben. Leer: „Token-Inhalt anzeigen…“ fragt alle gefundenen Module."
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Module"

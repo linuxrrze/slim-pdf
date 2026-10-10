@@ -276,6 +276,9 @@ def cmd_certs_pkcs11(cfg: Config, args) -> int:
     if not modules:
         raise SigningError(_("no PKCS#11 module found in the usual places: install OpenSC or "
                              "your card's software, or give the module's path"))
+    if not args.module:
+        print(_("PKCS#11 modules found: {modules}").format(modules=", ".join(modules)),
+              file=sys.stderr)
     ask = ((lambda label: _ask(_("PIN for token '{label}'").format(label=label)))
            if args.login else None)
     found = []
@@ -641,8 +644,8 @@ def build_parser() -> argparse.ArgumentParser:
                     ).set_defaults(func=cmd_certs_system)
     p = csub.add_parser("pkcs11", help=_("list the keys and certificates on a PKCS#11 token"))
     p.add_argument("module", nargs="?",
-                   help=_("PKCS#11 module, e.g. {example} (default: all modules found in "
-                          "the usual places)").format(example=PKCS11_EXAMPLE))
+                   help=_("PKCS#11 module, e.g. {example} (default: all modules found on "
+                          "this system)").format(example=PKCS11_EXAMPLE))
     p.add_argument("--token-label", help=_("only this token"))
     p.add_argument("--login", action="store_true",
                    help=_("ask for the PIN to list the private keys too"))

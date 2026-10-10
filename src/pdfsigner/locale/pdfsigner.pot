@@ -333,6 +333,11 @@ msgstr ""
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "PKCS#11 modules found: {modules}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "PIN for token '{label}'"
 msgstr ""
 
@@ -637,7 +642,7 @@ msgstr ""
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
-msgid "PKCS#11 module, e.g. {example} (default: all modules found in the usual places)"
+msgid "PKCS#11 module, e.g. {example} (default: all modules found on this system)"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -1478,6 +1483,10 @@ msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "PKCS#11 token / smartcard"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The PKCS#11 modules found on this system; or enter the path of another one. Empty: Show token contents… asks all modules found."
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
