@@ -50,6 +50,18 @@ def make_p12(cn: str, passphrase: str = PASSPHRASE) -> tuple[bytes, x509.Certifi
     return data, cert
 
 
+@pytest.fixture(autouse=True)
+def english(monkeypatch):
+    """Tests check English messages, whatever the machine's locale; tests of
+    the German catalog switch explicitly."""
+    from pdfsigner import i18n
+
+    monkeypatch.setenv("PDFSIGNER_LANG", "en")
+    i18n.set_language("en")
+    yield
+    i18n.set_language("en")
+
+
 @pytest.fixture
 def p12(tmp_path) -> tuple[Path, x509.Certificate]:
     data, cert = make_p12("Alice Example")

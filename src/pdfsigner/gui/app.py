@@ -6,7 +6,7 @@ import html
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTranslator
 from PySide6.QtGui import QAction, QColor, QGuiApplication, QIcon, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import pages, secretstore, validation
+from .. import i18n, pages, secretstore, validation
 from ..config import Config, load_config
 from ..signing import (
     SigningBlocked,
@@ -665,6 +665,20 @@ class MainWindow(QMainWindow):
 ICON = Path(__file__).with_name("icon.png")
 
 
+def setup_language(app: QApplication, configured: str | None) -> str:
+    """Our catalog plus Qt's own (OK/Cancel/Yes/No, file dialogs)."""
+    lang = i18n.setup(configured, QLocale.system().uiLanguages() + i18n.system_languages())
+    old = getattr(app, "_pdfsigner_qt_translator", None)
+    if old is not None:
+        app.removeTranslator(old)
+    if lang != "en":
+        translator = QTranslator(app)
+        if translator.load(f"qtbase_{lang}", QLibraryInfo.path(QLibraryInfo.TranslationsPath)):
+            app.installTranslator(translator)
+            app._pdfsigner_qt_translator = translator
+    return lang
+
+
 def main(argv: list[str] | None = None, config_path: Path | None = None) -> int:
     """GUI entry point. ``--smoke-test`` builds the window (and opens the
     file, if given), then exits 0 without waiting for the user; the
@@ -677,8 +691,10 @@ def main(argv: list[str] | None = None, config_path: Path | None = None) -> int:
     try:
         config = load_config(config_path)
     except (ValueError, OSError) as e:  # tomllib.TOMLDecodeError is a ValueError
+        setup_language(app, None)
         QMessageBox.critical(None, "PDF Signer", f"Cannot read the configuration:\n{e}")
         return 1
+    setup_language(app, config.language)
     win = MainWindow(config)
     win.show()
     files = [a for a in argv if not a.startswith("-")]

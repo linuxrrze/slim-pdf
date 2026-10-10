@@ -27,7 +27,7 @@ datas = (
     collect_data_files("certifi")
     + collect_data_files("pyhanko")
     + collect_data_files("pypdfium2_raw", include_py_files=False)
-    + collect_data_files("pdfsigner", includes=["gui/icon.png"])
+    + collect_data_files("pdfsigner", includes=["gui/icon.png", "locale/*/LC_MESSAGES/*.mo"])
     + [(str(ICONS / "pdfsigner.png"), ".")]
 )
 for dist in ("keyring", "pyhanko", "pyhanko-certvalidator", "pypdf", "pykeepass", "pdfsigner"):

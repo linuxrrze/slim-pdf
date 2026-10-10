@@ -36,6 +36,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "pdfsigner.gui" = ["icon.png"]
+"pdfsigner" = ["locale/*/LC_MESSAGES/*.mo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

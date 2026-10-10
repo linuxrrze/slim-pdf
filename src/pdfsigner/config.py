@@ -17,6 +17,8 @@ from pathlib import Path
 import tomli_w
 from platformdirs import user_config_dir
 
+from .i18n import LANGUAGES
+
 CERT_TYPES = ("pkcs12", "pkcs11", "system")
 
 # Where the secret (PKCS#12 passphrase or PKCS#11 PIN) comes from.
@@ -147,6 +149,7 @@ class Config:
     certs: dict[str, CertProfile] = field(default_factory=dict)
     default: str = ""
     trust: list[str] = field(default_factory=list)  # extra trust roots for verify
+    language: str = ""  # "" = the system's language; else a code from i18n.LANGUAGES
     path: Path | None = None
 
     def get(self, name: str | None) -> CertProfile:
@@ -179,6 +182,8 @@ class Config:
             data["default"] = self.default
         if self.trust:
             data["trust"] = list(self.trust)
+        if self.language:
+            data["language"] = self.language
         data["certs"] = {n: p.to_dict() for n, p in self.certs.items()}
         tmp = path.with_suffix(".tmp")
         with open(tmp, "wb") as f:
@@ -205,7 +210,7 @@ def load_config(path: Path | None = None) -> Config:
     certs = {
         name: CertProfile.from_dict(name, d) for name, d in data.get("certs", {}).items()
     }
-    unknown = set(data) - {"default", "trust", "certs"}
+    unknown = set(data) - {"default", "trust", "language", "certs"}
     if unknown:
         raise ValueError(f"{path}: unknown keys {sorted(unknown)}")
     default, trust = data.get("default", ""), data.get("trust", [])
@@ -213,7 +218,11 @@ def load_config(path: Path | None = None) -> Config:
         raise ValueError(f"{path}: default {default!r} is not a certificate profile")
     if not (isinstance(trust, list) and all(isinstance(t, str) for t in trust)):
         raise ValueError(f"{path}: trust must be a list of file names")
-    return Config(certs=certs, default=default, trust=list(trust), path=path)
+    language = data.get("language", "")
+    if language not in ("", *LANGUAGES):
+        raise ValueError(f"{path}: language must be one of {', '.join(LANGUAGES)}")
+    return Config(certs=certs, default=default, trust=list(trust), language=language,
+                  path=path)
 
 
 def expand(p: str) -> Path:

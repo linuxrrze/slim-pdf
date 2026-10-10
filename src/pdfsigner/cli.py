@@ -25,7 +25,7 @@ from pathlib import Path
 from pyhanko.pdf_utils.misc import PdfError
 from pypdf.errors import PyPdfError
 
-from . import pages, secretstore
+from . import i18n, pages, secretstore
 from .config import CERT_TYPES, PKCS11_EXAMPLE, SECRET_SOURCES, CertProfile, Config, load_config
 from .secretstore import Cancelled, SecretError, resolve_credentials
 from .signing import (
@@ -578,7 +578,20 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
+def _setup_language(argv: list[str] | None) -> None:
+    """Before the parser is built, so its help texts are translated too."""
+    pre = argparse.ArgumentParser(add_help=False)
+    pre.add_argument("--config", type=Path)
+    known, _ = pre.parse_known_args(argv)
+    try:
+        configured = load_config(known.config).language
+    except Exception:  # reported properly once the command runs
+        configured = None
+    i18n.setup(configured)
+
+
 def main(argv: list[str] | None = None) -> int:
+    _setup_language(argv)
     args = build_parser().parse_args(argv)
     # pyHanko logs expected situations (e.g. self-signed certificates) as warnings.
     logging.basicConfig(level=logging.WARNING if args.verbose else logging.ERROR,
