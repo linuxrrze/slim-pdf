@@ -358,11 +358,10 @@ def _p11_attr(obj, attr):
 def _describe_token_objects(objs) -> str:
     from pkcs11 import Attribute
 
-    out = []
-    for o in objs:
-        label, oid = _p11_attr(o, Attribute.LABEL), _p11_attr(o, Attribute.ID)
-        out.append(f"'{label or ''}'" + (f" (ID {oid.hex()})" if oid else ""))
-    return ", ".join(out) or "none"
+    found = sorted(((_p11_attr(o, Attribute.ID) or b"", _p11_attr(o, Attribute.LABEL) or "")
+                    for o in objs))  # tokens return objects in no particular order
+    return ", ".join(f"'{label}'" + (f" (ID {oid.hex()})" if oid else "")
+                     for oid, label in found) or "none"
 
 
 def _find_token_key(session, profile: CertProfile):
