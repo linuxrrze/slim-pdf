@@ -1545,3 +1545,22 @@ def test_ribbon_icons_render_in_the_palette_colour(window, qapp):
         assert colours(icon, gui_app.QIcon.Disabled) == {QColor("#777777").rgb()}
     finally:
         qapp.setPalette(old)
+
+
+def test_watchdog_logs_where_the_gui_hangs(qapp, tmp_path, monkeypatch):
+    """A blocked GUI thread leaves its stack in the freeze log."""
+    import time
+
+    from pdfsigner.gui import watchdog
+
+    monkeypatch.setattr(watchdog, "STALL_SECONDS", 0.3)
+    dog = watchdog.Watchdog(path=tmp_path / "freezes.log")
+    try:
+        def hang_here():
+            time.sleep(0.8)
+        hang_here()
+        dog.timer.timeout.emit()  # the next beat, once the GUI thread is free
+    finally:
+        dog.stop()
+    log = (tmp_path / "freezes.log").read_text()
+    assert "hang_here" in log and "did not respond for" in log

@@ -54,7 +54,7 @@ from ..signing import (
     sign_pdf,
     stamp_size,
 )
-from . import background, ribbon
+from . import background, ribbon, watchdog
 from .certdialog import CertManagerDialog, details_dialog
 from .screen import fit_to_screen, scrollable
 from .settings import SettingsDialog
@@ -964,6 +964,9 @@ def about_text() -> str:
             libraries=", ".join(f"{name} {v}" for name, v in libs)))),
         "<p>{}</p>".format(html.escape(_("Icons: Tabler Icons (MIT license)"))),
         '<p><a href="{url}">{url}</a></p>'.format(url=HOMEPAGE),
+        "<p><small>{}</small></p>".format(html.escape(_(
+            "If PDF Signer stops responding, where it hung is logged to {path}").format(
+                path=watchdog.log_path()))),
     ])
 
 
@@ -998,15 +1001,23 @@ def main(argv: list[str] | None = None, config_path: Path | None = None) -> int:
                              _("Cannot read the configuration:\n{error}").format(error=e))
         return 1
     setup_language(app, config.language)
+    try:
+        dog = watchdog.Watchdog(app)
+    except OSError:  # no log folder: run without
+        dog = None
     win = MainWindow(config)
     win.show()
     files = [a for a in argv if not a.startswith("-")]
     opened = win.open(Path(files[0])) if files else True
-    if "--smoke-test" in argv:
-        app.processEvents()
-        win.close()
-        return 0 if opened and (not files or win.doc is not None) else 1
-    return app.exec()
+    try:
+        if "--smoke-test" in argv:
+            app.processEvents()
+            win.close()
+            return 0 if opened and (not files or win.doc is not None) else 1
+        return app.exec()
+    finally:
+        if dog is not None:
+            dog.stop()
 
 
 if __name__ == "__main__":

@@ -1766,6 +1766,11 @@ msgstr "Symbole: Tabler Icons (MIT-Lizenz)"
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
+msgid "If PDF Signer stops responding, where it hung is logged to {path}"
+msgstr "Reagiert PDF Signer nicht mehr, wird festgehalten, wo es hing: {path}"
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
 msgid ""
 "Cannot read the configuration:\n"
 "{error}"

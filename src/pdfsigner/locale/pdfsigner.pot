@@ -1702,6 +1702,11 @@ msgstr ""
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
+msgid "If PDF Signer stops responding, where it hung is logged to {path}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
 msgid ""
 "Cannot read the configuration:\n"
 "{error}"

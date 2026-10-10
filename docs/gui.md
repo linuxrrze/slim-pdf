@@ -272,3 +272,18 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | `Delete` | Delete the selected pages (in the *Pages* panel) |
 | `Ctrl+Z` | Undo the last page edit |
 | `Ctrl+Shift+S` | Save as |
+
+## Troubleshooting
+
+If the desktop reports that PDF Signer is not responding, PDF Signer notes
+where it hung: when the window doesn't react for 4 seconds, the program
+state (the stack of every thread) goes to `freezes.log`, followed by a line
+with the time and how long the freeze lasted. The file is in
+
+* Linux: `~/.local/state/pdfsigner/log/`
+* macOS: `~/Library/Logs/pdfsigner/`
+* Windows: `%LOCALAPPDATA%\pdfsigner\Logs\`
+
+(*Help → About PDF Signer* shows the exact path; `PDFSIGNER_LOG_DIR`
+overrides it). It contains file names of PDF Signer's own code, no document
+contents or passphrases. Please attach it when reporting a hang.
