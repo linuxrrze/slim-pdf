@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import logging
+import os
 import sys
 from dataclasses import fields as dc_fields
 from pathlib import Path
@@ -293,7 +294,8 @@ def _quote(s: str) -> str:
 
 
 def cmd_fields(cfg: Config, args) -> int:
-    info = inspect_pdf(args.file, args.password)
+    path = Path(args.file)
+    info = inspect_pdf(path, _pdf_password(path, args.password, _("PDF password")))
     n = info.page_count
     if info.certification:
         print(ngettext("{n} page, certified ({name})", "{n} pages, certified ({name})", n).format(
@@ -339,7 +341,7 @@ def cmd_sign(cfg: Config, args) -> int:
     # Check the document before asking for any secret.
     if not src.is_file():
         raise SigningError(_("no such file: {path}").format(path=src))
-    pdf_password = _ask(_("PDF password")) if inspect_needs_password(src) else None
+    pdf_password = _pdf_password(src, None, _("PDF password"))
     check_target(inspect_pdf(src, pdf_password), args.field, page, box,
                  allow_breaking=args.force)
 
@@ -353,6 +355,26 @@ def cmd_sign(cfg: Config, args) -> int:
         )
     print(_("signed field {name} -> {path}").format(name=repr(name), path=dst))
     return 0
+
+
+PDF_PASSWORD_ENV = "PDFSIGNER_PDF_PASSWORD"
+
+
+PASSWORD_HELP = N_("password of an encrypted PDF; '-' reads it from stdin. Without it, "
+                   "$PDFSIGNER_PDF_PASSWORD or a prompt is used: a password given here is "
+                   "visible to other users (process list) and in the shell history")
+
+
+def _pdf_password(path: Path, given: str | None, prompt: str) -> str | None:
+    """The password for an encrypted PDF: --password (``-`` reads a line from
+    stdin), else $PDFSIGNER_PDF_PASSWORD, else a prompt. Prompt and stdin keep
+    it out of the process list and shell history."""
+    if given == "-":
+        return sys.stdin.readline().rstrip("\r\n")
+    if given is not None or not path.is_file() or not inspect_needs_password(path):
+        return given
+    env = os.environ.get(PDF_PASSWORD_ENV)
+    return env if env is not None else _ask(prompt)
 
 
 def inspect_needs_password(path: Path) -> bool:
@@ -371,9 +393,7 @@ def cmd_verify(cfg: Config, args) -> int:
     src = Path(args.file)
     if not src.is_file():
         raise SigningError(_("no such file: {path}").format(path=src))
-    pdf_password = args.password
-    if pdf_password is None and inspect_needs_password(src):
-        pdf_password = _ask(_("PDF password"))
+    pdf_password = _pdf_password(src, args.password, _("PDF password"))
     reports = verify_pdf(src, trust=[*cfg.trust, *args.trust],
                          system_trust=not args.no_system_trust, online=args.online,
                          password=pdf_password)
@@ -425,10 +445,9 @@ def cmd_verify(cfg: Config, args) -> int:
 def _read_pdf(path: Path, password: str | None) -> tuple[bytes, str | None]:
     if not path.is_file():
         raise SigningError(_("no such file: {path}").format(path=path))
-    data = path.read_bytes()
-    if password is None and inspect_needs_password(path):
-        password = _ask(_("PDF password for {file}").format(file=path.name))
-    return data, password
+    password = _pdf_password(path, password,
+                             _("PDF password for {file}").format(file=path.name))
+    return path.read_bytes(), password
 
 
 def _guard_signatures(data: bytes, password: str | None, force: bool, message: str,
@@ -588,7 +607,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("name", nargs="?"); p.set_defaults(func=cmd_certs_test)
 
     p = sub.add_parser("fields", help=_("list signature fields"))
-    p.add_argument("file"); p.add_argument("--password", help=_("PDF password"))
+    p.add_argument("file"); p.add_argument("--password", help=_(PASSWORD_HELP))
     p.set_defaults(func=cmd_fields)
 
     p = sub.add_parser("sign", help=_("sign a PDF"))
@@ -619,7 +638,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--online", action="store_true",
                    help=_("fetch revocation info (OCSP/CRL) from the network"))
     p.add_argument("--details", action="store_true", help=_("print pyHanko's full report"))
-    p.add_argument("--password", help=_("PDF password"))
+    p.add_argument("--password", help=_(PASSWORD_HELP))
     p.set_defaults(func=cmd_verify)
 
     def edit_opts(p, suffix):
@@ -628,7 +647,7 @@ def build_parser() -> argparse.ArgumentParser:
                        help=_("output file (default: <name>-{suffix}.pdf)").format(suffix=suffix))
         p.add_argument("-i", "--in-place", action="store_true", help=_("overwrite the input"))
         p.add_argument("--pages", help=_("pages, e.g. 1-3,5,8- or odd/even (default: all)"))
-        p.add_argument("--password", help=_("PDF password"))
+        p.add_argument("--password", help=_(PASSWORD_HELP))
         p.add_argument("--force", action="store_true",
                        help=_("go ahead even if this invalidates existing signatures"))
 
@@ -656,7 +675,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output", metavar="PATTERN",
                    help=_("output names with {n} for the part number "
                           "(default: <name>-part{n}.pdf)"))
-    p.add_argument("--password", help=_("PDF password"))
+    p.add_argument("--password", help=_(PASSWORD_HELP))
     p.add_argument("--force", action="store_true", help=_("split even signed documents "
                                                           "(the signatures are removed)"))
     p.set_defaults(func=cmd_split)

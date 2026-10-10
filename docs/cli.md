@@ -27,6 +27,10 @@ example about self-signed certificates).
   * Linux: `~/.config/pdfsigner/config.toml`
   * macOS: `~/Library/Application Support/pdfsigner/config.toml`
   * Windows: `%LOCALAPPDATA%\pdfsigner\config.toml`
+* **Encrypted PDFs:** you are asked for the password. Scripts can set
+  `$PDFSIGNER_PDF_PASSWORD` or pipe it in with `--password -`.
+  `--password VALUE` also works, but other users can see it in the process
+  list, and it ends up in your shell history.
 * **Language:** English or German. `$PDFSIGNER_LANG` (`en`, `de`), else
   `language` in the config file, else the system language; everything else
   falls back to English. The examples below show English output.

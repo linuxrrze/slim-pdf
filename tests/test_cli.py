@@ -130,10 +130,13 @@ def test_fields_no_fields(blank_pdf, cfg_path, capsys):
     assert "no signature fields" in capsys.readouterr().out
 
 
-def test_fields_encrypted(form_pdf, tmp_path, cfg_path, capsys):
+def test_fields_encrypted(form_pdf, tmp_path, cfg_path, capsys, monkeypatch):
     enc = make_encrypted(form_pdf, tmp_path / "enc.pdf", "pw")
+    monkeypatch.setattr(cli, "_ask", lambda p: None)  # prompt cancelled
     assert run("fields", enc) == 1
     assert "password is required" in capsys.readouterr().err
+    assert run("fields", enc, "--password", "wrong") == 1
+    assert "wrong PDF password" in capsys.readouterr().err
     assert run("fields", enc, "--password", "pw") == 0
 
 
@@ -307,3 +310,22 @@ def test_sign_box_and_at_exclusive(work, blank_pdf, capsys):
     with pytest.raises(SystemExit):
         run("sign", blank_pdf, "--page", "1", "--box", "1,1,90,90", "--at", "1,1")
     assert "not allowed with argument" in capsys.readouterr().err
+
+
+def test_pdf_password_from_stdin_env_or_prompt(form_pdf, tmp_path, monkeypatch, capsys,
+                                               cfg_path):
+    import io
+
+    enc = make_encrypted(form_pdf, tmp_path / "enc.pdf", "docpw")
+    monkeypatch.setattr(cli, "_ask", lambda p: pytest.fail(f"prompted: {p}"))
+    monkeypatch.setattr("sys.stdin", io.StringIO("docpw\n"))
+    assert run("fields", enc, "--password", "-") == 0
+    monkeypatch.setenv("PDFSIGNER_PDF_PASSWORD", "docpw")
+    assert run("fields", enc) == 0
+    assert run("rotate", enc, "--angle", "90", "-o", tmp_path / "r.pdf") == 0
+    monkeypatch.delenv("PDFSIGNER_PDF_PASSWORD")
+    asked = []
+    monkeypatch.setattr(cli, "_ask", lambda p: asked.append(p) or "docpw")
+    assert run("fields", enc) == 0
+    assert asked == ["PDF password"]
+    assert run("fields", form_pdf) == 0 and len(asked) == 1  # not encrypted: no prompt

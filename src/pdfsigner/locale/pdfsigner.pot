@@ -346,6 +346,10 @@ msgid "profile: pdfsigner certs add NAME --pkcs11-lib {module} --key-id ID{token
 msgstr ""
 
 #: src/pdfsigner/cli.py
+msgid "PDF password"
+msgstr ""
+
+#: src/pdfsigner/cli.py
 #, python-brace-format
 msgid "{n} page, certified ({name})"
 msgid_plural "{n} pages, certified ({name})"
@@ -417,12 +421,12 @@ msgid "no such file: {path}"
 msgstr ""
 
 #: src/pdfsigner/cli.py
-msgid "PDF password"
+#, python-brace-format
+msgid "signed field {name} -> {path}"
 msgstr ""
 
 #: src/pdfsigner/cli.py
-#, python-brace-format
-msgid "signed field {name} -> {path}"
+msgid "password of an encrypted PDF; '-' reads it from stdin. Without it, $PDFSIGNER_PDF_PASSWORD or a prompt is used: a password given here is visible to other users (process list) and in the shell history"
 msgstr ""
 
 #: src/pdfsigner/cli.py

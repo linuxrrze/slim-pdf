@@ -364,6 +364,10 @@ msgid "profile: pdfsigner certs add NAME --pkcs11-lib {module} --key-id ID{token
 msgstr "Profil: pdfsigner certs add NAME --pkcs11-lib {module} --key-id ID{token}"
 
 #: src/pdfsigner/cli.py
+msgid "PDF password"
+msgstr "PDF-Passwort"
+
+#: src/pdfsigner/cli.py
 #, python-brace-format
 msgid "{n} page, certified ({name})"
 msgid_plural "{n} pages, certified ({name})"
@@ -437,13 +441,13 @@ msgid "no such file: {path}"
 msgstr "Datei nicht gefunden: {path}"
 
 #: src/pdfsigner/cli.py
-msgid "PDF password"
-msgstr "PDF-Passwort"
-
-#: src/pdfsigner/cli.py
 #, python-brace-format
 msgid "signed field {name} -> {path}"
 msgstr "Feld {name} signiert -> {path}"
+
+#: src/pdfsigner/cli.py
+msgid "password of an encrypted PDF; '-' reads it from stdin. Without it, $PDFSIGNER_PDF_PASSWORD or a prompt is used: a password given here is visible to other users (process list) and in the shell history"
+msgstr "Passwort einer verschlüsselten PDF; '-' liest es von der Standardeingabe. Ohne diese Option wird $PDFSIGNER_PDF_PASSWORD oder eine Abfrage verwendet: ein hier angegebenes Passwort ist für andere Benutzer sichtbar (Prozessliste) und steht im Shell-Verlauf"
 
 #: src/pdfsigner/cli.py
 msgid "document has no signatures"
