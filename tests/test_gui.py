@@ -298,6 +298,26 @@ def test_default_is_zoom_and_move(window, blank_pdf, qapp):
     assert view.placement is None
 
 
+def test_zoom_out_stops_when_the_page_fits(window, blank_pdf, qapp):
+    window.open(blank_pdf)
+    view = window.view
+    qapp.processEvents()
+    for _ in range(30):
+        wheel(view, (300, 400), -120, Qt.NoModifier)
+    view.set_zoom(view.zoom / 1.2)  # toolbar "−"
+    qapp.processEvents()
+    assert view.zoom == pytest.approx(view.min_zoom())
+    shown = view.mapToScene(view.viewport().rect()).boundingRect()
+    assert shown.contains(QRectF(0, 0, 595, 842))  # the whole page is visible
+    assert not view.verticalScrollBar().isVisible()
+    # and it fills the view in one direction: no smaller than needed
+    slack = 4 / view.zoom  # whole pixels
+    assert shown.height() <= 842 + 40 + slack or shown.width() <= 595 + 40 + slack
+    window.resize(window.width(), window.height() - 200)  # a smaller window: still fits
+    qapp.processEvents()
+    assert view.zoom == pytest.approx(view.min_zoom())
+
+
 def test_place_mode_picks_a_field(window, form_pdf):
     window.open(form_pdf)
     window.view.go_to(1)

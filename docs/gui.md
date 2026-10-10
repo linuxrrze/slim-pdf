@@ -20,7 +20,8 @@ guide show the English version.
 
 * **Toolbar:** open a file, move between pages (`PgUp`/`PgDown`), and zoom
   (`Ctrl +`/`Ctrl -`, *Fit* = fit width).
-* **Page:** the mouse wheel zooms in and out around the mouse pointer;
+* **Page:** the mouse wheel zooms in and out around the mouse pointer (out
+  only until the whole page fits the view);
   press and hold the left mouse button and move to move the page. Prepared
   signature fields appear as boxes:
   * blue, dashed: empty, can be signed;
@@ -216,7 +217,7 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | `Ctrl+O` | Open PDF |
 | `PgUp` / `PgDown` | Previous / next page |
 | `Ctrl +` / `Ctrl -` | Zoom in / out |
-| Wheel | Zoom in / out around the mouse pointer |
+| Wheel | Zoom in / out around the mouse pointer (out until the whole page fits) |
 | Left button + move | Move the page (or the placed signature, when on it) |
 | `Ctrl` + wheel | Resize the placed signature (over it); zoom elsewhere |
 | `Esc` | Cancel placing, remove the placed signature, or cancel cropping |

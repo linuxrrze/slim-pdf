@@ -35,6 +35,7 @@ HANDLE = 10.0  # resize handle size in screen pixels
 MAX_PAGE_PIXELS = 8_000_000
 RENDER_DELAY = 120
 WHEEL_ZOOM = 1.15  # per wheel notch
+MAX_ZOOM = 6.0
 
 class SignatureItem(QGraphicsObject):
     """Movable signature preview; the corner handle scales it keeping the aspect ratio."""
@@ -330,12 +331,20 @@ class PageView(QGraphicsView):
         anchor = self.mapToScene(pos.toPoint())
         self._fit_width = zoom is None
         if zoom is not None:
-            self.zoom = max(0.2, min(zoom, 6.0))
+            self.zoom = min(zoom, MAX_ZOOM)
         self._apply_zoom()
         if not self._fit_width:
             moved = self.mapFromScene(anchor) - pos.toPoint()
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + moved.x())
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() + moved.y())
+
+    def min_zoom(self) -> float:
+        """Zooming out stops where the whole page fits into the view."""
+        if self.doc is None:
+            return 0.0
+        w, h = self.doc.display_size(self.page)  # plus a 20pt margin on each side
+        avail = self.maximumViewportSize()  # without scroll bars
+        return max(0.01, min((avail.width() - 2) / (w + 40), (avail.height() - 2) / (h + 40)))
 
     def _apply_zoom(self) -> None:
         if self.doc is None:
@@ -344,14 +353,15 @@ class PageView(QGraphicsView):
             # scene rect has a 20pt margin on each side
             w, _h = self.doc.display_size(self.page)
             avail = self.viewport().width() - 2
-            self.zoom = max(0.2, avail / (w + 40))
+            self.zoom = avail / (w + 40)
+        self.zoom = max(self.zoom, self.min_zoom())
         self.resetTransform()
         self.scale(self.zoom, self.zoom)
         self._schedule_detail()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if self._fit_width:
+        if self._fit_width or self.zoom < self.min_zoom():
             self._apply_zoom()
         self._schedule_detail()
 
