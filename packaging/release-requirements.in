@@ -1,0 +1,10 @@
+# Extra inputs for packaging/release-requirements.txt, the locked (hashed)
+# dependency set the installers are built from. Regenerate with:
+#   uv pip compile pyproject.toml packaging/release-requirements.in --extra all \
+#       --universal --generate-hashes --python-version 3.12 \
+#       -o packaging/release-requirements.txt
+pyinstaller
+# cryptography >= 49 has no Intel macOS wheels; a source build links
+# Homebrew's OpenSSL, which clashes with Python's libssl in the bundle.
+cryptography<49; sys_platform == "darwin" and platform_machine == "x86_64"
+cryptography>=50; sys_platform != "darwin" or platform_machine != "x86_64"
