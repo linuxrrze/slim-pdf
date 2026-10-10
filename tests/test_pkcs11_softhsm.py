@@ -106,6 +106,8 @@ def token(tmp_path_factory):
 # A second token laid out like a YubiKey through Yubico's ykcs11 module:
 # keys and certificates carry different labels but share the slot's ID.
 PIV_TOKEN = "YubiKey PIV #12345678"
+# Slot 9c asks for the PIN before every signature (YubiKey's default PIN
+# policy for 9c; ykcs11 reports it as CKA_ALWAYS_AUTHENTICATE).
 PIV_SLOTS = {  # slot: (ID, key label, certificate label)
     "9a": (b"\x01", "Private key for PIV Authentication", "X.509 Certificate for PIV Authentication"),
     "9c": (b"\x02", "Private key for Digital Signature", "X.509 Certificate for Digital Signature"),
@@ -154,7 +156,8 @@ def piv(token):
             pub, _ = params.generate_keypair(
                 store=True,
                 public_template={Attribute.ID: oid, Attribute.LABEL: f"Public key for {slot}"},
-                private_template={Attribute.ID: oid, Attribute.LABEL: key_label})
+                private_template={Attribute.ID: oid, Attribute.LABEL: key_label,
+                                  Attribute.ALWAYS_AUTHENTICATE: slot == "9c"})
             public_key = serialization.load_der_public_key(encode_ec_public_key(pub))
             cert = _issue(ca_key, ca_cert, f"PIV {slot}", public_key)
             s.create_object({
@@ -302,3 +305,29 @@ def test_piv_wrong_cert_label_lists_certificates(piv):
         with open_signer(piv_profile(lib, key_id="02", cert_label="nope"),
                          Credentials(secret=PIN)):
             pass
+
+
+# --- keys that need the PIN for every signature -----------------------------------------
+
+
+def test_piv_key_without_always_authenticate(piv, form_pdf, tmp_path):
+    """Slot 9a: the PIN is only sent once (SoftHSM rejects an unneeded
+    per-signature login, so this also checks it isn't sent)."""
+    lib, ca, _ = piv
+    profile = piv_profile(lib, key_id="01")
+    with open_signer(profile, Credentials(secret=PIN)) as s:
+        assert s.signing_cert.subject.human_friendly == "Common Name: PIV 9a"
+        sign_pdf(form_pdf, tmp_path / "out.pdf", s, profile, field_name="Applicant")
+    [(_, st)] = validate_all(tmp_path / "out.pdf", ca)
+    assert st.bottom_line
+
+
+def test_piv_always_authenticate_without_pin(piv, form_pdf, tmp_path):
+    """A token with a PIN pad (no PIN from us) that still wants a
+    per-signature login: a clear error."""
+    lib, _, _ = piv
+    profile = piv_profile(lib, key_id="02")
+    with pytest.raises(SigningError, match="PIN for every signature"):
+        with open_signer(profile, Credentials(secret=PIN)) as s:
+            s._sign_kwargs = {}  # what happens if the PIN isn't passed
+            sign_pdf(form_pdf, tmp_path / "out.pdf", s, profile, field_name="Applicant")

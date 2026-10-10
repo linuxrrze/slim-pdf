@@ -479,11 +479,14 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
         except ImportError as e:
             raise SigningError("PKCS#11 support needs 'pyhanko[pkcs11]'") from e
         from pkcs11 import Attribute
-        from pkcs11.exceptions import PinIncorrect, PinLenRange, PKCS11Error
+        from pkcs11.exceptions import PinIncorrect, PinLenRange, PKCS11Error, UserNotLoggedIn
 
         def token_error(e: Exception, signing: bool = False) -> SigningError:
             if isinstance(e, (PinIncorrect, PinLenRange)):
                 return SigningError(f"wrong PIN for token of '{profile.name}'")
+            if signing and isinstance(e, UserNotLoggedIn):
+                return SigningError(f"the key of '{profile.name}' needs the PIN for every "
+                                    "signature, but none was given")
             msg = str(e) or type(e).__name__
             what = "the token refused to sign: " if signing else ""
             return SigningError(f"PKCS#11 ({profile.pkcs11_lib}): {what}{msg}")
@@ -499,11 +502,16 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
         try:
             try:
                 key, cert = _find_token_key(session, profile)
+                # Keys like YubiKey PIV slot 9c want the PIN again for every
+                # signature (a context-specific login right before C_Sign).
+                always_auth = bool(_p11_attr(key, Attribute.ALWAYS_AUTHENTICATE))
                 signer = pkcs11.PKCS11Signer(
                     session, signing_cert=cert,
                     key_label=_p11_attr(key, Attribute.LABEL) or None,
                     key_id=_p11_attr(key, Attribute.ID) or None,
-                    use_raw_mechanism=_use_raw_mechanism(session, key))
+                    use_raw_mechanism=_use_raw_mechanism(session, key),
+                    base_sign_kwargs={"pin": creds.secret}
+                    if always_auth and creds.secret else None)
                 _ = signer.signing_cert  # loads the key handle now, not mid-signing
             except PKCS11Error as e:
                 raise token_error(e) from None

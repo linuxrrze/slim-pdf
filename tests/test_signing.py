@@ -336,7 +336,8 @@ def test_pkcs11_session_is_opened_and_closed(monkeypatch, p12):
     from pkcs11 import Attribute
 
     from pdfsigner import signing
-    key = {Attribute.LABEL: "SIGN key", Attribute.ID: b"\x02"}
+    key = {Attribute.LABEL: "SIGN key", Attribute.ID: b"\x02",
+           Attribute.ALWAYS_AUTHENTICATE: True}
     monkeypatch.setattr(signing, "_find_token_key", lambda session, profile: (key, "CERT"))
     monkeypatch.setattr(signing, "_use_raw_mechanism", lambda session, key: True)
 
@@ -348,7 +349,8 @@ def test_pkcs11_session_is_opened_and_closed(monkeypatch, p12):
     assert FakeSession.closed
     assert calls == {"open": ("/lib/opensc.so", "My Card", "123456"),
                      "signer": dict(signing_cert="CERT", key_label="SIGN key", key_id=b"\x02",
-                                    use_raw_mechanism=True)}
+                                    use_raw_mechanism=True,
+                                    base_sign_kwargs={"pin": "123456"})}
 
 
 def test_unknown_type():

@@ -160,6 +160,12 @@ Afterwards you can delete the `.p12`, or keep it in KeePass as a backup.
 The PIN source is independent (`prompt`, `keyring`, `keepass` or
 `keepassxc`).
 
+Slot 9c asks for the PIN before every signature (the YubiKey's default PIN
+policy for it). pdfsigner sends the PIN again for such keys, so you still
+enter it once per signing. If the key was created with a touch policy
+(`--touch-policy always` or `cached`), touch the YubiKey when it blinks;
+without a touch the signature fails after a short timeout.
+
 If GnuPG uses the same YubiKey (OpenPGP), its `scdaemon` may hold the card
 exclusively, and the PKCS#11 module then finds no token: `gpgconf --kill
 scdaemon` releases it.
