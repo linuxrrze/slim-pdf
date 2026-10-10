@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import secretstore, systemstore
+from .. import secretstore, systemstore, tokens
 from ..config import (
     CERT_TYPES,
     KEEPASS_SOURCES,
@@ -133,6 +133,10 @@ class CertManagerDialog(QDialog):
         f.addRow("Key label", line("key_label"))
         f.addRow("Key ID", line("key_id", "hex, e.g. 02 (YubiKey PIV slot 9c)"))
         f.addRow("Cert label", line("cert_label", "default: the certificate with the key's ID"))
+        read_token = QPushButton("Show token contents…")
+        read_token.setToolTip("List the keys and certificates on the token and pick one")
+        read_token.clicked.connect(self._choose_token_key)
+        f.addRow("", read_token)
 
         appearance = QGroupBox("Appearance")
         f = QFormLayout(appearance)
@@ -357,6 +361,34 @@ class CertManagerDialog(QDialog):
                                           "Certificate:", items, 0, False)
         if ok:
             self.e["system_cert"].setText(identities[items.index(choice)].thumbprint)
+
+    def _choose_token_key(self) -> None:
+        module = self.e["pkcs11_lib"].text().strip()
+        if not module:
+            QMessageBox.information(self, "PKCS#11 token", "Enter the PKCS#11 module first.")
+            return
+        try:
+            found = tokens.list_tokens(
+                module, ask_pin=lambda label: ask_secret(
+                    self, f"PIN for token '{label}' (Cancel: certificates only)"))
+        except SigningError as e:
+            QMessageBox.critical(self, "PKCS#11 token", str(e))
+            return
+        choices = [(t, e) for t in found for e in t.entries if e.id]
+        if not choices:
+            QMessageBox.information(self, "PKCS#11 token",
+                                    "No keys or certificates with an ID found." if found
+                                    else "No token found.")
+            return
+        items = [f"{t.label}: {e.describe()}" for t, e in choices]
+        choice, ok = QInputDialog.getItem(self, "PKCS#11 token", "Key / certificate:",
+                                          items, 0, False)
+        if ok:
+            t, e = choices[items.index(choice)]
+            self.e["token_label"].setText(t.label)
+            self.e["key_id"].setText(e.id_hex)
+            self.e["key_label"].clear()
+            self.e["cert_label"].clear()
 
     def _test(self) -> None:
         if not self._current:

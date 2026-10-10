@@ -203,6 +203,31 @@ def cmd_certs_system(cfg: Config, args) -> int:
     return 0
 
 
+def cmd_certs_pkcs11(cfg: Config, args) -> int:
+    from . import tokens
+
+    ask = (lambda label: _ask(f"PIN for token '{label}'")) if args.login else None
+    found = tokens.list_tokens(args.module, args.token_label, ask)
+    if not found:
+        print(f"no token found ({args.module})")
+        return 0
+    for t in found:
+        print(t.describe())
+        for e in t.entries:
+            print(f"  {e.describe()}")
+        if not t.entries:
+            print("  (no objects)")
+        if not t.logged_in:
+            print("  (private keys are usually only listed after logging in: --login)")
+    print(f"\nprofile: pdfsigner certs add NAME --pkcs11-lib {_quote(args.module)} "
+          "--key-id ID [--token-label LABEL]")
+    return 0
+
+
+def _quote(s: str) -> str:
+    return f'"{s}"' if any(c in s for c in " \\'") else s
+
+
 # --- fields / sign -----------------------------------------------------------
 
 
@@ -445,6 +470,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("name"); p.set_defaults(func=cmd_certs_set_secret)
     csub.add_parser("system", help="list certificates in the Windows/macOS store"
                     ).set_defaults(func=cmd_certs_system)
+    p = csub.add_parser("pkcs11", help="list the keys and certificates on a PKCS#11 token")
+    p.add_argument("module", help=f"PKCS#11 module, e.g. {PKCS11_EXAMPLE}")
+    p.add_argument("--token-label", help="only this token")
+    p.add_argument("--login", action="store_true",
+                   help="ask for the PIN to list the private keys too")
+    p.set_defaults(func=cmd_certs_pkcs11)
     p = csub.add_parser("test", help="unlock the certificate and print its subject")
     p.add_argument("name", nargs="?"); p.set_defaults(func=cmd_certs_test)
 

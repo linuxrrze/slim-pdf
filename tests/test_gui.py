@@ -724,3 +724,61 @@ def test_main_smoke_test(qapp, form_pdf, cfg_path, monkeypatch):
     assert gui_app.main(["--smoke-test"]) == 0
     assert gui_app.ICON.exists()
     assert not QtWidgets.QApplication.windowIcon().isNull()
+
+
+def test_dialog_choose_token_key(dialog, monkeypatch):
+    from pdfsigner import tokens
+
+    select(dialog, "tok")
+    dialog.e["key_label"].setText("old label")
+    asked = []
+    monkeypatch.setattr(certdialog, "ask_secret",
+                        lambda parent, prompt: asked.append(prompt) or "123456")
+
+    def list_tokens(module, token_label=None, ask_pin=None):
+        assert module == "/x.so"
+        ask_pin("YubiKey PIV #1")
+        return [tokens.TokenInfo("YubiKey PIV #1", "Yubico", "YubiKey", "1", True, [
+            tokens.TokenEntry(b"\x01", "Private key for PIV Authentication", "EC"),
+            tokens.TokenEntry(b"\x02", "Private key for Digital Signature", "EC", True,
+                              "X.509 Certificate for Digital Signature", "CN=Alice",
+                              "2027-01-01"),
+            tokens.TokenEntry(None, cert_label="CA", subject="CN=CA", not_after="2030-01-01"),
+        ])]
+
+    monkeypatch.setattr(certdialog.tokens, "list_tokens", list_tokens)
+    offered = []
+
+    def get_item(parent, title, label, items, *a):
+        offered.extend(items)
+        return items[1], True
+
+    monkeypatch.setattr(certdialog.QInputDialog, "getItem", get_item)
+    dialog._choose_token_key()
+    assert asked == ["PIN for token 'YubiKey PIV #1' (Cancel: certificates only)"]
+    assert len(offered) == 2  # objects without an ID can't be selected
+    assert "PIN for every signature" in offered[1]
+    assert (dialog.e["token_label"].text(), dialog.e["key_id"].text(),
+            dialog.e["key_label"].text()) == ("YubiKey PIV #1", "02", "")
+
+
+def test_dialog_choose_token_key_errors(dialog, monkeypatch):
+    from pdfsigner.signing import SigningError
+
+    boxes = Boxes(monkeypatch, certdialog)
+    select(dialog, "tok")
+    dialog.e["pkcs11_lib"].setText("")
+    dialog._choose_token_key()
+    assert boxes.kinds() == ["information"] and "module" in boxes.text()
+
+    dialog.e["pkcs11_lib"].setText("/x.so")
+
+    def fail(*a, **k):
+        raise SigningError("PKCS#11 (/x.so): cannot load")
+
+    monkeypatch.setattr(certdialog.tokens, "list_tokens", fail)
+    dialog._choose_token_key()
+    assert boxes.kinds()[-1] == "critical" and "cannot load" in boxes.text()
+    monkeypatch.setattr(certdialog.tokens, "list_tokens", lambda *a, **k: [])
+    dialog._choose_token_key()
+    assert boxes.kinds()[-1] == "information" and "No token found" in boxes.text()

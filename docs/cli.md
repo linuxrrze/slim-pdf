@@ -228,6 +228,19 @@ hold exactly one key. The certificate is the one with the key's ID, so
 `--cert-label` is only needed for tokens that don't pair them that way.
 `--token-label` picks a token when several are plugged in.
 
+To see what is on a token, and which ID to use:
+
+```console
+$ pdfsigner certs pkcs11 /usr/lib/x86_64-linux-gnu/libykcs11.so --login
+PIN for token 'YubiKey PIV #12345678':
+token 'YubiKey PIV #12345678' (… manufacturer, model, serial …)
+  ID 01    key 'Private key for PIV Authentication' (EC)  certificate 'X.509 Certificate for PIV Authentication': Common Name: Alice Example, expires 2027-03-31
+  ID 02    key 'Private key for Digital Signature' (EC, PIN for every signature)  certificate 'X.509 Certificate for Digital Signature': Common Name: Alice Example, expires 2027-03-31
+```
+
+Without `--login` only the certificates are listed; most tokens show private
+keys only after the PIN. `--token-label` limits the list to one token.
+
 | Module | Linux (Debian/Ubuntu) | macOS | Windows |
 |---|---|---|---|
 | Yubico (YubiKey) | `/usr/lib/x86_64-linux-gnu/libykcs11.so` | `/opt/homebrew/lib/libykcs11.dylib` | `C:\Program Files\Yubico\Yubico PIV Tool\bin\libykcs11.dll` |

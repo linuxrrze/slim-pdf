@@ -331,3 +331,55 @@ def test_piv_always_authenticate_without_pin(piv, form_pdf, tmp_path):
         with open_signer(profile, Credentials(secret=PIN)) as s:
             s._sign_kwargs = {}  # what happens if the PIN isn't passed
             sign_pdf(form_pdf, tmp_path / "out.pdf", s, profile, field_name="Applicant")
+
+
+# --- listing a token (certs pkcs11) -------------------------------------------------------
+
+
+def test_list_token_without_login(piv):
+    from pdfsigner import tokens
+
+    lib, _, _ = piv
+    [t] = tokens.list_tokens(lib, PIV_TOKEN)
+    assert t.label == PIV_TOKEN and not t.logged_in
+    assert [(e.id_hex, e.key_label, e.cert_label, e.subject) for e in t.entries] == [
+        ("01", None, "X.509 Certificate for PIV Authentication", "Common Name: PIV 9a"),
+        ("02", None, "X.509 Certificate for Digital Signature", "Common Name: PIV 9c"),
+    ]
+
+
+def test_list_token_with_login(piv):
+    from pdfsigner import tokens
+
+    lib, _, _ = piv
+    asked = []
+    found = tokens.list_tokens(lib, ask_pin=lambda label: asked.append(label) or PIN)
+    assert sorted(asked) == sorted([TOKEN, PIV_TOKEN])  # initialised tokens, not the empty slot
+    t = next(t for t in found if t.label == PIV_TOKEN)
+    assert [(e.id_hex, e.key_label, e.key_type, e.always_auth) for e in t.entries] == [
+        ("01", "Private key for PIV Authentication", "EC", False),
+        ("02", "Private key for Digital Signature", "EC", True),
+    ]
+    assert "PIN for every signature" in t.entries[1].describe()
+
+
+def test_list_token_wrong_pin(piv):
+    from pdfsigner import tokens
+
+    lib, _, _ = piv
+    with pytest.raises(SigningError, match="wrong PIN"):
+        tokens.list_tokens(lib, PIV_TOKEN, ask_pin=lambda label: "000000")
+
+
+def test_cli_certs_pkcs11(piv, cfg_path, monkeypatch, capsys):
+    lib, _, _ = piv
+    monkeypatch.setattr(cli, "_ask", lambda prompt: PIN)
+    assert cli.main(["certs", "pkcs11", lib, "--token-label", PIV_TOKEN, "--login"]) == 0
+    out = capsys.readouterr().out
+    assert f"token '{PIV_TOKEN}'" in out
+    assert ("ID 02    key 'Private key for Digital Signature' (EC, PIN for every signature)"
+            "  certificate 'X.509 Certificate for Digital Signature': Common Name: PIV 9c") in out
+    assert "--key-id ID" in out
+    assert cli.main(["certs", "pkcs11", lib, "--token-label", "nope"]) == 0
+    assert "no token found" in capsys.readouterr().out
+    assert cli.main(["certs", "pkcs11", "/no/such/module.so"]) == 1
