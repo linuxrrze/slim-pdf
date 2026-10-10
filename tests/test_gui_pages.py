@@ -181,6 +181,29 @@ def test_split_dialog(window, tmp_path, monkeypatch):
         == [2, 1]
 
 
+def test_split_dialog_asks_before_replacing(window, tmp_path, monkeypatch):
+    src = make_pdf(tmp_path / "five.pdf", pages=5)
+    existing = tmp_path / "five-part1.pdf"
+    existing.write_bytes(b"precious")
+    window.open(src)
+
+    def run_dialog(dlg):
+        dlg.parts_edit.setText("1-2; 5")
+        dlg.parts_radio.setChecked(True)
+        dlg._accept()
+        return True
+
+    monkeypatch.setattr(pagetools.SplitDialog, "exec", run_dialog)
+    boxes = Boxes(monkeypatch, gui_app, answer=QtWidgets.QMessageBox.No)
+    window.split_dialog()
+    assert boxes.kinds() == ["question"] and "five-part1.pdf" in boxes.text()
+    assert existing.read_bytes() == b"precious" and not (tmp_path / "five-part2.pdf").exists()
+    boxes = Boxes(monkeypatch, gui_app, answer=QtWidgets.QMessageBox.Yes)
+    window.split_dialog()
+    assert boxes.kinds() == ["question", "information"]
+    assert pages.page_count(existing.read_bytes()) == 2
+
+
 def test_split_dialog_validation(owned, tmp_path):
     dlg = pagetools.SplitDialog(5, tmp_path / "x.pdf")
     owned(dlg)

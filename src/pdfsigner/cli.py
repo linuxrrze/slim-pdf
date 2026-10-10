@@ -515,8 +515,14 @@ def cmd_split(cfg: Config, args) -> int:
     pattern = args.output or str(src.with_name(f"{src.stem}-part{{n}}.pdf"))
     if "{n}" not in pattern:
         raise SigningError(_("-o needs {n} in the name, e.g. part-{n}.pdf"))
-    for i, part in enumerate(pages.split(data, parts, pw), 1):
-        dst = Path(pattern.replace("{n}", str(i)))
+    targets = [Path(pattern.replace("{n}", str(i))) for i in range(1, len(parts) + 1)]
+    if any(t.resolve() == src.resolve() for t in targets):
+        raise SigningError(_("a part would overwrite the input file {file}").format(file=src))
+    existing = [str(t) for t in targets if t.exists()]
+    if existing and not args.overwrite:
+        raise SigningError(_("already exist: {files} (use --overwrite to replace them)").format(
+            files=", ".join(existing)))
+    for i, (dst, part) in enumerate(zip(targets, pages.split(data, parts, pw), strict=True), 1):
         _atomic_write(dst, part)
         count = len(parts[i - 1])
         print(ngettext("{path}  ({n} page)", "{path}  ({n} pages)", count).format(
@@ -676,6 +682,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help=_("output names with {n} for the part number "
                           "(default: <name>-part{n}.pdf)"))
     p.add_argument("--password", help=_(PASSWORD_HELP))
+    p.add_argument("--overwrite", action="store_true",
+                   help=_("replace part files that already exist"))
     p.add_argument("--force", action="store_true", help=_("split even signed documents "
                                                           "(the signatures are removed)"))
     p.set_defaults(func=cmd_split)

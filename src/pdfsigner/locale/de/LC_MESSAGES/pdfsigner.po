@@ -561,6 +561,16 @@ msgstr "-o braucht {n} im Namen, z. B. part-{n}.pdf"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "a part would overwrite the input file {file}"
+msgstr "ein Teil würde die Eingabedatei {file} überschreiben"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "already exist: {files} (use --overwrite to replace them)"
+msgstr "existieren bereits: {files} (mit --overwrite ersetzen)"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "{path}  ({n} page)"
 msgid_plural "{path}  ({n} pages)"
 msgstr[0] "{path}  ({n} Seite)"
@@ -745,6 +755,10 @@ msgstr "Seiten einer Ausgabedatei; für weitere Dateien wiederholen"
 #, python-brace-format
 msgid "output names with {n} for the part number (default: <name>-part{n}.pdf)"
 msgstr "Ausgabenamen mit {n} für die Teilnummer (Standard: <name>-part{n}.pdf)"
+
+#: src/pdfsigner/cli.py
+msgid "replace part files that already exist"
+msgstr "bereits vorhandene Teildateien ersetzen"
 
 #: src/pdfsigner/cli.py
 msgid "split even signed documents (the signatures are removed)"
@@ -1231,6 +1245,34 @@ msgstr "Aufteilen"
 #, python-brace-format
 msgid "The split files will not contain the signature(s) {names}. Continue?"
 msgstr "Die aufgeteilten Dateien enthalten die Signatur(en) {names} nicht. Fortfahren?"
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "A part would overwrite the open document {file}."
+msgstr "Ein Teil würde das geöffnete Dokument {file} überschreiben."
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"{n} file already exists:\n"
+"{paths}\n"
+"\n"
+"Replace it?"
+msgid_plural ""
+"{n} files already exist:\n"
+"{paths}\n"
+"\n"
+"Replace them?"
+msgstr[0] ""
+"{n} Datei existiert bereits:\n"
+"{paths}\n"
+"\n"
+"Ersetzen?"
+msgstr[1] ""
+"{n} Dateien existieren bereits:\n"
+"{paths}\n"
+"\n"
+"Ersetzen?"
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format

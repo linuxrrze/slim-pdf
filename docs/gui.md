@@ -119,7 +119,8 @@ is selected:
   before you close or open another file. Signing an edited document saves
   the edits together with the signature.
 * **Split…** writes several files: *every N pages*, or explicit parts like
-  `1-3; 4-6; 7-`, into a folder with a name pattern containing `{n}`.
+  `1-3; 4-6; 7-`, into a folder with a name pattern containing `{n}`. If
+  some of them already exist, pdfsigner asks before replacing them.
 * **Merge…** combines the current document with other PDFs. Add files,
   order them with *Up*/*Down*, and optionally enter pages per file (e.g.
   `2-3`). The result is saved as a new file and opened.

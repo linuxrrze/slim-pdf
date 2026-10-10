@@ -532,7 +532,9 @@ claim-2.pdf  (1 page)
 
 `--every N` puts N pages in each file (default 1). `--part SPEC` defines one
 output file; repeat it for more, in any order and overlapping if you like.
-`-o` is a name pattern with `{n}` for the part number.
+`-o` is a name pattern with `{n}` for the part number. Existing files are
+not replaced unless you add `--overwrite`, and a part is never written over
+the input file.
 
 ### Merge
 

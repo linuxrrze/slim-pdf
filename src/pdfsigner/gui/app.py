@@ -489,6 +489,19 @@ class MainWindow(QMainWindow):
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No) != QMessageBox.Yes:
             return
+        existing = [p for p in dlg.result_paths if p.exists()]
+        if self.path is not None and self.path in existing:
+            QMessageBox.critical(self, _("Split"), _(
+                "A part would overwrite the open document {file}.").format(file=self.path))
+            return
+        if existing and QMessageBox.question(
+                self, _("Split"), ngettext(
+                    "{n} file already exists:\n{paths}\n\nReplace it?",
+                    "{n} files already exist:\n{paths}\n\nReplace them?",
+                    len(existing)).format(n=len(existing),
+                                          paths="\n".join(str(p) for p in existing)),
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
+            return
         try:
             parts = pages.split(self.data, dlg.result_parts, self.pdf_password)
             for path, part in zip(dlg.result_paths, parts, strict=True):

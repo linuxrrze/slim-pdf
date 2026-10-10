@@ -253,3 +253,20 @@ def test_cli_encrypted_prompts(blank_pdf, tmp_path, cfg_path, monkeypatch):
     assert run("rotate", enc, "-i", "--angle", "90", "--password", "pw") == 0
     assert run("merge", "-o", tmp_path / "m.pdf", enc, blank_pdf) == 0
     assert len(widths((tmp_path / "m.pdf").read_bytes())) == 4
+
+
+def test_cli_split_does_not_overwrite(tmp_path, cfg_path, capsys):
+    src = numbered_pdf(tmp_path / "n.pdf")
+    keep = tmp_path / "n-part2.pdf"
+    keep.write_bytes(b"precious")
+    assert run("split", src) == 1
+    err = capsys.readouterr().err
+    assert str(keep) in err and "--overwrite" in err
+    assert keep.read_bytes() == b"precious" and not (tmp_path / "n-part1.pdf").exists()
+    assert run("split", src, "--overwrite") == 0
+    assert widths(keep.read_bytes()) == [120]
+    # never onto the input itself, not even with --overwrite
+    assert run("split", src, "--part", "1", "-o", tmp_path / "{n}.pdf") == 0
+    one = tmp_path / "1.pdf"
+    assert run("split", one, "-o", tmp_path / "{n}.pdf", "--overwrite") == 1
+    assert "overwrite the input file" in capsys.readouterr().err
