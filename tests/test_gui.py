@@ -986,3 +986,47 @@ def test_signing_with_a_token_shows_a_hint(window, form_pdf, monkeypatch):
     window.sign()
     assert seen and "security key blinks" in seen[0]
     assert boxes.kinds() == ["critical"]
+
+
+# --- window sizes ----------------------------------------------------------------------
+
+
+# 1280×720 at 125 % scaling leaves 1024×576 logical pixels (minus a taskbar).
+SMALL_SCREEN = (1024, 540)
+
+
+@pytest.mark.parametrize("lang", ["en", "de"])
+def test_windows_fit_small_screens(qapp, p12, lang, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QDialogButtonBox
+
+    from pdfsigner import i18n
+    from pdfsigner.gui.pagetools import MergeDialog, SplitDialog
+    from pdfsigner.gui.settings import SettingsDialog
+
+    i18n.set_language(lang)
+    cfg = Config(path=tmp_path / "c.toml")
+    # the tallest profile form: KeePassXC with all its rows
+    cfg.put(CertProfile(name="w", path=str(p12[0]), secret="keepassxc", keepass_db="d.kdbx",
+                        keepass_entry="e"))
+    avail = qapp.primaryScreen().availableGeometry()
+    windows = [gui_app.MainWindow(cfg), CertManagerDialog(cfg), SettingsDialog(cfg),
+               SplitDialog(3, tmp_path / "a.pdf"), MergeDialog()]
+    try:
+        for w in windows:
+            w.show()
+            qapp.processEvents()
+            name = type(w).__name__
+            assert w.width() <= avail.width() and w.height() <= avail.height(), name
+            need = w.minimumSizeHint()
+            assert need.width() <= SMALL_SCREEN[0] and need.height() <= SMALL_SCREEN[1], (
+                name, need.toTuple())
+            box = w.findChild(QDialogButtonBox)
+            if box is not None and box.isVisible():  # OK/Save/Cancel are reachable
+                bottom = box.mapTo(w, box.rect().bottomRight())
+                assert bottom.y() <= w.height() and bottom.x() <= w.width(), name
+    finally:
+        from shiboken6 import delete
+
+        for w in windows:
+            w.close()
+            delete(w)

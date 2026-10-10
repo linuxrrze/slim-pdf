@@ -30,6 +30,7 @@ from ..config import Config, default_config_path
 from ..i18n import _
 from ..signing import SigningError
 from ..validation import load_trust_roots
+from .screen import fit_to_screen
 
 
 class SettingsDialog(QDialog):
@@ -38,7 +39,7 @@ class SettingsDialog(QDialog):
     def __init__(self, config: Config, parent=None):
         super().__init__(parent)
         self.setWindowTitle(_("Settings"))
-        self.resize(620, 420)
+        fit_to_screen(self, 620, 420)
         self.config = copy.deepcopy(config)
         self.language_changed = False
 

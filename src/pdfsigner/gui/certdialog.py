@@ -41,6 +41,7 @@ from ..config import (
 from ..i18n import N_, _
 from ..signing import SigningError, describe_signer, open_signer
 from .dialogs import ask_secret
+from .screen import fit_to_screen, scrollable
 from .document import signature_pixmap
 
 SECRET_LABELS = {
@@ -80,7 +81,7 @@ class CertManagerDialog(QDialog):
     def __init__(self, config: Config, parent=None):
         super().__init__(parent)
         self.setWindowTitle(_("Certificates"))
-        self.resize(820, 560)
+        fit_to_screen(self, 860, 760)
         self.config = copy.deepcopy(config)
         self._current: str | None = None
         self._loading = False
@@ -225,7 +226,7 @@ class CertManagerDialog(QDialog):
 
         main = QHBoxLayout()
         main.addLayout(left, 1)
-        main.addWidget(self.form, 3)
+        main.addWidget(scrollable(self.form), 3)  # the form is taller than small screens
         outer = QVBoxLayout(self)
         outer.addLayout(main)
         hint = QLabel(_("Config file: {path}").format(path=self.config.path))

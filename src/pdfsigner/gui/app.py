@@ -44,6 +44,7 @@ from ..signing import (
     sign_pdf,
 )
 from .certdialog import CertManagerDialog
+from .screen import fit_to_screen
 from .settings import SettingsDialog
 from .dialogs import ask_secret
 from .document import PdfDocument, signature_pixmap
@@ -100,7 +101,7 @@ class MainWindow(QMainWindow):
         self.undo_stack: list[bytes] = []
 
         self.setWindowTitle(_("PDF Signer"))
-        self.resize(1100, 900)
+        fit_to_screen(self, 1100, 900)
         self.view = PageView()
         self.view.targetChanged.connect(self._update_target)
         self.view.pageChanged.connect(self._sync_page_spin)

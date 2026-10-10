@@ -33,6 +33,7 @@ from ..i18n import _, ngettext
 from ..signing import PasswordError, SigningError
 from .dialogs import ask_secret
 from .document import PdfDocument
+from .screen import fit_to_screen
 
 THUMB_WIDTH = 110
 
@@ -189,7 +190,7 @@ class MergeDialog(QDialog):
     def __init__(self, first: MergeInput | None = None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(_("Merge PDFs"))
-        self.resize(560, 380)
+        fit_to_screen(self, 560, 380)
         self.inputs: list[MergeInput] = [first] if first else []
 
         self.list = QListWidget()
