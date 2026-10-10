@@ -172,14 +172,21 @@ def _trust_problem(indic, cert) -> str:
         usage = cert.key_usage_value.native if cert.key_usage_value else None
         if usage is not None and not {"digital_signature", "non_repudiation"} & set(usage):
             return _("the certificate is not meant for signatures (key usage)")
-        issuer = cert.issuer.native.get("common_name") or cert.issuer.human_friendly
-        return _("the certificate doesn't chain to a trusted root (issuer {issuer!r} not "
-                 "trusted, or not found)").format(issuer=issuer)
+        return _no_chain(cert)
     if name in ("TRY_LATER", "REVOCATION_OUT_OF_BOUNDS_NO_POE"):
         return _("the certificate's revocation status is not known yet")
     if name in ("REVOKED_NO_POE", "REVOKED_CA_NO_POE"):
         return _("the certificate (or its CA) is revoked")
-    return _("the certificate doesn't chain to a trusted root")
+    return _no_chain(cert)
+
+
+def _issuer_name(cert) -> str:
+    return cert.issuer.native.get("common_name") or cert.issuer.human_friendly
+
+
+def _no_chain(cert) -> str:
+    return _("the certificate doesn't chain to a trusted root (issuer {issuer!r} not "
+             "trusted, or not found)").format(issuer=_issuer_name(cert))
 
 
 def report(sig, st, revision: int, revisions: int) -> SignatureReport:
@@ -215,10 +222,15 @@ def report(sig, st, revision: int, revisions: int) -> SignatureReport:
         status = UNTRUSTED
         if not st.trusted:
             problems.append(_trust_problem(st.trust_problem_indic, cert))
-        for t, what in ((ts, _("the timestamp authority isn't trusted")),
-                        (content_ts, _("the content timestamp authority isn't trusted"))):
+        for t, what in ((ts, _("the timestamp authority {tsa!r} isn't trusted (issuer "
+                                "{issuer!r})")),
+                        (content_ts, _("the content timestamp authority {tsa!r} isn't "
+                                       "trusted (issuer {issuer!r})"))):
             if t is not None and not t.trusted:
-                problems.append(what)
+                tsa = t.signing_cert
+                problems.append(what.format(
+                    tsa=tsa.subject.native.get("common_name") or tsa.subject.human_friendly,
+                    issuer=_issuer_name(tsa)))
         if not problems:
             problems.append(_("the signature could not be fully validated"))
 

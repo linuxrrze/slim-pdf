@@ -2698,11 +2698,6 @@ msgid "the certificate is not meant for signatures (key usage)"
 msgstr "das Zertifikat ist nicht für Signaturen vorgesehen (Schlüsselverwendung)"
 
 #: src/pdfsigner/validation.py
-#, python-brace-format
-msgid "the certificate doesn't chain to a trusted root (issuer {issuer!r} not trusted, or not found)"
-msgstr "das Zertifikat führt zu keiner vertrauenswürdigen Wurzel (Aussteller {issuer!r} nicht vertrauenswürdig oder nicht gefunden)"
-
-#: src/pdfsigner/validation.py
 msgid "the certificate's revocation status is not known yet"
 msgstr "der Widerrufsstatus des Zertifikats ist noch nicht bekannt"
 
@@ -2711,8 +2706,9 @@ msgid "the certificate (or its CA) is revoked"
 msgstr "das Zertifikat (oder seine CA) ist widerrufen"
 
 #: src/pdfsigner/validation.py
-msgid "the certificate doesn't chain to a trusted root"
-msgstr "das Zertifikat führt nicht zu einer vertrauenswürdigen Stammzertifizierungsstelle"
+#, python-brace-format
+msgid "the certificate doesn't chain to a trusted root (issuer {issuer!r} not trusted, or not found)"
+msgstr "das Zertifikat führt zu keiner vertrauenswürdigen Wurzel (Aussteller {issuer!r} nicht vertrauenswürdig oder nicht gefunden)"
 
 #: src/pdfsigner/validation.py
 msgid "the signed content was modified"
@@ -2748,12 +2744,14 @@ msgid "the signature doesn't meet the field's requirements: {error}"
 msgstr "die Signatur erfüllt die Vorgaben des Feldes nicht: {error}"
 
 #: src/pdfsigner/validation.py
-msgid "the timestamp authority isn't trusted"
-msgstr "dem Zeitstempeldienst wird nicht vertraut"
+#, python-brace-format
+msgid "the timestamp authority {tsa!r} isn't trusted (issuer {issuer!r})"
+msgstr "dem Zeitstempeldienst {tsa!r} wird nicht vertraut (Aussteller {issuer!r})"
 
 #: src/pdfsigner/validation.py
-msgid "the content timestamp authority isn't trusted"
-msgstr "dem Zeitstempeldienst des Inhaltszeitstempels wird nicht vertraut"
+#, python-brace-format
+msgid "the content timestamp authority {tsa!r} isn't trusted (issuer {issuer!r})"
+msgstr "dem Zeitstempeldienst {tsa!r} des Inhaltszeitstempels wird nicht vertraut (Aussteller {issuer!r})"
 
 #: src/pdfsigner/validation.py
 msgid "the signature could not be fully validated"

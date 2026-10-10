@@ -2614,11 +2614,6 @@ msgid "the certificate is not meant for signatures (key usage)"
 msgstr ""
 
 #: src/pdfsigner/validation.py
-#, python-brace-format
-msgid "the certificate doesn't chain to a trusted root (issuer {issuer!r} not trusted, or not found)"
-msgstr ""
-
-#: src/pdfsigner/validation.py
 msgid "the certificate's revocation status is not known yet"
 msgstr ""
 
@@ -2627,7 +2622,8 @@ msgid "the certificate (or its CA) is revoked"
 msgstr ""
 
 #: src/pdfsigner/validation.py
-msgid "the certificate doesn't chain to a trusted root"
+#, python-brace-format
+msgid "the certificate doesn't chain to a trusted root (issuer {issuer!r} not trusted, or not found)"
 msgstr ""
 
 #: src/pdfsigner/validation.py
@@ -2664,11 +2660,13 @@ msgid "the signature doesn't meet the field's requirements: {error}"
 msgstr ""
 
 #: src/pdfsigner/validation.py
-msgid "the timestamp authority isn't trusted"
+#, python-brace-format
+msgid "the timestamp authority {tsa!r} isn't trusted (issuer {issuer!r})"
 msgstr ""
 
 #: src/pdfsigner/validation.py
-msgid "the content timestamp authority isn't trusted"
+#, python-brace-format
+msgid "the content timestamp authority {tsa!r} isn't trusted (issuer {issuer!r})"
 msgstr ""
 
 #: src/pdfsigner/validation.py

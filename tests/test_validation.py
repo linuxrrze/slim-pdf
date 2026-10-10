@@ -190,7 +190,8 @@ def test_ca_issued_but_untrusted_root(form_pdf, tmp_path):
     sign_with(profile, form_pdf, out, field_name="Applicant")
     [r] = verify_pdf(out)
     assert r.status == UNTRUSTED
-    assert r.problems == ["the certificate doesn't chain to a trusted root"]
+    assert r.problems == ["the certificate doesn't chain to a trusted root (issuer "
+                          "'Test Root CA' not trusted, or not found)"]
     root = write_pem(ca.root, tmp_path / "root.pem")
     [r] = verify_pdf(out, trust=[root])
     assert r.status == VALID
@@ -214,7 +215,7 @@ def test_untrusted_timestamp_authority(profile, blank_pdf, alice_pem, tmp_path, 
     sign_with(profile, blank_pdf, out)
     [r] = verify_pdf(out, trust=[alice_pem])
     assert r.status == UNTRUSTED and r.timestamp is None
-    assert r.problems == ["the timestamp authority isn't trusted"]
+    assert r.problems == ["the timestamp authority 'Test TSA' isn't trusted (issuer 'Test TSA')"]
     [r] = verify_pdf(out, trust=[alice_pem, tsa_pem])
     assert r.status == VALID and r.timestamp is not None
 
