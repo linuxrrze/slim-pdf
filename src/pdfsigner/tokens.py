@@ -53,11 +53,15 @@ class TokenInfo:
     serial: str
     logged_in: bool
     entries: list[TokenEntry] = field(default_factory=list)
+    pin_status: str = ""  # "locked", "final try", "count low" or ""
 
     def describe(self) -> str:
-        return _("token '{label}' ({manufacturer} {model}, serial {serial})").format(
+        text = _("token '{label}' ({manufacturer} {model}, serial {serial})").format(
             label=self.label, manufacturer=self.manufacturer, model=self.model,
             serial=self.serial or "-")
+        status = {"locked": _("PIN locked"), "final try": _("one PIN attempt left"),
+                  "count low": _("few PIN attempts left")}.get(self.pin_status)
+        return f"{text}  [{status}]" if status else text
 
 
 def _text(value) -> str:
@@ -128,6 +132,17 @@ KNOWN_MODULES = {
 P11_KIT_PROXY = ["/usr/lib/*/p11-kit-proxy.so", "/usr/lib64/p11-kit-proxy.so"]
 
 
+def _pin_status(flags) -> str:
+    from pkcs11 import TokenFlag
+
+    for flag, status in ((TokenFlag.USER_PIN_LOCKED, "locked"),
+                         (TokenFlag.USER_PIN_FINAL_TRY, "final try"),
+                         (TokenFlag.USER_PIN_COUNT_LOW, "count low")):
+        if flags & flag:
+            return status
+    return ""
+
+
 def find_modules(platform: str | None = None) -> list[str]:
     """Installed PKCS#11 modules from KNOWN_MODULES, without duplicates."""
     import glob
@@ -169,9 +184,11 @@ def list_tokens(module: str, token_label: str | None = None,
             module=module, error=str(e) or type(e).__name__)) from None
     result = []
     for t in tokens:
-        info = TokenInfo(module=module, label=_text(t.label), manufacturer=_text(t.manufacturer_id),
-                         model=_text(t.model), serial=_text(t.serial), logged_in=False)
-        pin = ask_pin(info.label) if ask_pin else None
+        info = TokenInfo(module=module, label=_text(t.label),
+                         manufacturer=_text(t.manufacturer_id), model=_text(t.model),
+                         serial=_text(t.serial), logged_in=False, pin_status=_pin_status(t.flags))
+        # a locked PIN can't be used, and a wrong one shouldn't be risked here
+        pin = ask_pin(info.label) if ask_pin and info.pin_status != "locked" else None
         try:
             with t.open(user_pin=pin) if pin is not None else t.open() as session:
                 info.logged_in = pin is not None

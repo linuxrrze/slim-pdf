@@ -494,3 +494,12 @@ def test_cli_certs_pkcs11_without_module(piv, cfg_path, monkeypatch, capsys):
     monkeypatch.setattr(tokens, "find_modules", lambda: [])
     assert cli.main(["certs", "pkcs11"]) == 1
     assert "no PKCS#11 module found" in capsys.readouterr().err
+
+
+def test_token_listing_shows_the_pin_state():
+    from pdfsigner import tokens
+
+    t = tokens.TokenInfo("/x.so", "Card", "Yubico", "YubiKey", "1", False)
+    assert "[" not in t.describe()
+    t.pin_status = "final try"
+    assert t.describe().endswith("  [one PIN attempt left]")

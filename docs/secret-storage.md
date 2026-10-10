@@ -175,6 +175,13 @@ enter it once per signing. If the key was created with a touch policy
 (`--touch-policy always` or `cached`), touch the YubiKey when it blinks;
 without a touch the signature fails after a short timeout.
 
+Cards lock their PIN after a few wrong attempts (a YubiKey after 3).
+pdfsigner doesn't try a PIN on a locked card, says how many attempts are
+left when the card reports it, and doesn't spend the last attempt on a
+stored PIN (keyring, KeePass) that may be out of date: type it once with
+`secret = "prompt"` instead. `pdfsigner certs pkcs11` shows the PIN state
+next to each token.
+
 If GnuPG uses the same YubiKey (OpenPGP), its `scdaemon` may hold the card
 exclusively, and the PKCS#11 module then finds no token: `gpgconf --kill
 scdaemon` releases it.

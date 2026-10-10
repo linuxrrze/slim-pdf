@@ -2147,6 +2147,30 @@ msgid_plural "{n} certificates for key {key} on the token, set cert_label (certi
 msgstr[0] ""
 
 #: src/pdfsigner/signing.py
+msgid "Unblock it with the PUK (YubiKey: ykman piv access unblock-pin; OpenSC: pkcs15-tool --unblock-pin) or the card's own tool."
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "wrong PIN for token {label!r}; the PIN is now locked. {unblock}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "wrong PIN for token {label!r}; one attempt is left before the PIN is locked"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "wrong PIN for token {label!r}; only a few attempts are left"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "wrong PIN for token {label!r}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
 #, python-brace-format
 msgid "no token found by {module}: is the card inserted and the reader connected? If GnuPG uses the card, 'gpgconf --kill scdaemon' releases it."
 msgstr ""
@@ -2159,6 +2183,16 @@ msgstr ""
 #: src/pdfsigner/signing.py
 #, python-brace-format
 msgid "{count} tokens found ({tokens}); set token_label to choose one"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "the PIN of token {label!r} is locked. {unblock}"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "only one PIN attempt is left on token {label!r}, and a wrong PIN would lock it; pdfsigner won't try the stored PIN. Sign once with secret = prompt and type the PIN."
 msgstr ""
 
 #: src/pdfsigner/signing.py
@@ -2179,6 +2213,11 @@ msgstr ""
 #: src/pdfsigner/signing.py
 #, python-brace-format
 msgid "wrong PIN for token of '{name}'"
+msgstr ""
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "the PIN is locked. {unblock}"
 msgstr ""
 
 #: src/pdfsigner/signing.py
@@ -2310,6 +2349,18 @@ msgstr ""
 #: src/pdfsigner/tokens.py
 #, python-brace-format
 msgid "token '{label}' ({manufacturer} {model}, serial {serial})"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+msgid "PIN locked"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+msgid "one PIN attempt left"
+msgstr ""
+
+#: src/pdfsigner/tokens.py
+msgid "few PIN attempts left"
 msgstr ""
 
 #: src/pdfsigner/tokens.py

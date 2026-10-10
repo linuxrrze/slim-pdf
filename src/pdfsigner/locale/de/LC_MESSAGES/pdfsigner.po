@@ -2228,6 +2228,30 @@ msgstr[0] "{n} Zertifikat für Schlüssel {key} auf dem Token, cert_label setzen
 msgstr[1] "{n} Zertifikate für Schlüssel {key} auf dem Token, cert_label setzen (Zertifikate: {certs})"
 
 #: src/pdfsigner/signing.py
+msgid "Unblock it with the PUK (YubiKey: ykman piv access unblock-pin; OpenSC: pkcs15-tool --unblock-pin) or the card's own tool."
+msgstr "Mit der PUK entsperren (YubiKey: ykman piv access unblock-pin; OpenSC: pkcs15-tool --unblock-pin) oder mit dem Programm der Karte."
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "wrong PIN for token {label!r}; the PIN is now locked. {unblock}"
+msgstr "falsche PIN für Token {label!r}; die PIN ist jetzt gesperrt. {unblock}"
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "wrong PIN for token {label!r}; one attempt is left before the PIN is locked"
+msgstr "falsche PIN für Token {label!r}; noch ein Versuch, bevor die PIN gesperrt wird"
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "wrong PIN for token {label!r}; only a few attempts are left"
+msgstr "falsche PIN für Token {label!r}; nur noch wenige Versuche übrig"
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "wrong PIN for token {label!r}"
+msgstr "falsche PIN für Token {label!r}"
+
+#: src/pdfsigner/signing.py
 #, python-brace-format
 msgid "no token found by {module}: is the card inserted and the reader connected? If GnuPG uses the card, 'gpgconf --kill scdaemon' releases it."
 msgstr "{module} findet kein Token: Ist die Karte eingesteckt und das Lesegerät angeschlossen? Wenn GnuPG die Karte verwendet, gibt 'gpgconf --kill scdaemon' sie frei."
@@ -2241,6 +2265,16 @@ msgstr "kein Token mit dem Label {label!r} (Token: {tokens})"
 #, python-brace-format
 msgid "{count} tokens found ({tokens}); set token_label to choose one"
 msgstr "{count} Token gefunden ({tokens}); token_label wählt eines aus"
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "the PIN of token {label!r} is locked. {unblock}"
+msgstr "die PIN von Token {label!r} ist gesperrt. {unblock}"
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "only one PIN attempt is left on token {label!r}, and a wrong PIN would lock it; pdfsigner won't try the stored PIN. Sign once with secret = prompt and type the PIN."
+msgstr "Token {label!r} hat nur noch einen PIN-Versuch, und eine falsche PIN würde es sperren; pdfsigner versucht die gespeicherte PIN nicht. Einmal mit secret = prompt signieren und die PIN eingeben."
 
 #: src/pdfsigner/signing.py
 #, python-brace-format
@@ -2261,6 +2295,11 @@ msgstr "PKCS#11-Unterstützung benötigt 'pyhanko[pkcs11]'"
 #, python-brace-format
 msgid "wrong PIN for token of '{name}'"
 msgstr "falsche PIN für das Token von '{name}'"
+
+#: src/pdfsigner/signing.py
+#, python-brace-format
+msgid "the PIN is locked. {unblock}"
+msgstr "die PIN ist gesperrt. {unblock}"
 
 #: src/pdfsigner/signing.py
 #, python-brace-format
@@ -2397,6 +2436,18 @@ msgstr "Zertifikat '{label}': {subject}, läuft ab am {date}"
 #, python-brace-format
 msgid "token '{label}' ({manufacturer} {model}, serial {serial})"
 msgstr "Token '{label}' ({manufacturer} {model}, Seriennummer {serial})"
+
+#: src/pdfsigner/tokens.py
+msgid "PIN locked"
+msgstr "PIN gesperrt"
+
+#: src/pdfsigner/tokens.py
+msgid "one PIN attempt left"
+msgstr "noch ein PIN-Versuch"
+
+#: src/pdfsigner/tokens.py
+msgid "few PIN attempts left"
+msgstr "wenige PIN-Versuche übrig"
 
 #: src/pdfsigner/tokens.py
 msgid "(unreadable)"

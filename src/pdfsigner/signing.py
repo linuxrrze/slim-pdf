@@ -40,7 +40,7 @@ from pyhanko.sign.general import SigningError as PyHankoSigningError
 from pyhanko.sign.validation.pdf_embedded import read_certification_data
 
 from .config import CertProfile, expand
-from .i18n import _, ngettext
+from .i18n import N_, _, ngettext
 from .secretstore import Credentials
 
 Box = tuple[float, float, float, float]
@@ -493,6 +493,27 @@ def _find_token_key(session, profile: CertProfile):
     return key, asn1_x509.Certificate.load(certs[0][Attribute.VALUE])
 
 
+UNBLOCK_HINT = N_("Unblock it with the PUK (YubiKey: ykman piv access unblock-pin; "
+                  "OpenSC: pkcs15-tool --unblock-pin) or the card's own tool.")
+
+
+def _wrong_pin(lib, label: str) -> str:
+    """'Wrong PIN', plus how close the card is to locking (if it says)."""
+    from pkcs11 import TokenFlag
+
+    flags = next((t.flags for t in lib.get_tokens() if t.label.strip() == label), 0)
+    if flags & TokenFlag.USER_PIN_LOCKED:
+        return _("wrong PIN for token {label!r}; the PIN is now locked. {unblock}").format(
+            label=label, unblock=_(UNBLOCK_HINT))
+    if flags & TokenFlag.USER_PIN_FINAL_TRY:
+        return _("wrong PIN for token {label!r}; one attempt is left before the PIN is "
+                 "locked").format(label=label)
+    if flags & TokenFlag.USER_PIN_COUNT_LOW:
+        return _("wrong PIN for token {label!r}; only a few attempts are left").format(
+            label=label)
+    return _("wrong PIN for token {label!r}").format(label=label)
+
+
 def _open_token(profile: CertProfile, pin: str | None):
     """Session on the profile's token, logged in with ``pin``; without a PIN
     through the reader's PIN pad if the token has one (CKF_PROTECTED_AUTH),
@@ -503,6 +524,7 @@ def _open_token(profile: CertProfile, pin: str | None):
     """
     import pkcs11
     from pkcs11 import TokenFlag
+    from pkcs11.exceptions import PinIncorrect
 
     module = str(expand(profile.pkcs11_lib))
     lib = pkcs11.lib(module)
@@ -522,8 +544,22 @@ def _open_token(profile: CertProfile, pin: str | None):
         raise SigningError(_("{count} tokens found ({tokens}); set token_label to choose "
                              "one").format(count=len(matching), tokens=names))
     token = matching[0]
+    label = token.label.strip()
+    if token.flags & TokenFlag.USER_PIN_LOCKED:
+        raise SigningError(_("the PIN of token {label!r} is locked. {unblock}").format(
+            label=label, unblock=_(UNBLOCK_HINT)))
     if pin:
-        return token.open(user_pin=pin)
+        # A card locks itself after a few wrong PINs. Don't spend the last
+        # attempt on a stored PIN that may be out of date.
+        if token.flags & TokenFlag.USER_PIN_FINAL_TRY and profile.secret not in ("prompt",):
+            raise SigningError(_(
+                "only one PIN attempt is left on token {label!r}, and a wrong PIN would "
+                "lock it; pdfsigner won't try the stored PIN. Sign once with "
+                "secret = prompt and type the PIN.").format(label=label))
+        try:
+            return token.open(user_pin=pin)
+        except PinIncorrect:
+            raise SigningError(_wrong_pin(lib, label)) from None
     if token.flags & TokenFlag.PROTECTED_AUTHENTICATION_PATH:
         return token.open(user_pin=pkcs11.PROTECTED_AUTH)  # PIN pad on the reader
     return token.open()
@@ -585,12 +621,21 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
         except ImportError as e:
             raise SigningError(_("PKCS#11 support needs 'pyhanko[pkcs11]'")) from e
         from pkcs11 import Attribute
-        from pkcs11.exceptions import PinIncorrect, PinLenRange, PKCS11Error, UserNotLoggedIn
+        from pkcs11.exceptions import (
+            PinIncorrect,
+            PinLenRange,
+            PinLocked,
+            PKCS11Error,
+            UserNotLoggedIn,
+        )
 
         def token_error(e: Exception, signing: bool = False) -> SigningError:
             if isinstance(e, (PinIncorrect, PinLenRange)):
                 return SigningError(_("wrong PIN for token of '{name}'").format(
                     name=profile.name))
+            if isinstance(e, PinLocked):
+                return SigningError(_("the PIN is locked. {unblock}").format(
+                    unblock=_(UNBLOCK_HINT)))
             if signing and isinstance(e, UserNotLoggedIn):
                 return SigningError(_("the key of '{name}' needs the PIN for every "
                                       "signature, but none was given").format(name=profile.name))

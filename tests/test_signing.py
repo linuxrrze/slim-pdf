@@ -633,3 +633,53 @@ def test_field_page_found_via_annots(form_pdf):
     assert info.field("Supervisor").rect == (320, 100, 520, 170)
     assert info.empty_fields == info.fields
     assert info.field("nope") is None
+
+
+class WrongPinToken(FakeToken):
+    """Rejects every PIN and then reports ``after`` in its flags, as a card does."""
+
+    def __init__(self, label, flags, after):
+        super().__init__(label, flags)
+        self.after = after
+
+    def open(self, **kw):
+        from pkcs11.exceptions import PinIncorrect
+
+        self.opened.append(kw)
+        self.flags |= self.after
+        raise PinIncorrect()
+
+
+@pytest.mark.parametrize("after, message", [
+    (0, r"^wrong PIN for token 'Card'$"),
+    ("USER_PIN_COUNT_LOW", "only a few attempts are left"),
+    ("USER_PIN_FINAL_TRY", "one attempt is left before the PIN is locked"),
+    ("USER_PIN_LOCKED", "the PIN is now locked. Unblock it with the PUK"),
+])
+def test_pkcs11_wrong_pin_says_how_close_the_card_is_to_locking(fake_token, after, message):
+    flags = fake_token.flags
+    fake_token.tokens[:] = [WrongPinToken("Card", flags.TOKEN_INITIALIZED,
+                                          getattr(flags, after) if after else 0)]
+    with pytest.raises(SigningError, match=message):
+        with open_signer(_tok_profile(), Credentials(secret="0000")):
+            pass
+
+
+def test_pkcs11_locked_or_last_try(fake_token):
+    flags = fake_token.flags
+    locked = FakeToken("Card", flags.TOKEN_INITIALIZED | flags.USER_PIN_LOCKED)
+    fake_token.tokens[:] = [locked]
+    with pytest.raises(SigningError, match="PIN of token 'Card' is locked.*ykman piv access"):
+        with open_signer(_tok_profile(), Credentials(secret="123456")):
+            pass
+    assert locked.opened == []  # not even tried
+
+    last = FakeToken("Card", flags.TOKEN_INITIALIZED | flags.USER_PIN_FINAL_TRY)
+    fake_token.tokens[:] = [last]
+    with pytest.raises(SigningError, match="only one PIN attempt is left.*secret = prompt"):
+        with open_signer(_tok_profile(secret="keyring"), Credentials(secret="123456")):
+            pass
+    assert last.opened == []  # a stored PIN isn't spent on the last attempt
+    with open_signer(_tok_profile(secret="prompt"), Credentials(secret="123456")):
+        pass  # a PIN typed now is
+    assert last.opened == [{"user_pin": "123456"}]
