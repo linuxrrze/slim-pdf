@@ -184,9 +184,11 @@ with it directly; the private key never leaves the store:
 * **Windows:** the personal store of the current user (*certmgr.msc →
   Personal*), through CNG. Smartcards with a minidriver work too; Windows
   shows its own PIN dialog.
-* **macOS:** identities in the keychain search list (login keychain,
-  smartcards via CryptoTokenKit). macOS asks whether pdfsigner (Python) may
-  use the key; *Always Allow* stops it asking again.
+* **macOS:** identities in the keychain search list (login keychain) and on
+  smartcards that macOS supports natively (CryptoTokenKit; this includes a
+  YubiKey's PIV certificates). `certs system` marks those `[smartcard]`.
+  macOS asks whether pdfsigner (Python) may use a keychain key (*Always
+  Allow* stops it asking again), and for the card's PIN.
 
 ```console
 $ pdfsigner certs system          # one line per certificate: thumbprint, subject, expiry
@@ -202,7 +204,9 @@ RSA (PKCS#1 v1.5) and ECDSA keys are supported.
 pyHanko has no backend for these stores, so pdfsigner talks to them directly
 (`src/pdfsigner/_winstore.py`, `_macstore.py`, via `ctypes`). This is
 **new and only tested in CI** with software keys imported into a throwaway
-store (`tests/test_systemstore_native.py`), not yet with smartcards.
+store (`tests/test_systemstore_native.py`), not yet with smartcards. For a
+YubiKey or another PIV card, the PKCS#11 profile (section 5) is the tested
+route.
 
 If you'd rather not rely on it, export the certificate with its private key
 as `.p12` (Windows: *certmgr.msc → Export → Yes, export the private key*;

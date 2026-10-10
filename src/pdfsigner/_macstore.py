@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import ctypes
+import logging
 from ctypes import c_char_p, c_int32, c_long, c_void_p
 
 from asn1crypto import x509
 
 from .signing import SigningError
 from .systemstore import StoreCancelled, StoreIdentity
+
+log = logging.getLogger(__name__)
 
 cf = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
 sec = ctypes.CDLL("/System/Library/Frameworks/Security.framework/Security")
@@ -86,42 +89,60 @@ class MacKeychain:
     name = "macOS keychain"
 
     def __init__(self):
-        self._array = None
+        self._arrays: list[int] = []
 
-    def identities(self) -> list[StoreIdentity]:
-        keys = (c_void_p * 3)(_const(sec, "kSecClass"), _const(sec, "kSecMatchLimit"),
-                              _const(sec, "kSecReturnRef"))
-        values = (c_void_p * 3)(_const(sec, "kSecClassIdentity"),
-                                _const(sec, "kSecMatchLimitAll"),
-                                _const(cf, "kCFBooleanTrue"))
-        query = cf.CFDictionaryCreate(None, keys, values, 3,
+    def _search(self, token: bool) -> int | None:
+        """CFArray of identities, or None. Smartcard identities (CryptoTokenKit)
+        are only returned by a query for the token access group."""
+        keys = [_const(sec, "kSecClass"), _const(sec, "kSecMatchLimit"),
+                _const(sec, "kSecReturnRef")]
+        values = [_const(sec, "kSecClassIdentity"), _const(sec, "kSecMatchLimitAll"),
+                  _const(cf, "kCFBooleanTrue")]
+        if token:
+            keys.append(_const(sec, "kSecAttrAccessGroup"))
+            values.append(_const(sec, "kSecAttrAccessGroupToken"))
+        n = len(keys)
+        query = cf.CFDictionaryCreate(None, (c_void_p * n)(*keys), (c_void_p * n)(*values), n,
                                       _address(cf, "kCFTypeDictionaryKeyCallBacks"),
                                       _address(cf, "kCFTypeDictionaryValueCallBacks"))
         result = c_void_p()
         status = sec.SecItemCopyMatching(query, ctypes.byref(result))
         cf.CFRelease(query)
         if status == errSecItemNotFound:
-            return []
+            return None
         if status != errSecSuccess:
+            if token:  # e.g. no smartcard support; the keychain itself still works
+                log.info("keychain: smartcard search failed (OSStatus %s)", status)
+                return None
             raise SigningError(f"keychain search failed (OSStatus {status})")
-        self._array = result.value  # keeps the identities alive until close()
+        self._arrays.append(result.value)  # keeps the identities alive until close()
+        return result.value
 
-        identities = []
-        for i in range(cf.CFArrayGetCount(self._array)):
-            ident = cf.CFArrayGetValueAtIndex(self._array, i)
-            certref = c_void_p()
-            if sec.SecIdentityCopyCertificate(ident, ctypes.byref(certref)) != errSecSuccess:
+    def identities(self) -> list[StoreIdentity]:
+        identities: list[StoreIdentity] = []
+        seen: set[bytes] = set()
+        for token in (False, True):
+            array = self._search(token)
+            if array is None:
                 continue
-            data = sec.SecCertificateCopyData(certref)
-            der = _cfdata_bytes(data)
-            cf.CFRelease(data)
-            cf.CFRelease(certref)
-            try:
-                cert = x509.Certificate.load(der)
-                _ = cert.native  # parse fully now
-            except ValueError:
-                continue
-            identities.append(StoreIdentity(cert=cert, handle=ident))
+            for i in range(cf.CFArrayGetCount(array)):
+                ident = cf.CFArrayGetValueAtIndex(array, i)
+                certref = c_void_p()
+                if sec.SecIdentityCopyCertificate(ident, ctypes.byref(certref)) != errSecSuccess:
+                    continue
+                data = sec.SecCertificateCopyData(certref)
+                der = _cfdata_bytes(data)
+                cf.CFRelease(data)
+                cf.CFRelease(certref)
+                if der in seen:
+                    continue
+                seen.add(der)
+                try:
+                    cert = x509.Certificate.load(der)
+                    _ = cert.native  # parse fully now
+                except ValueError:
+                    continue
+                identities.append(StoreIdentity(cert=cert, handle=ident, on_token=token))
         return identities
 
     def sign_digest(self, ident: StoreIdentity, digest: bytes, digest_algorithm: str,
@@ -154,6 +175,6 @@ class MacKeychain:
             cf.CFRelease(key)
 
     def close(self) -> None:
-        if self._array:
-            cf.CFRelease(self._array)
-            self._array = None
+        for array in self._arrays:
+            cf.CFRelease(array)
+        self._arrays = []

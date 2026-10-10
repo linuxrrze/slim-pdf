@@ -161,3 +161,10 @@ def test_placeholder_is_large_enough(store):
             sig = store.sign_digest(ident, bytes(32), "sha256",
                                     "rsassa_pkcs1v15" if "RSA" in ident.subject else "ecdsa")
             assert len(sig) <= n
+
+
+def test_describe_marks_smartcards(store):
+    ident = store.identities()[0]
+    assert "[smartcard]" not in ident.describe()
+    on_card = StoreIdentity(cert=ident.cert, handle=ident.handle, on_token=True)
+    assert on_card.describe() == ident.describe() + "  [smartcard]"

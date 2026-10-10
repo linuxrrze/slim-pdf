@@ -3,8 +3,9 @@
 * **Windows:** the current user's personal store ("Cert:\\CurrentUser\\My"),
   through CNG (``NCryptSignHash``). Covers software keys and smartcards with
   a CNG/minidriver, which also asks for the PIN.
-* **macOS:** identities in the keychain search list (login keychain,
-  smartcards via CryptoTokenKit), through ``SecKeyCreateSignature``.
+* **macOS:** identities in the keychain search list (login keychain) and
+  on smartcards (CryptoTokenKit, e.g. a YubiKey's PIV certificates), through
+  ``SecKeyCreateSignature``.
 
 The private key never leaves the store: pyHanko hands us the data to sign,
 we hash it and ask the OS to sign the digest. A profile selects the
@@ -36,6 +37,7 @@ class StoreCancelled(SigningError):
 class StoreIdentity:
     cert: x509.Certificate
     handle: Any  # backend-specific
+    on_token: bool = False  # smartcard / hardware token (macOS: CryptoTokenKit)
 
     @property
     def thumbprint(self) -> str:
@@ -47,7 +49,8 @@ class StoreIdentity:
 
     def describe(self) -> str:
         return (f"{self.thumbprint}  {self.subject}  "
-                f"(valid until {self.cert.not_valid_after:%Y-%m-%d})")
+                f"(valid until {self.cert.not_valid_after:%Y-%m-%d})"
+                + ("  [smartcard]" if self.on_token else ""))
 
 
 class Backend(Protocol):

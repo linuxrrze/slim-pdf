@@ -57,6 +57,7 @@ pip install -e ".[all]"
 | `keyring` backend | Secret Service / KWallet (KeePassXC possible) | Keychain | Credential Manager |
 | KeePass profiles | ✅ | ✅ | ✅ |
 | PKCS#11 module (OpenSC) | `opensc-pkcs11.so` | `/Library/OpenSC/lib/opensc-pkcs11.so` | `opensc-pkcs11.dll` |
+| PKCS#11 module (YubiKey) | `libykcs11.so` | `libykcs11.dylib` | `libykcs11.dll` |
 | Shortcuts | `Ctrl` | `Cmd` | `Ctrl` |
 
 * Certificates in the **Windows certificate store** or the **macOS
@@ -131,7 +132,7 @@ pytest --cov=pdfsigner       # ~200 tests, ~95 % line coverage
 | File | Covers |
 |---|---|
 | `test_signing.py` | New and prepared fields, chains of 2–3 signers (each validated with pyHanko's diff analysis), certification and FieldMDP locks (Include/Exclude/All) and `--force`, encrypted PDFs, timestamps (dummy TSA), stamp variants. **Visual regressions:** stamp upright on all four page rotations; text never overlapping the image. |
-| `test_pkcs11_softhsm.py` | Signing with a real PKCS#11 token (SoftHSM 2): token + PKCS#12 chain, wrong PIN, unknown token/key/module. Skipped if SoftHSM isn't installed. |
+| `test_pkcs11_softhsm.py` | Signing with a real PKCS#11 token (SoftHSM 2): token + PKCS#12 chain, wrong PIN, unknown token/key/module, errors while signing; a YubiKey-style token (key selection by label/ID, certificate by the key's ID, PIN before every signature, raw ECDSA); `certs pkcs11` listing. Skipped if SoftHSM isn't installed. |
 | `test_ltv.py` | LTV against a local test CA serving a CRL: data is embedded and verifiable offline with revocation checks *required*; B-LTA with a document timestamp; refuses untrusted, revoked and unreachable cases. |
 | `test_validation.py` | Verdicts valid/untrusted/invalid, trust roots from options and config, tampered bytes, disallowed later changes, encrypted PDFs, `verify` exit codes. |
 | `test_keepassxc.py` | `keepassxc-cli` source against the real binary (binary-exact attachments via named pipe and temp file, key files, wrong password, missing entry/attachment) and a fake CLI (argument protocol, YubiKey option, no hang when the CLI fails). |
@@ -151,6 +152,9 @@ Screenshots are regenerated with
 
 ## Known gaps / next steps
 
-* **PKCS#11** is tested against SoftHSM, not yet with a physical token.
+* **PKCS#11** is tested against SoftHSM (including a token laid out like a
+  YubiKey: Yubico's labels, slot IDs, PIN before every signature), not yet
+  with a physical token.
 * **Windows certificate store / macOS keychain** signing is tested in CI with
-  software keys only, not yet with smartcards.
+  software keys only, not yet with smartcards. On macOS, smartcard
+  identities come from a separate keychain query that has never seen a card.

@@ -106,6 +106,7 @@ def test_listed(identity):
         ids = backend.identities()
         match = systemstore.select(ids, cn)
         assert match.cert.dump() == cert.public_bytes(serialization.Encoding.DER)
+        assert not match.on_token
     finally:
         backend.close()
 
