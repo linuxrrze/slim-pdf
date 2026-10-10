@@ -116,31 +116,58 @@ of this with far less code.
 
 ## 5. Hardware tokens (`type = "pkcs11"`)
 
-The real answer to "safe storage" is a key that can't be copied. With
-OpenSC, a YubiKey (PIV slot 9c, "Digital Signature") or a Nitrokey works
-through OpenSC's PKCS#11 module:
+The real answer to "safe storage" is a key that can't be copied: a YubiKey,
+a Nitrokey or a smartcard, used through the vendor's PKCS#11 module or
+OpenSC's.
 
-| Platform | Module |
-|---|---|
-| Linux (Debian/Ubuntu) | `/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so` |
-| macOS | `/Library/OpenSC/lib/opensc-pkcs11.so` |
-| Windows | `C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll` |
+| Module | Linux (Debian/Ubuntu) | macOS | Windows |
+|---|---|---|---|
+| Yubico (`ykcs11`, from yubico-piv-tool) | `/usr/lib/x86_64-linux-gnu/libykcs11.so` | `/opt/homebrew/lib/libykcs11.dylib` | `C:\Program Files\Yubico\Yubico PIV Tool\bin\libykcs11.dll` |
+| OpenSC | `/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so` | `/Library/OpenSC/lib/opensc-pkcs11.so` | `C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll` |
 
+### YubiKey (PIV)
+
+Slot 9c ("Digital Signature") is meant for signing. Both modules give its
+key and certificate the ID `02`, but different labels:
+
+| Slot | ID | ykcs11 key / certificate label | OpenSC key / certificate label |
+|---|---|---|---|
+| 9a | `01` | Private key for PIV Authentication / X.509 Certificate for PIV Authentication | PIV AUTH key / Certificate for PIV Authentication |
+| 9c | `02` | Private key for Digital Signature / X.509 Certificate for Digital Signature | SIGN key / Certificate for Digital Signature |
+
+So the simplest profile selects the key by ID; pdfsigner then takes the
+certificate with the same ID:
 
 ```bash
-pdfsigner certs add token --pkcs11-lib /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so \
-    --token-label "PIV_II" --key-label "SIGN key" --secret prompt
+pdfsigner certs add yubikey --pkcs11-lib /usr/lib/x86_64-linux-gnu/libykcs11.so \
+    --key-id 02 --secret prompt
 ```
 
-A GÉANT/DFN S/MIME certificate obtained as a `.p12` can be imported into PIV
-slot 9c, for example with `ykman piv keys import` and `ykman piv
-certificates import`. Then you can delete the `.p12`, or keep it in KeePass
-as a backup. The PIN source is independent (`prompt`, `keyring`,
-`keepass` or `keepassxc`).
+Setting up slot 9c with [ykman](https://docs.yubico.com/software/yubikey/tools/ykman/):
+
+```bash
+# a new key on the YubiKey, and a certificate request for your CA
+ykman piv keys generate --algorithm ECCP256 9c pub.pem
+ykman piv certificates request --subject "CN=Alice Example" 9c pub.pem csr.pem
+ykman piv certificates import 9c cert.pem        # the certificate you got back
+
+# or: an existing .p12 (e.g. a GÉANT/DFN S/MIME certificate)
+ykman piv keys import 9c alice.p12
+ykman piv certificates import 9c alice.p12
+```
+
+Afterwards you can delete the `.p12`, or keep it in KeePass as a backup.
+The PIN source is independent (`prompt`, `keyring`, `keepass` or
+`keepassxc`).
+
+If GnuPG uses the same YubiKey (OpenPGP), its `scdaemon` may hold the card
+exclusively, and the PKCS#11 module then finds no token: `gpgconf --kill
+scdaemon` releases it.
 
 Install with `pip install 'pdfsigner[pkcs11]'`. The test suite signs with
-a SoftHSM 2 software token (`tests/test_pkcs11_softhsm.py`); it hasn't been
-tried with a physical token yet.
+SoftHSM 2 software tokens (`tests/test_pkcs11_softhsm.py`), one of them laid
+out like a YubiKey with Yubico's labels; it hasn't been tried with a
+physical token yet.
 
 ## 6. Windows certificate store / macOS keychain (`type = "system"`)
 

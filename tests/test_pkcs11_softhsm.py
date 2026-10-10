@@ -16,7 +16,7 @@ pkcs11 = pytest.importorskip("pkcs11")
 
 from cryptography import x509  # noqa: E402
 from cryptography.hazmat.primitives import hashes, serialization  # noqa: E402
-from cryptography.hazmat.primitives.asymmetric import rsa  # noqa: E402
+from cryptography.hazmat.primitives.asymmetric import ec, rsa  # noqa: E402
 from cryptography.x509.oid import NameOID  # noqa: E402
 
 from pdfsigner import cli  # noqa: E402
@@ -57,8 +57,11 @@ def token(tmp_path_factory):
     conf.write_text(f"directories.tokendir = {d / 'tokens'}\nobjectstore.backend = file\n")
     old_conf = os.environ.get("SOFTHSM2_CONF")
     os.environ["SOFTHSM2_CONF"] = str(conf)
-    subprocess.run([util, "--module", lib, "--init-token", "--free", "--label", TOKEN,
-                    "--so-pin", "12345678", "--pin", PIN], check=True, capture_output=True)
+    # SoftHSM reads its token list when the module is first loaded, so both
+    # tokens (this one and the PIV-style one, see `piv`) are created now.
+    for label in (TOKEN, PIV_TOKEN):
+        subprocess.run([util, "--module", lib, "--init-token", "--free", "--label", label,
+                        "--so-pin", "12345678", "--pin", PIN], check=True, capture_output=True)
 
     # RSA key and self-signed certificate, imported as token objects
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -98,6 +101,77 @@ def token(tmp_path_factory):
         os.environ.pop("SOFTHSM2_CONF", None)
     else:
         os.environ["SOFTHSM2_CONF"] = old_conf
+
+
+# A second token laid out like a YubiKey through Yubico's ykcs11 module:
+# keys and certificates carry different labels but share the slot's ID.
+PIV_TOKEN = "YubiKey PIV #12345678"
+PIV_SLOTS = {  # slot: (ID, key label, certificate label)
+    "9a": (b"\x01", "Private key for PIV Authentication", "X.509 Certificate for PIV Authentication"),
+    "9c": (b"\x02", "Private key for Digital Signature", "X.509 Certificate for Digital Signature"),
+}
+
+
+def _issue(ca_key, ca_cert, cn, public_key):
+    now = datetime.datetime.now(datetime.UTC)
+    return (
+        x509.CertificateBuilder().subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)]))
+        .issuer_name(ca_cert.subject).public_key(public_key)
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - datetime.timedelta(days=1))
+        .not_valid_after(now + datetime.timedelta(days=30))
+        .add_extension(x509.KeyUsage(True, True, False, False, False, False, False, False, False),
+                       critical=True)  # digitalSignature, nonRepudiation
+        .sign(ca_key, hashes.SHA256())
+    )
+
+
+@pytest.fixture(scope="module")
+def piv(token):
+    """EC keys generated on the token (slots 9a and 9c) with certificates
+    from a software CA. Yields (module, CA certificate, {slot: certificate})."""
+    from pkcs11 import Attribute, CertificateType, KeyType, ObjectClass
+    from pkcs11.util.ec import encode_ec_public_key, encode_named_curve_parameters
+
+    lib, _ = token
+    ca_key = ec.generate_private_key(ec.SECP256R1())
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "PIV Test CA")])
+    now = datetime.datetime.now(datetime.UTC)
+    ca_cert = (
+        x509.CertificateBuilder().subject_name(ca_name).issuer_name(ca_name)
+        .public_key(ca_key.public_key()).serial_number(x509.random_serial_number())
+        .not_valid_before(now - datetime.timedelta(days=1))
+        .not_valid_after(now + datetime.timedelta(days=30))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .sign(ca_key, hashes.SHA256())
+    )
+    certs = {}
+    with pkcs11.lib(lib).get_token(token_label=PIV_TOKEN).open(rw=True, user_pin=PIN) as s:
+        params = s.create_domain_parameters(
+            KeyType.EC, {Attribute.EC_PARAMS: encode_named_curve_parameters("secp256r1")},
+            local=True)
+        for slot, (oid, key_label, cert_label) in PIV_SLOTS.items():
+            pub, _ = params.generate_keypair(
+                store=True,
+                public_template={Attribute.ID: oid, Attribute.LABEL: f"Public key for {slot}"},
+                private_template={Attribute.ID: oid, Attribute.LABEL: key_label})
+            public_key = serialization.load_der_public_key(encode_ec_public_key(pub))
+            cert = _issue(ca_key, ca_cert, f"PIV {slot}", public_key)
+            s.create_object({
+                Attribute.CLASS: ObjectClass.CERTIFICATE,
+                Attribute.CERTIFICATE_TYPE: CertificateType.X_509,
+                Attribute.TOKEN: True,
+                Attribute.LABEL: cert_label,
+                Attribute.ID: oid,
+                Attribute.SUBJECT: cert.subject.public_bytes(),
+                Attribute.VALUE: cert.public_bytes(serialization.Encoding.DER),
+            })
+            certs[slot] = cert
+    yield lib, ca_cert, certs
+
+
+def piv_profile(lib, **kw):
+    return CertProfile(name="yk", type="pkcs11", pkcs11_lib=lib, token_label=PIV_TOKEN, **kw)
 
 
 @pytest.fixture
@@ -182,3 +256,49 @@ def test_token_error_while_signing(tok_profile, form_pdf, tmp_path, monkeypatch)
         with open_signer(tok_profile, Credentials(secret=PIN)) as s:
             sign_pdf(form_pdf, tmp_path / "out.pdf", s, tok_profile, field_name="Applicant")
     assert not (tmp_path / "out.pdf").exists()
+
+
+# --- selecting key and certificate (YubiKey-style labels) -----------------------------
+
+
+@pytest.mark.parametrize("select", [
+    {"key_label": "Private key for Digital Signature"},
+    {"key_id": "02"},
+    {"key_id": "0x02"},
+    {"key_label": "Private key for Digital Signature", "key_id": "02"},
+    {"key_id": "02", "cert_label": "X.509 Certificate for Digital Signature"},
+])
+def test_piv_select_signature_key(piv, select, form_pdf, tmp_path):
+    """The certificate is found through the key's ID although the labels differ."""
+    lib, ca, certs = piv
+    profile = piv_profile(lib, **select)
+    out = tmp_path / "out.pdf"
+    with open_signer(profile, Credentials(secret=PIN)) as s:
+        assert s.signing_cert.subject.human_friendly == "Common Name: PIV 9c"
+        sign_pdf(form_pdf, out, s, profile, field_name="Applicant")
+    [(_, st)] = validate_all(out, ca)
+    assert st.bottom_line
+
+
+def test_piv_several_keys_need_a_choice(piv):
+    lib, _, _ = piv
+    with pytest.raises(SigningError, match=r"2 private keys match.*\(ID 01\).*\(ID 02\)"):
+        with open_signer(piv_profile(lib), Credentials(secret=PIN)):
+            pass
+
+
+def test_piv_unknown_key_lists_keys(piv):
+    lib, _, _ = piv
+    with pytest.raises(SigningError,
+                       match=r"no private key with ID '05'.*'Private key for Digital Signature' \(ID 02\)"):
+        with open_signer(piv_profile(lib, key_id="05"), Credentials(secret=PIN)):
+            pass
+
+
+def test_piv_wrong_cert_label_lists_certificates(piv):
+    lib, _, _ = piv
+    with pytest.raises(SigningError, match=r"no certificate with label 'nope'.*"
+                                           r"'X.509 Certificate for Digital Signature' \(ID 02\)"):
+        with open_signer(piv_profile(lib, key_id="02", cert_label="nope"),
+                         Credentials(secret=PIN)):
+            pass

@@ -131,7 +131,8 @@ class CertManagerDialog(QDialog):
                                      "PKCS#11 module", "PKCS#11 modules (*.so *.so.* *.dylib *.dll);;All files (*)"))
         f.addRow("Token label", line("token_label"))
         f.addRow("Key label", line("key_label"))
-        f.addRow("Cert label", line("cert_label", "defaults to key label"))
+        f.addRow("Key ID", line("key_id", "hex, e.g. 02 (YubiKey PIV slot 9c)"))
+        f.addRow("Cert label", line("cert_label", "default: the certificate with the key's ID"))
 
         appearance = QGroupBox("Appearance")
         f = QFormLayout(appearance)

@@ -62,7 +62,9 @@ PROFILE_OPTS = {
     "--pkcs11-lib": ("pkcs11_lib", f"PKCS#11 module, e.g. {PKCS11_EXAMPLE}"),
     "--token-label": ("token_label", "PKCS#11 token label"),
     "--key-label": ("key_label", "PKCS#11 key label"),
-    "--cert-label": ("cert_label", "PKCS#11 certificate label (defaults to key label)"),
+    "--key-id": ("key_id", "PKCS#11 key ID in hex, e.g. 02 for YubiKey PIV slot 9c"),
+    "--cert-label": ("cert_label", "PKCS#11 certificate label (default: the certificate "
+                     "with the key's ID)"),
     "--system-cert": ("system_cert", "Windows/macOS certificate store: thumbprint or part "
                       "of the subject (see 'certs system')"),
     "--image": ("image", "signature image (PNG with transparency recommended)"),

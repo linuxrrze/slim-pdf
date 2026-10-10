@@ -9,6 +9,7 @@ from pdfsigner.config import (
     default_config_path,
     expand,
     load_config,
+    normalize_hex,
 )
 
 
@@ -56,6 +57,7 @@ def test_unknown_key_rejected(tmp_path):
     (dict(name="x"), "needs a path"),
     (dict(name="x", keepass_attachment="a.p12"), "requires secret = 'keepass'"),
     (dict(name="x", type="pkcs11"), "needs pkcs11_lib"),
+    (dict(name="x", type="pkcs11", pkcs11_lib="/x.so", key_id="9c-slot"), "key_id must be hex"),
     (dict(name="x", path="a", secret="keepass"), "needs keepass_db and keepass_entry"),
 ])
 def test_validation(kwargs, message):
@@ -68,6 +70,7 @@ def test_valid_variants():
     CertProfile(name="b", secret="keepass", keepass_db="d.kdbx", keepass_entry="E",
                 keepass_attachment="x.p12").validate()
     CertProfile(name="c", type="pkcs11", pkcs11_lib="/x.so", secret="keyring").validate()
+    CertProfile(name="d", type="pkcs11", pkcs11_lib="/x.so", key_id="0x02").validate()
 
 
 def test_get_and_default():
@@ -123,3 +126,9 @@ def test_expand(monkeypatch, tmp_path):
 
 def test_default_stamp_text():
     assert "%(signer)s" in DEFAULT_STAMP_TEXT and "%(ts)s" in DEFAULT_STAMP_TEXT
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("02", "02"), ("0x02", "02"), (" 0A ", "0a"), ("de:ad be-ef", "deadbeef")])
+def test_normalize_hex(value, expected):
+    assert normalize_hex(value) == expected

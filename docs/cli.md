@@ -217,14 +217,25 @@ have no `--secret`. Details in
 ### Smartcard / token (PKCS#11)
 
 ```console
-$ pdfsigner certs add yubikey --pkcs11-lib /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so \
-      --token-label PIV_II --key-label "SIGN key" --image ~/certs/signature.png
+$ pdfsigner certs add yubikey --pkcs11-lib /usr/lib/x86_64-linux-gnu/libykcs11.so \
+      --key-id 02 --image ~/certs/signature.png
 ```
 
-On macOS the OpenSC module is `/Library/OpenSC/lib/opensc-pkcs11.so`, on
-Windows `C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll`.
-`--pkcs11-lib` sets the type to `pkcs11` automatically. `--cert-label`
-defaults to the key label. Requires `pip install 'pdfsigner[pkcs11]'`.
+`--pkcs11-lib` sets the type to `pkcs11` automatically. The key is chosen by
+`--key-label` and/or `--key-id` (hex; on a YubiKey or other PIV card `01`,
+`02`, `03`, `04` are slots 9a, 9c, 9d, 9e); with neither, the token must
+hold exactly one key. The certificate is the one with the key's ID, so
+`--cert-label` is only needed for tokens that don't pair them that way.
+`--token-label` picks a token when several are plugged in.
+
+| Module | Linux (Debian/Ubuntu) | macOS | Windows |
+|---|---|---|---|
+| Yubico (YubiKey) | `/usr/lib/x86_64-linux-gnu/libykcs11.so` | `/opt/homebrew/lib/libykcs11.dylib` | `C:\Program Files\Yubico\Yubico PIV Tool\bin\libykcs11.dll` |
+| OpenSC (most cards) | `/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so` | `/Library/OpenSC/lib/opensc-pkcs11.so` | `C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll` |
+
+The paths are the usual install locations; they differ with the package
+source. Requires `pip install 'pdfsigner[pkcs11]'`. More in
+[secret-storage.md](secret-storage.md#5-hardware-tokens-type--pkcs11).
 
 ---
 
@@ -588,13 +599,12 @@ keepass_attachment = "fau-smime.p12"
 
 [certs.yubikey]
 type = "pkcs11"
-pkcs11_lib = "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so"
-token_label = "PIV_II"
-key_label = "SIGN key"
+pkcs11_lib = "/usr/lib/x86_64-linux-gnu/libykcs11.so"
+key_id = "02"
 ```
 
 All keys: `type`, `path`, `pkcs11_lib`, `token_label`, `key_label`,
-`cert_label`, `system_cert`, `image`, `stamp_text`, `reason`, `location`, `contact_info`,
+`key_id`, `cert_label`, `system_cert`, `image`, `stamp_text`, `reason`, `location`, `contact_info`,
 `timestamp_url`, `ltv`, `secret`, `keepass_db`, `keepass_keyfile`, `keepass_entry`,
 `keepass_attachment`, `keepass_yubikey`. Unknown keys are rejected, so typos don't go
 unnoticed. The file is written with mode `0600` and **never contains

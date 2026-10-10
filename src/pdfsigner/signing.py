@@ -345,6 +345,108 @@ def upright_style(style: stamp.BaseStampStyle, rotation: int) -> stamp.BaseStamp
 # --- signer ------------------------------------------------------------------
 
 
+def _p11_attr(obj, attr):
+    """An attribute of a token object, or None if the token doesn't have it."""
+    from pkcs11.exceptions import PKCS11Error
+
+    try:
+        return obj[attr]
+    except PKCS11Error:
+        return None
+
+
+def _describe_token_objects(objs) -> str:
+    from pkcs11 import Attribute
+
+    out = []
+    for o in objs:
+        label, oid = _p11_attr(o, Attribute.LABEL), _p11_attr(o, Attribute.ID)
+        out.append(f"'{label or ''}'" + (f" (ID {oid.hex()})" if oid else ""))
+    return ", ".join(out) or "none"
+
+
+def _find_token_key(session, profile: CertProfile):
+    """Find the private key (by label and/or ID; the only one if neither is
+    given) and its certificate (by ``cert_label``, else the key's ID, else
+    the key's label).
+
+    Returns (key object, asn1crypto certificate).
+    Cards label keys and certificates differently (YubiKey: "Private key for
+    Digital Signature" / "X.509 Certificate for Digital Signature"), but give
+    both the same ID.
+    """
+    from asn1crypto import x509 as asn1_x509
+    from pkcs11 import Attribute, ObjectClass
+    from pkcs11.exceptions import PKCS11Error
+
+    from .config import normalize_hex
+
+    want = {Attribute.CLASS: ObjectClass.PRIVATE_KEY}
+    if profile.key_label:
+        want[Attribute.LABEL] = profile.key_label
+    if profile.key_id:
+        want[Attribute.ID] = bytes.fromhex(normalize_hex(profile.key_id))
+    keys = list(session.get_objects(want))
+    if len(keys) != 1:
+        available = _describe_token_objects(
+            session.get_objects({Attribute.CLASS: ObjectClass.PRIVATE_KEY}))
+        if not keys:
+            criteria = " and ".join(f"{k} {v!r}" for k, v in
+                                    (("label", profile.key_label), ("ID", profile.key_id)) if v)
+            what = f"with {criteria} " if criteria else ""
+            raise PKCS11Error(f"no private key {what}on the token (keys: {available})")
+        raise PKCS11Error(f"{len(keys)} private keys match, set key_label or key_id "
+                          f"(keys: {available})")
+    key = keys[0]
+    key_label = _p11_attr(key, Attribute.LABEL)
+    key_id = _p11_attr(key, Attribute.ID)
+
+    def certs_with(attr, value):
+        return list(session.get_objects({Attribute.CLASS: ObjectClass.CERTIFICATE,
+                                         attr: value}))
+
+    certs = []
+    if profile.cert_label:
+        certs = certs_with(Attribute.LABEL, profile.cert_label)
+    else:
+        if key_id:
+            certs = certs_with(Attribute.ID, key_id)
+        if not certs and key_label:
+            certs = certs_with(Attribute.LABEL, key_label)
+    if len(certs) != 1:
+        available = _describe_token_objects(
+            session.get_objects({Attribute.CLASS: ObjectClass.CERTIFICATE}))
+        what = (f"with label {profile.cert_label!r}" if profile.cert_label
+                else "for key " + _describe_token_objects([key]))
+        n = "no certificate" if not certs else f"{len(certs)} certificates"
+        raise PKCS11Error(f"{n} {what} on the token, set cert_label "
+                          f"(certificates: {available})")
+    return key, asn1_x509.Certificate.load(certs[0][Attribute.VALUE])
+
+
+def _use_raw_mechanism(session, key) -> bool:
+    """True if the token can only sign pre-hashed data (CKM_ECDSA, CKM_RSA_PKCS),
+    not hash-and-sign (CKM_ECDSA_SHA256, ...), as with SoftHSM's ECDSA and many
+    smartcard modules. pyHanko then hashes in software."""
+    from pkcs11 import Attribute, KeyType, Mechanism
+    from pkcs11.exceptions import PKCS11Error
+
+    by_type = {
+        KeyType.EC: (Mechanism.ECDSA, (Mechanism.ECDSA_SHA256, Mechanism.ECDSA_SHA384,
+                                       Mechanism.ECDSA_SHA512)),
+        KeyType.RSA: (Mechanism.RSA_PKCS, (Mechanism.SHA256_RSA_PKCS, Mechanism.SHA384_RSA_PKCS,
+                                           Mechanism.SHA512_RSA_PKCS)),
+    }
+    raw, hashed = by_type.get(_p11_attr(key, Attribute.KEY_TYPE), (None, ()))
+    if raw is None:
+        return False
+    try:
+        mechanisms = set(session.token.slot.get_mechanisms())
+    except PKCS11Error:
+        return False
+    return raw in mechanisms and not all(m in mechanisms for m in hashed)
+
+
 @contextlib.contextmanager
 def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Signer]:
     """Yield a pyHanko signer; PKCS#11 sessions are closed afterwards."""
@@ -376,6 +478,7 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
             from pyhanko.sign import pkcs11
         except ImportError as e:
             raise SigningError("PKCS#11 support needs 'pyhanko[pkcs11]'") from e
+        from pkcs11 import Attribute
         from pkcs11.exceptions import PinIncorrect, PinLenRange, PKCS11Error
 
         def token_error(e: Exception, signing: bool = False) -> SigningError:
@@ -394,13 +497,14 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
         except PKCS11Error as e:
             raise token_error(e) from None
         try:
-            signer = pkcs11.PKCS11Signer(
-                session,
-                key_label=profile.key_label or None,
-                cert_label=profile.cert_label or profile.key_label or None,
-            )
             try:
-                _ = signer.signing_cert  # loads certificate and key now, not mid-signing
+                key, cert = _find_token_key(session, profile)
+                signer = pkcs11.PKCS11Signer(
+                    session, signing_cert=cert,
+                    key_label=_p11_attr(key, Attribute.LABEL) or None,
+                    key_id=_p11_attr(key, Attribute.ID) or None,
+                    use_raw_mechanism=_use_raw_mechanism(session, key))
+                _ = signer.signing_cert  # loads the key handle now, not mid-signing
             except PKCS11Error as e:
                 raise token_error(e) from None
             try:

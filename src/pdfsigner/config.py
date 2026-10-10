@@ -8,6 +8,7 @@ GUI certificate manager. Location: ``$PDFSIGNER_CONFIG`` or
 from __future__ import annotations
 
 import os
+import re
 import sys
 import tomllib
 from dataclasses import asdict, dataclass, field, fields
@@ -37,6 +38,13 @@ PKCS11_EXAMPLE = {
 }.get(sys.platform, "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so")
 
 
+def normalize_hex(value: str) -> str:
+    """'0x02', '02', 'de:ad be-ef' -> '02', 'deadbeef'."""
+    v = value.strip().lower()
+    v = v[2:] if v.startswith("0x") else v
+    return re.sub(r"[\s:-]", "", v)
+
+
 @dataclass
 class CertProfile:
     name: str
@@ -50,7 +58,8 @@ class CertProfile:
     pkcs11_lib: str = ""
     token_label: str = ""
     key_label: str = ""
-    cert_label: str = ""
+    key_id: str = ""  # CKA_ID in hex, e.g. "02" (YubiKey PIV slot 9c)
+    cert_label: str = ""  # empty: the certificate with the key's ID
 
     # system: Windows certificate store / macOS keychain; SHA-1 thumbprint
     # or part of the subject (see `pdfsigner certs system`)
@@ -95,6 +104,11 @@ class CertProfile:
             raise ValueError(f"{self.name}: system needs system_cert (thumbprint or subject)")
         if self.type == "pkcs11" and not self.pkcs11_lib:
             raise ValueError(f"{self.name}: pkcs11 needs pkcs11_lib")
+        if self.key_id:
+            try:
+                bytes.fromhex(normalize_hex(self.key_id))
+            except ValueError:
+                raise ValueError(f"{self.name}: key_id must be hex, e.g. 02") from None
         if not isinstance(self.ltv, bool):
             raise ValueError(f"{self.name}: ltv must be true or false")
         if self.secret in KEEPASS_SOURCES and not (self.keepass_db and self.keepass_entry):

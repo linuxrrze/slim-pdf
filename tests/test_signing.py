@@ -327,21 +327,28 @@ def test_pkcs11_session_is_opened_and_closed(monkeypatch, p12):
     class FakeSigner:
         signing_cert = None
 
-        def __init__(self, session, key_label=None, cert_label=None):
-            calls["signer"] = (key_label, cert_label)
+        def __init__(self, session, **kw):
+            calls["signer"] = kw
 
     fake = types.SimpleNamespace(open_pkcs11_session=open_session, PKCS11Signer=FakeSigner)
     monkeypatch.setitem(sys.modules, "pyhanko.sign.pkcs11", fake)
     monkeypatch.setattr("pyhanko.sign.pkcs11", fake, raising=False)
+    from pkcs11 import Attribute
+
+    from pdfsigner import signing
+    key = {Attribute.LABEL: "SIGN key", Attribute.ID: b"\x02"}
+    monkeypatch.setattr(signing, "_find_token_key", lambda session, profile: (key, "CERT"))
+    monkeypatch.setattr(signing, "_use_raw_mechanism", lambda session, key: True)
 
     p = CertProfile(name="tok", type="pkcs11", pkcs11_lib="/lib/opensc.so",
-                    token_label="PIV_II", key_label="SIGN key")
+                    token_label="My Card", key_id="02")
     with open_signer(p, Credentials(secret="123456")) as s:
         assert isinstance(s, FakeSigner)
         assert not FakeSession.closed
     assert FakeSession.closed
-    assert calls == {"open": ("/lib/opensc.so", "PIV_II", "123456"),
-                     "signer": ("SIGN key", "SIGN key")}
+    assert calls == {"open": ("/lib/opensc.so", "My Card", "123456"),
+                     "signer": dict(signing_cert="CERT", key_label="SIGN key", key_id=b"\x02",
+                                    use_raw_mechanism=True)}
 
 
 def test_unknown_type():
