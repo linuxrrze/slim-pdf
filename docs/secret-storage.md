@@ -15,6 +15,7 @@ pdfsigner implements.
 | `keepassxc` (`keepassxc-cli` subprocess) | ✅ | **no** (`.p12` as attachment) | yes | Supports YubiKey challenge-response, unlike pykeepass. Needs KeePassXC installed. |
 | KeePassXC browser protocol | ❌ (medium effort) | no | no | Native-messaging protocol, built around URL lookups. |
 | PKCS#11 token (YubiKey PIV, Nitrokey, smartcard) | ✅ (tested with SoftHSM, not yet with hardware) | **key can't be exported** | – | Strongest option. The PIN can come from any of the sources above. |
+| Windows certificate store / macOS keychain (`type = "system"`) | ✅ (tested in CI with software keys) | managed by the OS | – | The OS asks for PINs and access itself; see section 6. |
 
 ## 1. OS keyring (`secret = "keyring"`)
 

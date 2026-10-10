@@ -126,7 +126,7 @@ pdfsigner gui contract.pdf
 ```bash
 pip install -e '.[dev]'
 pytest                       # GUI tests run headless (QT_QPA_PLATFORM=offscreen)
-pytest --cov=pdfsigner       # ~200 tests, ~95 % line coverage
+pytest --cov=pdfsigner       # ~390 tests; ~87 % line coverage on Linux (the Windows/macOS store code runs only there)
 ```
 
 | File | Covers |

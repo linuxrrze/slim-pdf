@@ -379,7 +379,7 @@ def test_cli_certs_pkcs11(piv, cfg_path, monkeypatch, capsys):
     assert f"token '{PIV_TOKEN}'" in out
     assert ("ID 02    key 'Private key for Digital Signature' (EC, PIN for every signature)"
             "  certificate 'X.509 Certificate for Digital Signature': Common Name: PIV 9c") in out
-    assert "--key-id ID" in out
+    assert out.rstrip().endswith("--key-id ID")  # one token: no --token-label
     assert cli.main(["certs", "pkcs11", lib, "--token-label", "nope"]) == 0
     assert "no token found" in capsys.readouterr().out
     assert cli.main(["certs", "pkcs11", "/no/such/module.so"]) == 1

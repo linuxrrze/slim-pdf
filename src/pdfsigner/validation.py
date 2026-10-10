@@ -7,7 +7,8 @@ Each signature gets one of three verdicts:
 * ``untrusted``: everything checks out except that the certificate doesn't
   chain to a trusted root (typical for self-signed or unknown CAs).
 * ``invalid``: the document was changed in a way the signature doesn't allow,
-  or the signature itself is broken or revoked.
+  or the signature itself is broken or revoked (revocation is only known
+  from data embedded in the PDF, or with ``online=True``).
 
 Trust comes from Mozilla's root list (via ``certifi``, the same on every
 platform) plus any extra roots (``--trust`` or ``trust = [...]`` in the
@@ -33,6 +34,7 @@ from pyhanko.sign.validation.dss import DocumentSecurityStore, NoDSSFoundError
 from pyhanko.sign.validation.status import SignatureCoverageLevel
 from pyhanko_certvalidator import ValidationContext
 
+from .config import expand
 from .signing import SigningError, _open_reader
 
 log = logging.getLogger(__name__)
@@ -72,7 +74,7 @@ def load_trust_roots(paths) -> list:
     roots = []
     for p in paths:
         try:
-            roots.append(load_cert_from_pemder(str(Path(p).expanduser())))
+            roots.append(load_cert_from_pemder(str(expand(p))))
         except (OSError, ValueError) as e:
             raise SigningError(f"cannot load trust root {p}: {e}") from None
     return roots

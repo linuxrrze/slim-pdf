@@ -522,7 +522,7 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
 
         try:
             session = pkcs11.open_pkcs11_session(
-                profile.pkcs11_lib,
+                str(expand(profile.pkcs11_lib)),
                 token_criteria=TokenCriteria(label=profile.token_label or None),
                 user_pin=creds.secret,
             )

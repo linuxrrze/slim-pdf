@@ -47,7 +47,8 @@ blue and becomes the target. The stamp is fitted into the field's rectangle.
 ## Signing
 
 Press **Sign…** (`Ctrl+S`) and choose where to save; the default is
-`<name>-signed.pdf`. Depending on the profile, pdfsigner asks for the
+`<name>-signed.pdf` (for a file already named `…-signed.pdf`, the same name,
+so the file dialog asks before replacing it). Depending on the profile, pdfsigner asks for the
 passphrase, the token PIN or the KeePass master password:
 
 ![Passphrase prompt](images/gui-password.png)
@@ -100,7 +101,8 @@ is selected:
   page*, *Selected pages* or *All pages*. `Esc` cancels. **Uncrop** shows the
   whole page again; cropping only hides content.
 * **Undo** (`Ctrl+Z`) goes back one edit.
-* **Save** / **Save as…** (`Ctrl+Shift+S`) write the edited document. The
+* **Save** and **Save as…** (`Ctrl+Shift+S`; Save has no shortcut because
+  `Ctrl+S` signs) write the edited document. The
   title bar shows `*` while there are unsaved edits, and pdfsigner asks
   before you close or open another file. Signing an edited document saves
   the edits together with the signature.

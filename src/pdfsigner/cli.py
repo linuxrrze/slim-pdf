@@ -1,6 +1,6 @@
 """Command line interface.
 
-    pdfsigner certs list|show|add|edit|remove|default|set-secret|test|system
+    pdfsigner certs list|show|add|edit|remove|default|set-secret|test|system|pkcs11
     pdfsigner fields FILE
     pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]
     pdfsigner verify FILE
@@ -122,7 +122,7 @@ def cmd_certs_list(cfg: Config, args) -> int:
         mark = "*" if name == cfg.default else " "
         src = (p.path or (f"keepass:{p.keepass_attachment}" if p.keepass_attachment else "")
                or p.pkcs11_lib or (f"store:{p.system_cert}" if p.system_cert else ""))
-        print(f"{mark} {name:20} {p.type:7} secret={p.secret:8} {src}")
+        print(f"{mark} {name:20} {p.type:7} secret={p.secret:9} {src}")
     return 0
 
 
@@ -130,7 +130,7 @@ def cmd_certs_show(cfg: Config, args) -> int:
     p = cfg.get(args.name)
     for f in dc_fields(p):
         v = getattr(p, f.name)
-        if v:
+        if v or f.name in ("ltv", "stamp_text"):  # false / '' are meaningful here
             print(f"{f.name:20} {v!r}")
     return 0
 
@@ -223,8 +223,9 @@ def cmd_certs_pkcs11(cfg: Config, args) -> int:
             print("  (no objects)")
         if not t.logged_in:
             print("  (private keys are usually only listed after logging in: --login)")
+    token = f" --token-label {_quote(found[0].label)}" if len(found) > 1 else ""
     print(f"\nprofile: pdfsigner certs add NAME --pkcs11-lib {_quote(args.module)} "
-          "--key-id ID [--token-label LABEL]")
+          f"--key-id ID{token}")
     return 0
 
 
@@ -237,7 +238,7 @@ def _quote(s: str) -> str:
 
 def cmd_fields(cfg: Config, args) -> int:
     info = inspect_pdf(args.file, args.password)
-    print(f"{info.page_count} pages", end="")
+    print(f"{info.page_count} page{'s' * (info.page_count != 1)}", end="")
     if info.certification:
         print(f", certified ({info.certification.name})", end="")
     print()
@@ -424,7 +425,7 @@ def cmd_split(cfg: Config, args) -> int:
 
 
 def _merge_input(arg: str) -> tuple[Path, str | None]:
-    """FILE or FILE@PAGES (the @ split only applies if FILE exists)."""
+    """FILE or FILE@PAGES (split at the last @ unless the whole argument is a file)."""
     if "@" in arg and not Path(arg).exists():
         file, spec = arg.rsplit("@", 1)
         return Path(file), spec
@@ -447,7 +448,10 @@ def cmd_merge(cfg: Config, args) -> int:
 
 
 def cmd_gui(cfg: Config, args) -> int:
-    from .gui.app import main as gui_main
+    try:
+        from .gui.app import main as gui_main
+    except ImportError as e:
+        raise SigningError(f"the GUI needs PySide6: pip install 'pdfsigner[gui]' ({e})") from None
 
     return gui_main([args.file] if args.file else [], config_path=args.config)
 
@@ -458,8 +462,8 @@ def cmd_gui(cfg: Config, args) -> int:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="pdfsigner", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--config", type=Path, help="config file (default: $PDFSIGNER_CONFIG "
-                    "or ~/.config/pdfsigner/config.toml)")
+    ap.add_argument("--config", type=Path, help="config file (default: $PDFSIGNER_CONFIG, "
+                    "else config.toml in the platform's config folder, see docs/cli.md)")
     ap.add_argument("-v", "--verbose", action="store_true", help="show library warnings")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -515,7 +519,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--trust", action="append", default=[], metavar="CERT",
                    help="extra trusted root certificate (PEM/DER); repeatable")
     p.add_argument("--no-system-trust", action="store_true",
-                   help="trust only --trust and the config's trust list")
+                   help="don't trust the built-in Mozilla roots, only --trust and the "
+                   "config's trust list")
     p.add_argument("--online", action="store_true",
                    help="fetch revocation info (OCSP/CRL) from the network")
     p.add_argument("--details", action="store_true", help="print pyHanko's full report")

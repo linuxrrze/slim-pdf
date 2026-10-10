@@ -3,7 +3,7 @@
 ```
 pdfsigner [--config FILE] [--verbose] <command> ...
 
-  certs list | show | add | edit | remove | default | set-secret | test | system
+  certs list | show | add | edit | remove | default | set-secret | test | system | pkcs11
   fields FILE
   sign FILE [target] [options]
   verify FILE [--trust CERT]
@@ -28,8 +28,9 @@ example about self-signed certificates).
   * macOS: `~/Library/Application Support/pdfsigner/config.toml`
   * Windows: `%LOCALAPPDATA%\pdfsigner\config.toml`
 * **Windows:** the examples use bash syntax. In PowerShell, continue lines with
-  `` ` `` instead of `\`, and quote with `"…"`. `~` and `$VARS`/`%VARS%` in
-  profile paths are expanded on all platforms.
+  `` ` `` instead of `\`, and quote with `"…"`.
+* **Paths** in profiles and in `trust` may use `~` and environment variables:
+  `$VAR` on all platforms, `%VAR%` on Windows only.
 * **Exit codes:** `0` OK, `1` error, `3` refused because it would invalidate
   an existing signature (overridable with `--force`; also for page tools), `4`/`5` signatures
   untrusted/invalid (`verify`), `130` cancelled at a prompt.
@@ -40,9 +41,9 @@ All outputs below come from real runs. Paths are shortened to `~`.
 
 ## Certificate profiles: `pdfsigner certs`
 
-A *profile* says where the key is (a PKCS#12 file, a KeePass attachment or a
-PKCS#11 token), where its passphrase or PIN comes from, and how the visible
-signature looks. The first profile you add becomes the default.
+A *profile* says where the key is (a PKCS#12 file, a KeePass attachment, a
+PKCS#11 token, or the Windows certificate store / macOS keychain), where its
+passphrase or PIN comes from, and how the visible signature looks. The first profile you add becomes the default.
 
 ### Add a PKCS#12 certificate
 
@@ -224,8 +225,9 @@ $ pdfsigner certs add yubikey --pkcs11-lib /usr/lib/x86_64-linux-gnu/libykcs11.s
 `--pkcs11-lib` sets the type to `pkcs11` automatically. The key is chosen by
 `--key-label` and/or `--key-id` (hex; on a YubiKey or other PIV card `01`,
 `02`, `03`, `04` are slots 9a, 9c, 9d, 9e); with neither, the token must
-hold exactly one key. The certificate is the one with the key's ID, so
-`--cert-label` is only needed for tokens that don't pair them that way.
+hold exactly one key. The certificate is the one with the key's ID (if
+there is none, the one with the key's label), so `--cert-label` is only
+needed for tokens that pair them differently.
 `--token-label` picks a token when several are plugged in.
 
 To see what is on a token, and which ID to use:
@@ -236,7 +238,12 @@ PIN for token 'YubiKey PIV #12345678':
 token 'YubiKey PIV #12345678' (… manufacturer, model, serial …)
   ID 01    key 'Private key for PIV Authentication' (EC)  certificate 'X.509 Certificate for PIV Authentication': Common Name: Alice Example, expires 2027-03-31
   ID 02    key 'Private key for Digital Signature' (EC, PIN for every signature)  certificate 'X.509 Certificate for Digital Signature': Common Name: Alice Example, expires 2027-03-31
+
+profile: pdfsigner certs add NAME --pkcs11-lib /usr/lib/x86_64-linux-gnu/libykcs11.so --key-id ID
 ```
+
+(This example shows the layout Yubico's module uses, reproduced with a
+software token; the token line is shortened.)
 
 Without `--login` only the certificates are listed; most tokens show private
 keys only after the PIN. `--token-label` limits the list to one token.
@@ -350,6 +357,9 @@ $ pdfsigner fields final.pdf
 $ pdfsigner sign contract.pdf --field Buyer --no-text     # image only
 $ pdfsigner sign contract.pdf --field Buyer --no-image    # text only, with a thin border
 ```
+
+A stamp always shows something: with `--no-text` (or `stamp_text = ""`) but
+no image in the profile, it falls back to the signer's name and time.
 
 ### Errors and safety checks
 
@@ -625,5 +635,6 @@ All keys: `type`, `path`, `pkcs11_lib`, `token_label`, `key_label`,
 `key_id`, `cert_label`, `system_cert`, `image`, `stamp_text`, `reason`, `location`, `contact_info`,
 `timestamp_url`, `ltv`, `secret`, `keepass_db`, `keepass_keyfile`, `keepass_entry`,
 `keepass_attachment`, `keepass_yubikey`. Unknown keys are rejected, so typos don't go
-unnoticed. The file is written with mode `0600` and **never contains
+unnoticed. The file is written with mode `0600` (Linux and macOS; on
+Windows it inherits the permissions of your profile folder) and **never contains
 secrets**.

@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from .config import expand
 from .signing import SigningError, _p11_attr
 
 
@@ -114,7 +115,7 @@ def list_tokens(module: str, token_label: str | None = None,
         raise SigningError("PKCS#11 support needs 'pyhanko[pkcs11]'") from e
 
     try:
-        lib = pkcs11.lib(module)
+        lib = pkcs11.lib(str(expand(module)))
         tokens = [t for t in lib.get_tokens(token_label=token_label or None)
                   if t.flags & TokenFlag.TOKEN_INITIALIZED]
     except PKCS11Error as e:
