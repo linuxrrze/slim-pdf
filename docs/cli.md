@@ -27,6 +27,9 @@ example about self-signed certificates).
   * Linux: `~/.config/pdfsigner/config.toml`
   * macOS: `~/Library/Application Support/pdfsigner/config.toml`
   * Windows: `%LOCALAPPDATA%\pdfsigner\config.toml`
+* **Language:** English or German. `$PDFSIGNER_LANG` (`en`, `de`), else
+  `language` in the config file, else the system language; everything else
+  falls back to English. The examples below show English output.
 * **Windows:** the examples use bash syntax. In PowerShell, continue lines with
   `` ` `` instead of `\`, and quote with `"…"`.
 * **Paths** in profiles and in `trust` may use `~` and environment variables:
@@ -603,6 +606,7 @@ can also edit it by hand:
 ```toml
 default = "work"
 trust = ["~/certs/supervisor-ca.pem"]   # extra roots for verify (optional)
+language = "de"                          # "en" or "de"; omit for the system language
 
 [certs.work]
 type = "pkcs12"

@@ -23,6 +23,8 @@ share the same certificate profiles.
 * Signature images can be PNG/JPEG or **PDF (vector)**.
 * Stamps are drawn upright on rotated pages (`/Rotate`).
 * **Page tools:** rotate, crop, split and merge (CLI and GUI).
+* **English and German** (GUI and command line), following the system
+  language or `language` in the config.
 * **Verify** signatures (`pdfsigner verify`, and a *Signatures* list in the
   GUI): valid, untrusted or invalid, with what changed after each signature.
 
@@ -129,6 +131,11 @@ pytest                       # GUI tests run headless (QT_QPA_PLATFORM=offscreen
 pytest --cov=pdfsigner       # ~390 tests; ~87 % line coverage on Linux (the Windows/macOS store code runs only there)
 ```
 
+Translations live in `src/pdfsigner/locale/`. After changing user-visible
+strings, run `python scripts/i18n.py update`, translate the new entries in
+`de/LC_MESSAGES/pdfsigner.po`, then `python scripts/i18n.py compile`;
+`test_i18n.py` fails while anything is missing.
+
 | File | Covers |
 |---|---|
 | `test_signing.py` | New and prepared fields, chains of 2–3 signers (each validated with pyHanko's diff analysis), certification and FieldMDP locks (Include/Exclude/All) and `--force`, encrypted PDFs, timestamps (dummy TSA), stamp variants. **Visual regressions:** stamp upright on all four page rotations; text never overlapping the image. |
@@ -143,6 +150,7 @@ pytest --cov=pdfsigner       # ~390 tests; ~87 % line coverage on Linux (the Win
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |
 | `test_gui.py`, `test_gui_coords.py` | Click to place, drag, resize with fixed aspect ratio (handle and Ctrl+wheel), clamping, page navigation, prepared fields, signing twice, error dialogs, encrypted PDFs, certificate manager. Screen-to-PDF mapping for all rotations. |
 | `test_docs.py` | Every `pdfsigner …` example in the docs is accepted by the real parser; every command and option is documented, and every documented option and config key exists; links and screenshots exist. |
+| `test_i18n.py` | Language choice (environment, config, system locale names), the German catalog complete with matching placeholders and an up-to-date `.mo`, the `.mo` writer against Python's gettext, German CLI and GUI output. |
 
 CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and
 Windows with Python 3.11 and 3.13.
