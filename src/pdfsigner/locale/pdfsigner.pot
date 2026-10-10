@@ -1528,6 +1528,14 @@ msgid ""
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+msgid "Sign with"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Certificate for this signature:"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid "Prepared field '{name}'"
 msgstr ""

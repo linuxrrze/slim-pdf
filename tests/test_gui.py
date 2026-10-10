@@ -361,17 +361,30 @@ def field_center(window, name):
 
 def test_click_on_field_signs_it_then_shows_the_signature(window, form_pdf, save_to,
                                                          monkeypatch):
-    """No need for Place signature… first: a click on an empty field signs
-    it; on a signed field, it shows the signature's details."""
+    """No need for Place signature… first: a click on an empty field asks
+    which certificate (there are two) and signs it; on a signed field, it
+    shows the signature's details."""
+    asked = []
+
+    def choose(labels, current):
+        asked.append((labels, current))
+        return answers.pop(0)
+    monkeypatch.setattr(window, "_ask_certificate", choose)
+    answers = [None, 1]  # cancel, then "bob"
     window.open(form_pdf)
     window.view.go_to(1)
     c = field_center(window, "Applicant")
     drag_scene(window.view, (c.x(), c.y()), (c.x() - 60, c.y() - 60))  # a drag: just moves
-    assert window.view.selected_field is None and not save_to["path"].exists()
+    assert window.view.selected_field is None and not asked
+
+    click_scene(window.view, c.x(), c.y())  # cancelled: selected, not signed
+    assert asked == [(["alice", "bob"], 0)]
+    assert window.view.selected_field == "Applicant" and not save_to["path"].exists()
 
     click_scene(window.view, c.x(), c.y())
     assert save_to["path"].exists()
     assert window.path == save_to["path"]
+    assert window.cert_combo.currentData() == "bob"
 
     shown = []
     monkeypatch.setattr(gui_app.QMessageBox, "exec", lambda self: shown.append(self.text()))
@@ -379,7 +392,18 @@ def test_click_on_field_signs_it_then_shows_the_signature(window, form_pdf, save
     c = field_center(window, "Applicant")
     click_scene(window.view, c.x(), c.y())
     [text] = shown
-    assert "Alice Example" in text
+    assert "Bob Example" in text
+
+
+def test_click_on_field_with_one_certificate_asks_nothing(window, form_pdf, save_to,
+                                                         monkeypatch):
+    del window.config.certs["bob"]
+    monkeypatch.setattr(window, "_ask_certificate", lambda *a: pytest.fail("asked"))
+    window.open(form_pdf)
+    window.view.go_to(1)
+    c = field_center(window, "Applicant")
+    click_scene(window.view, c.x(), c.y())
+    assert save_to["path"].exists()
 
 
 def test_zoomed_in_only_the_visible_part_is_rendered_sharply(window, blank_pdf, qapp):

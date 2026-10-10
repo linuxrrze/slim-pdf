@@ -709,7 +709,32 @@ class MainWindow(QMainWindow):
                     self.show_signature_details(item)
             return
         self.view.select_field(name)
-        self.sign()
+        if self._choose_certificate():
+            self.sign()
+
+    def _choose_certificate(self) -> bool:
+        """Before signing a clicked field: with several certificates, ask
+        which one (the current one preselected); with one, take it."""
+        names = list(self.config.certs)
+        if len(names) <= 1:
+            return bool(names)
+        current = self.cert_combo.currentData()
+        labels = []
+        for n in names:
+            cert = certinfo.load(self.config.certs[n].certificate)
+            labels.append(f"{n} ({certinfo.signer_name(cert)})" if cert else n)
+        index = self._ask_certificate(labels, names.index(current) if current in names else 0)
+        if index is None:
+            return False
+        self.cert_combo.setCurrentIndex(self.cert_combo.findData(names[index]))
+        return True
+
+    def _ask_certificate(self, labels: list[str], current: int) -> int | None:
+        """Index of the chosen entry, or None (cancelled). A hook for tests."""
+        label, ok = QInputDialog.getItem(self, _("Sign with"),
+                                         _("Certificate for this signature:"),
+                                         labels, current, False)
+        return labels.index(label) if ok else None
 
     def _sync_page_spin(self, page: int) -> None:
         self.page_spin.blockSignals(True)

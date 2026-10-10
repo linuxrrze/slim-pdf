@@ -1586,6 +1586,14 @@ msgstr ""
 "   {state}, {where}"
 
 #: src/pdfsigner/gui/app.py
+msgid "Sign with"
+msgstr "Signieren mit"
+
+#: src/pdfsigner/gui/app.py
+msgid "Certificate for this signature:"
+msgstr "Zertifikat für diese Signatur:"
+
+#: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid "Prepared field '{name}'"
 msgstr "Vorbereitetes Feld '{name}'"

@@ -54,11 +54,14 @@ page while you browse other pages.
 
 ![A prepared field selected](images/gui-field.png)
 
-Click an empty field on the page: it turns solid blue, becomes the target,
-and signing starts right away (see [Signing](#signing)). To choose the
-certificate or appearance first, pick the field in the list on the right
-instead (or press **Place signature…** and click the field); then press
-**Sign…**. The stamp is fitted into the field's rectangle.
+Click an empty field on the page: it turns solid blue and becomes the
+target. With several certificates configured, pdfsigner asks which one to
+sign with (the one selected in the panel is preselected; with only one,
+that is used without asking), then signing starts (see
+[Signing](#signing)). Cancelling the question keeps the field selected.
+To change the appearance options first, pick the field in the list on the
+right instead (or press **Place signature…** and click the field); then
+press **Sign…**. The stamp is fitted into the field's rectangle.
 
 ## Signing
 
