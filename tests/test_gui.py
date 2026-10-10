@@ -769,6 +769,14 @@ def test_main_smoke_test(qapp, form_pdf, cfg_path, monkeypatch):
     assert not QtWidgets.QApplication.windowIcon().isNull()
 
 
+def test_main_broken_config(qapp, cfg_path, monkeypatch):
+    cfg_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg_path.write_text('[certs.x]\npath = "a.p12"\nsecret = "foo"\n', encoding="utf-8")
+    boxes = Boxes(monkeypatch, gui_app)
+    assert gui_app.main(["--smoke-test"], config_path=cfg_path) == 1
+    assert boxes.kinds() == ["critical"] and "unknown secret source" in boxes.text()
+
+
 def test_dialog_choose_token_key(dialog, monkeypatch):
     from pdfsigner import tokens
 

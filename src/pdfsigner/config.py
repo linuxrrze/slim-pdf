@@ -131,7 +131,15 @@ class CertProfile:
         unknown = set(d) - known
         if unknown:
             raise ValueError(f"{name}: unknown keys {sorted(unknown)}")
-        return cls(name=name, **d)
+        defaults = cls(name=name)
+        for key, value in d.items():
+            expected = type(getattr(defaults, key))
+            if not isinstance(value, expected) or (expected is str and isinstance(value, bool)):
+                kind = "true or false" if expected is bool else "a string"
+                raise ValueError(f"{name}: {key} must be {kind}, not {value!r}")
+        profile = cls(name=name, **d)
+        profile.validate()  # e.g. a hand-edited secret = "foo"
+        return profile
 
 
 @dataclass
@@ -200,8 +208,12 @@ def load_config(path: Path | None = None) -> Config:
     unknown = set(data) - {"default", "trust", "certs"}
     if unknown:
         raise ValueError(f"{path}: unknown keys {sorted(unknown)}")
-    return Config(certs=certs, default=data.get("default", ""),
-                  trust=list(data.get("trust", [])), path=path)
+    default, trust = data.get("default", ""), data.get("trust", [])
+    if not isinstance(default, str) or (default and default not in certs):
+        raise ValueError(f"{path}: default {default!r} is not a certificate profile")
+    if not (isinstance(trust, list) and all(isinstance(t, str) for t in trust)):
+        raise ValueError(f"{path}: trust must be a list of file names")
+    return Config(certs=certs, default=default, trust=list(trust), path=path)
 
 
 def expand(p: str) -> Path:

@@ -132,3 +132,19 @@ def test_default_stamp_text():
     ("02", "02"), ("0x02", "02"), (" 0A ", "0a"), ("de:ad be-ef", "deadbeef")])
 def test_normalize_hex(value, expected):
     assert normalize_hex(value) == expected
+
+
+@pytest.mark.parametrize("toml, message", [
+    ('[certs.x]\npath = "a.p12"\nsecret = "foo"\n', "unknown secret source"),
+    ('[certs.x]\npath = "a.p12"\nltv = "yes"\n', "ltv must be true or false"),
+    ('[certs.x]\npath = "a.p12"\nreason = 5\n', "reason must be a string"),
+    ('[certs.x]\npath = true\n', "path must be a string"),
+    ('default = "y"\n[certs.x]\npath = "a.p12"\n', "default 'y' is not a certificate profile"),
+    ('trust = "root.pem"\n', "trust must be a list"),
+    ('[certs.x\n', "Expected"),  # broken TOML
+])
+def test_hand_edited_config_is_validated(tmp_path, toml, message):
+    p = tmp_path / "c.toml"
+    p.write_text(toml, encoding="utf-8")
+    with pytest.raises(ValueError, match=message):
+        load_config(p)

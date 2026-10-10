@@ -674,7 +674,12 @@ def main(argv: list[str] | None = None, config_path: Path | None = None) -> int:
     app.setApplicationName("pdfsigner")
     if ICON.exists():
         app.setWindowIcon(QIcon(str(ICON)))
-    win = MainWindow(load_config(config_path))
+    try:
+        config = load_config(config_path)
+    except (ValueError, OSError) as e:  # tomllib.TOMLDecodeError is a ValueError
+        QMessageBox.critical(None, "PDF Signer", f"Cannot read the configuration:\n{e}")
+        return 1
+    win = MainWindow(config)
     win.show()
     files = [a for a in argv if not a.startswith("-")]
     opened = win.open(Path(files[0])) if files else True
