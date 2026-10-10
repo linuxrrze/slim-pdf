@@ -101,6 +101,8 @@ def click(view, x, y):
 
 
 def grab(widget, name):
+    if hasattr(widget, "thumbs"):
+        widget.thumbs.finish_thumbnails()
     QTest.qWait(60)
     widget.grab().save(str(OUT / name))
     print("wrote", OUT / name)

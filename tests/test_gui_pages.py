@@ -47,6 +47,36 @@ def test_thumbnails_follow_navigation(window, blank_pdf):
     assert window.thumbs.currentRow() == 0
 
 
+def test_thumbnails_are_rendered_in_the_background(window, tmp_path, qapp, monkeypatch):
+    """A long document opens with placeholders; the thumbnails follow in
+    small batches between events, the visible ones first."""
+    from conftest import make_pdf
+    from pdfsigner.gui import pagetools
+
+    pdf = make_pdf(tmp_path / "long.pdf", pages=60)
+    rendered = []
+    real = window.thumbs._render_batch
+
+    def batch():
+        before = set(window.thumbs._pending)
+        real()
+        rendered.append(before - window.thumbs._pending)
+
+    monkeypatch.setattr(pagetools, "BATCH_SECONDS", 0)  # one page per batch
+    monkeypatch.setattr(window.thumbs, "_render_batch", batch)
+    window.thumbs._timer.timeout.disconnect()
+    window.thumbs._timer.timeout.connect(window.thumbs._render_batch)
+    window.open(pdf, page=40)
+    assert window.thumbs.count() == 60
+    assert len(window.thumbs._pending) == 60  # nothing rendered while opening
+    qapp.processEvents()
+    assert rendered[0] == {40}  # the current page first
+    window.thumbs.finish_thumbnails()
+    assert not window.thumbs._pending and not window.thumbs._timer.isActive()
+    window.open(pdf)  # a new document starts over
+    assert len(window.thumbs._pending) == 60
+
+
 def test_rotate_undo_save(window, blank_pdf):
     original = blank_pdf.read_bytes()
     window.open(blank_pdf)
