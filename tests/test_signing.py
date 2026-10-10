@@ -1,7 +1,5 @@
 import io
-import sys
 import types
-from pathlib import Path
 
 import pytest
 from pyhanko import stamp
@@ -390,7 +388,7 @@ def test_pkcs11_session_is_opened_and_closed(fake_token):
     card = FakeToken("My Card", init)
     fake_token.tokens[:] = [FakeToken("Other", init), card, FakeToken("", 0)]
     fake_token.key[Attribute.ALWAYS_AUTHENTICATE] = True
-    with open_signer(_tok_profile(token_label="My Card"), Credentials(secret="123456")) as s:
+    with open_signer(_tok_profile(token_label="My Card"), Credentials(secret="123456")):
         assert not FakeSession.closed
     assert FakeSession.closed
     assert card.opened == [{"user_pin": "123456"}]
