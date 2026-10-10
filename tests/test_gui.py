@@ -451,6 +451,9 @@ def dialog(qapp, tmp_path, p12, sig_image):
     d.show()
     yield d
     d.close()
+    from shiboken6 import delete
+
+    delete(d)  # not at interpreter exit, after the QApplication (crashes)
 
 
 def select(d, name):

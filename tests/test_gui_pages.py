@@ -16,6 +16,18 @@ from conftest import make_pdf, sign_with, validate_all  # noqa: E402
 from test_gui import Boxes, drag_scene, qapp, save_to, secrets, window  # noqa: E402,F401
 
 
+@pytest.fixture
+def owned(qapp):
+    """Destroy parentless dialogs while the QApplication still exists; left to
+    Python's shutdown they get deleted after it, which crashes the process."""
+    from shiboken6 import delete
+
+    widgets = []
+    yield widgets.append
+    for w in widgets:
+        delete(w)
+
+
 def rotations(window):
     return inspect_pdf(window.data).page_rotation
 
@@ -166,8 +178,9 @@ def test_split_dialog(window, tmp_path, monkeypatch):
         == [2, 1]
 
 
-def test_split_dialog_validation(qapp, tmp_path):
+def test_split_dialog_validation(owned, tmp_path):
     dlg = pagetools.SplitDialog(5, tmp_path / "x.pdf")
+    owned(dlg)
     dlg.parts_radio.setChecked(True)
     dlg._accept()
     assert "at least one part" in dlg.error.text()
@@ -207,12 +220,13 @@ def test_merge_dialog(window, blank_pdf, tmp_path, save_to, monkeypatch):
     assert len(window.doc) == 4  # 2 of three.pdf + 2 of blank.pdf
 
 
-def test_merge_dialog_encrypted_input(qapp, blank_pdf, tmp_path, monkeypatch):
+def test_merge_dialog_encrypted_input(owned, blank_pdf, tmp_path, monkeypatch):
     from conftest import make_encrypted
 
     enc = make_encrypted(blank_pdf, tmp_path / "e.pdf", "pw")
     monkeypatch.setattr(pagetools, "ask_secret", lambda parent, prompt: "pw")
     dlg = pagetools.MergeDialog()
+    owned(dlg)
     assert dlg.add_file(enc)
     assert dlg.inputs[0].password == "pw" and dlg.inputs[0].page_count == 2
     monkeypatch.setattr(pagetools, "ask_secret", lambda parent, prompt: None)
