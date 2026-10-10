@@ -9,6 +9,7 @@ pdfsigner [--config FILE] [--verbose] <command> ...
   verify FILE [--trust CERT]
   rotate FILE --angle 90|180|270|-90 [--pages SPEC]
   crop FILE (--margins M | --box X1,Y1,X2,Y2 | --reset) [--pages SPEC]
+  delete FILE --pages SPEC
   split FILE [--every N | --part SPEC ...]
   merge -o OUT FILE[@SPEC] ...
   gui [FILE]
@@ -476,7 +477,7 @@ Applicant: VALID
 
 ---
 
-## Page tools: rotate, crop, split, merge
+## Page tools: rotate, crop, delete, split, merge
 
 **Page specs** (`--pages`, `--part`, `FILE@…`) are 1-based: `3`, `1-3`,
 `5-` (to the end), `-2` (from the start), lists like `1-3,5,8-`, and `odd`
@@ -522,6 +523,19 @@ cropped 2 pages -> expense-claim-cropped.pdf
   as `sign --box`).
 * `--reset` shows the whole page again. Cropping only hides content (it sets
   the PDF's `/CropBox`); nothing is deleted.
+
+### Delete
+
+```console
+$ pdfsigner delete scan.pdf --pages 2,4-5
+deleted 3 pages -> scan-deleted.pdf
+$ pdfsigner delete scan-deleted.pdf -i --pages 1
+deleted 1 page -> scan-deleted.pdf
+```
+
+`--pages` is required here, and at least one page must remain. Like rotate
+and crop, the change is appended to the file (the encryption is kept);
+form fields that were only on the deleted pages are removed with them.
 
 ### Split
 

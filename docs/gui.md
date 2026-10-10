@@ -127,7 +127,7 @@ is selected:
 
 Page edits invalidate existing signatures, so pdfsigner warns first: edit
 pages, then sign. Split and merge produce new documents without the
-signatures (see [cli.md](cli.md#page-tools-rotate-crop-split-merge)).
+signatures (see [cli.md](cli.md#page-tools-rotate-crop-delete-split-merge)).
 
 ## Settings
 

@@ -78,6 +78,7 @@ msgid ""
 "    pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]\n"
 "    pdfsigner verify FILE\n"
 "    pdfsigner rotate|crop FILE [--pages SPEC] ...\n"
+"    pdfsigner delete FILE --pages SPEC\n"
 "    pdfsigner split FILE [--every N | --part SPEC ...]\n"
 "    pdfsigner merge -o OUT FILE[@SPEC] ...\n"
 "    pdfsigner gui [FILE]\n"
@@ -540,6 +541,17 @@ msgstr[0] ""
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "deleting pages would invalidate the signature(s) {names}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "deleted {n} page -> {path}"
+msgid_plural "deleted {n} pages -> {path}"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "cropping pages would invalidate the signature(s) {names}"
 msgstr ""
 
@@ -715,6 +727,10 @@ msgid "pages, e.g. 1-3,5,8- or odd/even (default: all)"
 msgstr ""
 
 #: src/pdfsigner/cli.py
+msgid "pages, e.g. 1-3,5,8- or odd/even"
+msgstr ""
+
+#: src/pdfsigner/cli.py
 msgid "go ahead even if this invalidates existing signatures"
 msgstr ""
 
@@ -724,6 +740,10 @@ msgstr ""
 
 #: src/pdfsigner/cli.py
 msgid "clockwise degrees"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "delete pages"
 msgstr ""
 
 #: src/pdfsigner/cli.py
@@ -1950,6 +1970,10 @@ msgstr ""
 
 #: src/pdfsigner/pages.py
 msgid "rotation must be a multiple of 90 degrees"
+msgstr ""
+
+#: src/pdfsigner/pages.py
+msgid "a document can't lose all its pages"
 msgstr ""
 
 #: src/pdfsigner/pages.py

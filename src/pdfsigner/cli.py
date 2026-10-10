@@ -47,6 +47,7 @@ DESCRIPTION = N_("""Command line interface.
     pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]
     pdfsigner verify FILE
     pdfsigner rotate|crop FILE [--pages SPEC] ...
+    pdfsigner delete FILE --pages SPEC
     pdfsigner split FILE [--every N | --part SPEC ...]
     pdfsigner merge -o OUT FILE[@SPEC] ...
     pdfsigner gui [FILE]
@@ -510,6 +511,19 @@ def cmd_rotate(cfg: Config, args) -> int:
     return 0
 
 
+def cmd_delete(cfg: Config, args) -> int:
+    src = Path(args.file)
+    data, pw = _read_pdf(src, args.password)
+    selected = pages.parse_pages(args.pages, pages.page_count(data, pw))
+    _guard_signatures(data, pw, args.force,
+                      _("deleting pages would invalidate the signature(s) {names}"))
+    dst = _edit_output(src, args, "deleted")
+    _atomic_write(dst, pages.delete(data, selected, pw))
+    print(ngettext("deleted {n} page -> {path}", "deleted {n} pages -> {path}",
+                   len(selected)).format(n=len(selected), path=dst))
+    return 0
+
+
 def cmd_crop(cfg: Config, args) -> int:
     src = Path(args.file)
     data, pw = _read_pdf(src, args.password)
@@ -671,12 +685,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--password", help=_(PASSWORD_HELP))
     p.set_defaults(func=cmd_verify)
 
-    def edit_opts(p, suffix):
+    def edit_opts(p, suffix, all_pages=True):
         p.add_argument("file")
         p.add_argument("-o", "--output",
                        help=_("output file (default: <name>-{suffix}.pdf)").format(suffix=suffix))
         p.add_argument("-i", "--in-place", action="store_true", help=_("overwrite the input"))
-        p.add_argument("--pages", help=_("pages, e.g. 1-3,5,8- or odd/even (default: all)"))
+        if all_pages:
+            p.add_argument("--pages", help=_("pages, e.g. 1-3,5,8- or odd/even (default: all)"))
+        else:
+            p.add_argument("--pages", required=True, help=_("pages, e.g. 1-3,5,8- or odd/even"))
         p.add_argument("--password", help=_(PASSWORD_HELP))
         p.add_argument("--force", action="store_true",
                        help=_("go ahead even if this invalidates existing signatures"))
@@ -686,6 +703,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--angle", type=int, required=True, choices=(90, 180, 270, -90),
                    help=_("clockwise degrees"))
     p.set_defaults(func=cmd_rotate)
+
+    p = sub.add_parser("delete", help=_("delete pages"))
+    edit_opts(p, "deleted", all_pages=False)
+    p.set_defaults(func=cmd_delete)
 
     p = sub.add_parser("crop", help=_("crop pages (sets the visible area)"))
     edit_opts(p, "cropped")

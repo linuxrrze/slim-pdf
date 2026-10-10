@@ -1,6 +1,6 @@
 """Page operations: rotate, crop, split, merge.
 
-* ``rotate`` and ``crop`` are written as incremental updates (like
+* ``rotate``, ``crop`` and ``delete`` are written as incremental updates (like
   signatures), so earlier revisions stay byte-identical and the encryption
   is kept. They still change pages, which invalidates existing signatures;
   callers check :func:`signature_names` first and ask before doing so.
@@ -136,6 +136,83 @@ def rotate(data: bytes, pages: Iterable[int], angle: int, password: str | None =
         page[generic.NameObject("/Rotate")] = generic.NumberObject((current + angle) % 360)
         w.update_container(page)
     return _finish(w)
+
+
+def delete(data: bytes, pages: Iterable[int], password: str | None = None) -> bytes:
+    """Remove ``pages`` (incremental update, so the encryption is kept).
+
+    Form fields whose widgets were all on removed pages are removed from the
+    form too; fields with widgets elsewhere lose only the removed widgets.
+    """
+    w, refs = _incremental(data, password)
+    targets = sorted(set(_check_pages(pages, len(refs))))
+    if len(targets) == len(refs):
+        raise PageError(_("a document can't lose all its pages"))
+    gone_pages = {_key(refs[i]) for i in targets}
+    gone_annots = set()
+    for i in targets:
+        page = refs[i].get_object()
+        for a in _array(page.get("/Annots")):
+            if isinstance(a, generic.IndirectObject):
+                gone_annots.add(_key(a))
+    for i in targets:
+        ref = refs[i]
+        parent_ref = ref.get_object().raw_get("/Parent")
+        parent = parent_ref.get_object()
+        parent[generic.NameObject("/Kids")] = generic.ArrayObject(
+            k for k in _array(parent["/Kids"]) if _key(k) != _key(ref))
+        node = parent
+        while node is not None:
+            node[generic.NameObject("/Count")] = generic.NumberObject(int(node["/Count"]) - 1)
+            w.update_container(node)
+            up = node.raw_get("/Parent") if "/Parent" in node else None
+            node = up.get_object() if up is not None else None
+    _prune_fields(w, gone_pages, gone_annots)
+    return _finish(w)
+
+
+def _array(value) -> list:
+    """An array entry as a list, also when it is an indirect (or, in an
+    encrypted file, a decryption proxy of an) array; missing -> []."""
+    if value is None:
+        return []
+    return list(value.get_object() if hasattr(value, "get_object") else value)
+
+
+def _key(ref) -> tuple[int, int]:
+    return ref.idnum, ref.generation
+
+
+def _prune_fields(w, gone_pages: set, gone_annots: set) -> None:
+    acro_ref = w.root.raw_get("/AcroForm") if "/AcroForm" in w.root else None
+    if acro_ref is None:
+        return
+    acro = acro_ref.get_object()
+
+    def on_gone_page(ref) -> bool:
+        obj = ref.get_object()
+        page = obj.raw_get("/P") if "/P" in obj else None
+        return _key(ref) in gone_annots or (page is not None and _key(page) in gone_pages)
+
+    def keep(ref) -> bool:
+        """False if the field (or widget) only lived on removed pages."""
+        if not isinstance(ref, generic.IndirectObject):
+            return True
+        obj = ref.get_object()
+        kids = _array(obj.get("/Kids"))
+        if kids:
+            remaining = [k for k in kids if keep(k)]
+            if len(remaining) != len(kids):
+                obj[generic.NameObject("/Kids")] = generic.ArrayObject(remaining)
+                w.update_container(obj)
+            return bool(remaining)
+        return not on_gone_page(ref)
+
+    fields = _array(acro.get("/Fields"))
+    remaining = [f for f in fields if keep(f)]
+    if len(remaining) != len(fields):
+        acro[generic.NameObject("/Fields")] = generic.ArrayObject(remaining)
+        w.update_container(acro)
 
 
 def _box(page, key: str) -> Box:

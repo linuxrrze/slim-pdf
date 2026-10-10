@@ -8,7 +8,7 @@ from pyhanko.pdf_utils.reader import PdfFileReader
 
 from pdfsigner import cli, pages
 from pdfsigner.pages import PageError, parse_pages
-from pdfsigner.signing import SigningError, inspect_pdf
+from pdfsigner.signing import PasswordRequired, SigningError, inspect_pdf
 from pdfsigner.validation import INVALID, VALID, verify_pdf
 
 from conftest import make_encrypted, make_pdf, sign_with, write_pem
@@ -270,3 +270,85 @@ def test_cli_split_does_not_overwrite(tmp_path, cfg_path, capsys):
     one = tmp_path / "1.pdf"
     assert run("split", one, "-o", tmp_path / "{n}.pdf", "--overwrite") == 1
     assert "overwrite the input file" in capsys.readouterr().err
+
+
+# --- delete ------------------------------------------------------------------------------
+
+
+def test_delete_pages(tmp_path):
+    data = numbered_pdf(tmp_path / "n.pdf").read_bytes()
+    out = pages.delete(data, [1, 3])  # pages 2 and 4
+    assert widths(out) == [110, 130, 150]
+    assert out.startswith(data)  # incremental: the original revision is untouched
+    assert widths(pages.delete(out, [0])) == [130, 150]
+    with pytest.raises(PageError, match="can't lose all its pages"):
+        pages.delete(data, range(5))
+    with pytest.raises(PageError, match="out of range"):
+        pages.delete(data, [7])
+
+
+def test_delete_from_a_nested_page_tree(tmp_path):
+    """Real files often have /Pages -> /Pages -> /Page trees; the counts of
+    every node on the way up must shrink."""
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.generic import ArrayObject, DictionaryObject, NameObject, NumberObject
+
+    w = PdfWriter()
+    for i in range(1, 5):
+        w.add_blank_page(100 + i * 10, 200)
+    root_pages = w._root_object["/Pages"].get_object()
+    kids = list(root_pages["/Kids"])
+    inner = DictionaryObject({NameObject("/Type"): NameObject("/Pages"),
+                              NameObject("/Kids"): ArrayObject(kids[2:]),
+                              NameObject("/Count"): NumberObject(2),
+                              NameObject("/Parent"): w._root_object.raw_get("/Pages")})
+    inner_ref = w._add_object(inner)
+    for k in kids[2:]:
+        k.get_object()[NameObject("/Parent")] = inner_ref
+    root_pages[NameObject("/Kids")] = ArrayObject([*kids[:2], inner_ref])
+    buf = io.BytesIO()
+    w.write(buf)
+    assert widths(buf.getvalue()) == [110, 120, 130, 140]
+    out = pages.delete(buf.getvalue(), [2])  # inside the inner node
+    assert widths(out) == [110, 120, 140]
+    assert len(PdfReader(io.BytesIO(out)).pages) == 3
+
+
+def test_delete_keeps_encryption_and_drops_fields_of_deleted_pages(form_pdf, tmp_path):
+    from conftest import make_encrypted
+
+    enc = make_encrypted(form_pdf, tmp_path / "enc.pdf", "pw").read_bytes()
+    out = pages.delete(enc, [1], "pw")  # page 2 holds both signature fields
+    assert info(out, "pw") == [(595, 842, 0)]
+    with pytest.raises(PasswordRequired):
+        pages.page_count(out)
+    assert inspect_pdf(out, "pw").fields == []
+    kept = pages.delete(form_pdf.read_bytes(), [0])  # the fields' page survives
+    assert [f.name for f in inspect_pdf(kept).fields] == ["Applicant", "Supervisor"]
+    assert {f.page for f in inspect_pdf(kept).fields} == {0}
+
+
+def test_delete_from_signed_document_is_detected(profile, form_pdf, tmp_path):
+    from pdfsigner.validation import INVALID, verify_pdf
+
+    signed = tmp_path / "s.pdf"
+    sign_with(profile, form_pdf, signed, field_name="Applicant")
+    assert pages.signature_names(signed.read_bytes()) == ["Applicant"]
+    out = pages.delete(signed.read_bytes(), [0])
+    [r] = verify_pdf(out)
+    assert r.status == INVALID
+
+
+def test_cli_delete(tmp_path, cfg_path, profile, form_pdf, capsys):
+    src = numbered_pdf(tmp_path / "n.pdf")
+    assert run("delete", src, "--pages", "2,4") == 0
+    assert widths((tmp_path / "n-deleted.pdf").read_bytes()) == [110, 130, 150]
+    assert "deleted 2 pages" in capsys.readouterr().out
+    assert run("delete", src, "--pages", "1-5") == 1
+    assert "can't lose all its pages" in capsys.readouterr().err
+    with pytest.raises(SystemExit):
+        run("delete", src)  # --pages is required
+    signed = tmp_path / "s.pdf"
+    sign_with(profile, form_pdf, signed, field_name="Applicant")
+    assert run("delete", signed, "--pages", "1", "-i") == 3
+    assert "'Applicant'" in capsys.readouterr().err

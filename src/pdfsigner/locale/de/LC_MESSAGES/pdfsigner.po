@@ -80,6 +80,7 @@ msgid ""
 "    pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]\n"
 "    pdfsigner verify FILE\n"
 "    pdfsigner rotate|crop FILE [--pages SPEC] ...\n"
+"    pdfsigner delete FILE --pages SPEC\n"
 "    pdfsigner split FILE [--every N | --part SPEC ...]\n"
 "    pdfsigner merge -o OUT FILE[@SPEC] ...\n"
 "    pdfsigner gui [FILE]\n"
@@ -94,6 +95,7 @@ msgstr ""
 "    pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]\n"
 "    pdfsigner verify FILE\n"
 "    pdfsigner rotate|crop FILE [--pages SPEC] ...\n"
+"    pdfsigner delete FILE --pages SPEC\n"
 "    pdfsigner split FILE [--every N | --part SPEC ...]\n"
 "    pdfsigner merge -o OUT FILE[@SPEC] ...\n"
 "    pdfsigner gui [FILE]\n"
@@ -561,6 +563,18 @@ msgstr[1] "{n} Seiten um {angle}° gedreht -> {path}"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "deleting pages would invalidate the signature(s) {names}"
+msgstr "das Löschen von Seiten würde die Signatur(en) {names} ungültig machen"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "deleted {n} page -> {path}"
+msgid_plural "deleted {n} pages -> {path}"
+msgstr[0] "{n} Seite gelöscht -> {path}"
+msgstr[1] "{n} Seiten gelöscht -> {path}"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "cropping pages would invalidate the signature(s) {names}"
 msgstr "Zuschneiden der Seiten würde die Signatur(en) {names} ungültig machen"
 
@@ -739,6 +753,10 @@ msgid "pages, e.g. 1-3,5,8- or odd/even (default: all)"
 msgstr "Seiten, z. B. 1-3,5,8- oder odd/even (Standard: alle)"
 
 #: src/pdfsigner/cli.py
+msgid "pages, e.g. 1-3,5,8- or odd/even"
+msgstr "Seiten, z. B. 1-3,5,8- oder odd/even"
+
+#: src/pdfsigner/cli.py
 msgid "go ahead even if this invalidates existing signatures"
 msgstr "auch fortfahren, wenn dadurch vorhandene Signaturen ungültig werden"
 
@@ -749,6 +767,10 @@ msgstr "Seiten drehen"
 #: src/pdfsigner/cli.py
 msgid "clockwise degrees"
 msgstr "Grad im Uhrzeigersinn"
+
+#: src/pdfsigner/cli.py
+msgid "delete pages"
+msgstr "Seiten löschen"
 
 #: src/pdfsigner/cli.py
 msgid "crop pages (sets the visible area)"
@@ -2029,6 +2051,10 @@ msgstr "Seite {page} außerhalb des Bereichs (Dokument hat {count})"
 #: src/pdfsigner/pages.py
 msgid "rotation must be a multiple of 90 degrees"
 msgstr "Drehung muss ein Vielfaches von 90 Grad sein"
+
+#: src/pdfsigner/pages.py
+msgid "a document can't lose all its pages"
+msgstr "ein Dokument kann nicht alle Seiten verlieren"
 
 #: src/pdfsigner/pages.py
 msgid "give exactly one of box, margins or reset"
