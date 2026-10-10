@@ -14,6 +14,8 @@ import io
 import pypdfium2 as pdfium
 import pypdfium2.raw as raw
 
+from ..i18n import _
+
 # FPDF_DeviceToPage works on integer device pixels; oversample for precision.
 _OVERSAMPLE = 64
 
@@ -83,7 +85,7 @@ class PdfDocument:
             ctypes.byref(px), ctypes.byref(py),
         )
         if not ok:
-            raise ValueError("coordinate conversion failed")
+            raise ValueError(_("coordinate conversion failed"))
         return px.value, py.value
 
     def to_display(self, index: int, x: float, y: float) -> tuple[float, float]:
@@ -96,7 +98,7 @@ class PdfDocument:
             x, y, ctypes.byref(dx), ctypes.byref(dy),
         )
         if not ok:
-            raise ValueError("coordinate conversion failed")
+            raise ValueError(_("coordinate conversion failed"))
         return dx.value / _OVERSAMPLE, dy.value / _OVERSAMPLE
 
     def rect_to_pdf(self, index: int, x: float, y: float, w: float, h: float):

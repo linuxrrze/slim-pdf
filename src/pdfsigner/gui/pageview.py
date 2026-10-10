@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
+from ..i18n import _
 from ..signing import SigField, printable
 from .document import PdfDocument
 
@@ -116,7 +117,7 @@ class SignatureItem(QGraphicsObject):
             painter.drawPixmap(r, self._pixmap, QRectF(self._pixmap.rect()))
         else:
             painter.setPen(QColor(60, 60, 60))
-            painter.drawText(r, Qt.AlignCenter, "Signature")
+            painter.drawText(r, Qt.AlignCenter, _("Signature"))
         pen = QPen(QColor(30, 90, 200), 0, Qt.DashLine)
         painter.setPen(pen)
         painter.drawRect(r)
@@ -161,8 +162,13 @@ class FieldItem(QGraphicsRectItem):
         super().__init__(rect)
         self.field = f
         self.setZValue(5)
-        tip = f"{printable(f.name)}: " + ("signed" if f.filled else "locked" if f.locked else
-                               "empty - click to sign this field")
+        name = printable(f.name)
+        if f.filled:
+            tip = _("{name}: signed").format(name=name)
+        elif f.locked:
+            tip = _("{name}: locked").format(name=name)
+        else:
+            tip = _("{name}: empty - click to sign this field").format(name=name)
         self.setToolTip(tip)
         if self.clickable:
             self.setCursor(Qt.PointingHandCursor)
@@ -280,7 +286,7 @@ class PageView(QGraphicsView):
             return
         if self._fit_width:
             # scene rect has a 20pt margin on each side
-            w, _ = self.doc.display_size(self.page)
+            w, _h = self.doc.display_size(self.page)
             avail = self.viewport().width() - 2
             self.zoom = max(0.2, avail / (w + 40))
         self.resetTransform()
