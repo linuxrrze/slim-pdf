@@ -1458,6 +1458,10 @@ msgid "Save signed PDF"
 msgstr "Signiertes PDF speichern"
 
 #: src/pdfsigner/gui/app.py
+msgid "Signing…"
+msgstr "Signiere…"
+
+#: src/pdfsigner/gui/app.py
 msgid "Signing failed"
 msgstr "Signieren fehlgeschlagen"
 

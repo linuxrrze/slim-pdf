@@ -1395,6 +1395,10 @@ msgid "Save signed PDF"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+msgid "Signing…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 msgid "Signing failed"
 msgstr ""
 

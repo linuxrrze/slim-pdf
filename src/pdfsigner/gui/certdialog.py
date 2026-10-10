@@ -40,6 +40,7 @@ from ..config import (
 )
 from ..i18n import N_, _
 from ..signing import SigningError, describe_signer, open_signer
+from . import background
 from .dialogs import ask_secret
 from .screen import ElidedLabel, fit_to_screen, scrollable
 from .document import signature_pixmap
@@ -483,14 +484,19 @@ class CertEditDialog(QDialog):
                 "No PKCS#11 module found in the usual places. Install OpenSC or your card's "
                 "software, or enter the module's path."))
             return
-        found, errors = [], []
-        for m in modules:
-            try:
-                found += tokens.list_tokens(m, ask_pin=lambda label: ask_secret(
-                    self, _("PIN for token '{label}' (Cancel: certificates only)").format(
-                        label=label)))
-            except SigningError as e:
-                errors.append(str(e))
+        def work(ask):  # in a thread: a card can be slow to answer
+            found, errors = [], []
+            for m in modules:
+                try:
+                    found += tokens.list_tokens(m, ask_pin=lambda label: ask(
+                        lambda: ask_secret(self, _(
+                            "PIN for token '{label}' (Cancel: certificates only)").format(
+                                label=label))))
+                except SigningError as e:
+                    errors.append(str(e))
+            return found, errors
+
+        found, errors = background.run(self, work)
         if errors and not found:
             QMessageBox.critical(self, _("PKCS#11 token"), "\n".join(errors))
             return
@@ -515,11 +521,16 @@ class CertEditDialog(QDialog):
 
     def _test(self) -> None:
         p = self._store_form()
+
+        def work(ask):  # in a thread: KeePassXC or a card may wait for a touch
+            creds = secretstore.resolve_credentials(
+                p, lambda prompt: ask(lambda: ask_secret(self, prompt)))
+            with open_signer(p, creds) as signer:
+                return describe_signer(signer)
+
         try:
             p.validate()
-            creds = secretstore.resolve_credentials(p, lambda prompt: ask_secret(self, prompt))
-            with open_signer(p, creds) as signer:
-                info = describe_signer(signer)
+            info = background.run(self, work)
         except secretstore.Cancelled:
             return
         except (ValueError, SigningError, secretstore.SecretError) as e:

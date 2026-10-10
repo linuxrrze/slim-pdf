@@ -366,7 +366,9 @@ def test_image_and_text_switches_are_passed(window, blank_pdf, save_to, monkeypa
     real = gui_app.sign_pdf
 
     def spy(*a, **k):
-        seen.update(k)
+        import threading
+
+        seen.update(k, thread=threading.current_thread().name)
         return real(*a, **k)
 
     monkeypatch.setattr(gui_app, "sign_pdf", spy)
@@ -375,6 +377,7 @@ def test_image_and_text_switches_are_passed(window, blank_pdf, save_to, monkeypa
     window.text_check.setChecked(False)
     window.sign()
     assert seen["with_text"] is False and seen["with_image"] is True
+    assert seen["thread"] == "pdfsigner-work"  # not on the GUI thread
 
 
 # --- prepared fields ------------------------------------------------------------------

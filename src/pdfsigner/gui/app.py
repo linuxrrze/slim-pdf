@@ -44,6 +44,7 @@ from ..signing import (
     printable,
     sign_pdf,
 )
+from . import background
 from .certdialog import CertManagerDialog
 from .screen import fit_to_screen
 from .settings import SettingsDialog
@@ -746,30 +747,39 @@ class MainWindow(QMainWindow):
             return
         out = Path(out)
 
-        QGuiApplication.setOverrideCursor(Qt.WaitCursor)
-        try:
+        data, pdf_password, trust = self.data, self.pdf_password, self.config.trust
+        with_image, with_text = self.image_check.isChecked(), self.text_check.isChecked()
+
+        def work(ask):  # in a thread: cards, KeePassXC and servers may take a while
             creds = secretstore.resolve_credentials(
-                profile, lambda prompt: self._ask_unbusy(prompt))
-            if profile.type in HARDWARE_TYPES:  # may wait for a touch or a PIN pad
-                self.statusBar().showMessage(_(TOKEN_HINT))
-                QApplication.processEvents()
-                systemstore.parent_window = int(self.winId())
+                profile, lambda prompt: ask(lambda: self._ask_unbusy(prompt)))
             with open_signer(profile, creds) as signer:
-                name = sign_pdf(
-                    self.data, out, signer, profile,
+                return sign_pdf(
+                    data, out, signer, profile,
                     field_name=field_name, page=page, box=box,
-                    with_image=self.image_check.isChecked(),
-                    with_text=self.text_check.isChecked(),
-                    pdf_password=self.pdf_password, allow_breaking=True,
-                    trust=self.config.trust,
+                    with_image=with_image, with_text=with_text,
+                    pdf_password=pdf_password, allow_breaking=True, trust=trust,
                 )
+
+        QGuiApplication.setOverrideCursor(Qt.WaitCursor)
+        if profile.type in HARDWARE_TYPES:  # may wait for a touch or a PIN pad
+            self.statusBar().showMessage(_(TOKEN_HINT))
+            systemstore.parent_window = int(self.winId())
+        else:
+            self.statusBar().showMessage(_("Signing…"))
+        try:
+            name = background.run(self, work)
         except secretstore.Cancelled:
+            self.statusBar().showMessage(_(HINT))
             return
         except (SigningError, SigningBlocked, secretstore.SecretError, ValueError, OSError) as e:
+            QGuiApplication.restoreOverrideCursor()
+            self.statusBar().showMessage(_(HINT))
             QMessageBox.critical(self, _("Signing failed"), str(e))
             return
         finally:
-            QGuiApplication.restoreOverrideCursor()
+            if QGuiApplication.overrideCursor() is not None:
+                QGuiApplication.restoreOverrideCursor()
 
         self.open(out, self.pdf_password, page=self.view.page)
         self.statusBar().showMessage(
