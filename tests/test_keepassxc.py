@@ -65,7 +65,7 @@ def test_passphrase_and_attachment(real_cli, keepass_db, p12):
 
 def test_attachment_via_temp_file(real_cli, keepass_db, p12, monkeypatch):
     """The Windows code path (no named pipes)."""
-    monkeypatch.delattr(os, "mkfifo")
+    monkeypatch.delattr(os, "mkfifo", raising=False)  # absent on Windows anyway
     profile = kpxc_profile(keepass_db, keepass_attachment="alice.p12")
     assert resolve_credentials(profile, answer("master")).pkcs12_data == p12[0].read_bytes()
 
