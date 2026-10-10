@@ -18,8 +18,16 @@ guide show the English version.
 
 ![Main window with a document open](images/gui-overview.png)
 
-* **Toolbar:** open a file, move between pages (`PgUp`/`PgDown`), and zoom
-  (`Ctrl +`/`Ctrl -`, *Fit* = fit width).
+* **Ribbon** (top), in four tabs:
+  * *Home:* **Open…** (`Ctrl+O`), **Save**, **Save as…**, **Undo**; **Place
+    signature… / Sign…** (`Ctrl+S`), **Clear placement** (`Esc`),
+    **Certificates…**; **Settings…**.
+  * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
+  * *View:* move between pages (`PgUp`/`PgDown`, or type the page number),
+    zoom (`Ctrl +`/`Ctrl -`, *Fit* = fit width), show or hide the *Pages*
+    panel.
+  * *Help:* **Documentation** (`F1`, this guide online), **About PDF Signer**
+    (version, and the libraries it is built on), **About Qt**.
 * **Page:** the mouse wheel zooms in and out around the mouse pointer (out
   only until the whole page fits the view);
   press and hold the left mouse button and move to move the page. Prepared
@@ -125,19 +133,21 @@ The tooltip shows what the signature covers. Extra trusted roots come from
 
 ![The page menu](images/gui-page-menu.png)
 
-Right-click a page in the *Pages* panel (or the page itself) for the page
-menu. It acts on the pages selected in the panel (Ctrl/Shift-click to select
-several); right-clicking a page outside the selection selects just that one:
+The *Pages* tab of the ribbon has the page tools; so does the page menu:
+right-click a page in the *Pages* panel (or the page itself). They act on
+the pages selected in the panel (Ctrl/Shift-click to select several), else
+on the current page; right-clicking a page outside the selection selects
+just that one:
 
 * **Rotate left / Rotate right** (`Ctrl+L` / `Ctrl+R`) turn pages by 90°.
 * **Crop…**: drag a rectangle around the area to keep, then choose *This
   page*, *Selected pages* or *All pages*. `Esc` cancels. **Uncrop** shows the
   whole page again; cropping only hides content.
-* **Delete page / Delete N pages** (also the `Delete` key in the *Pages*
-  panel) removes them; at least one page stays. Form fields on deleted pages
-  go with them.
+* **Delete page / Delete N pages** (*Delete pages* in the ribbon, also the
+  `Delete` key in the *Pages* panel) removes them; at least one page stays.
+  Form fields on deleted pages go with them.
 
-The toolbar keeps:
+The *Home* tab has:
 
 * **Undo** (`Ctrl+Z`), which goes back one edit, also a deletion.
 * **Save** and **Save as…** (`Ctrl+Shift+S`; Save has no shortcut because
@@ -152,7 +162,7 @@ command line (see [cli.md](cli.md#page-tools-rotate-crop-delete-split-merge)).
 
 ## Settings
 
-**Settings…** in the toolbar edits what applies to all profiles:
+**Settings…** on the ribbon's *Home* tab edits what applies to all profiles:
 
 * **Language:** system default, English or Deutsch.
 * **Additional trusted certificates:** your organisation's CA, or colleagues'

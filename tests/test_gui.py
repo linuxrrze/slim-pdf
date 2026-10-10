@@ -1495,3 +1495,22 @@ def test_signing_keeps_the_stored_certificate_current(window, form_pdf, save_to,
     window.sign()
     stored = certinfo.load(window.config.certs["alice"].certificate)
     assert stored is not None and certinfo.signer_name(stored) == "Alice Example"
+
+
+def test_ribbon_tabs_and_about(window, monkeypatch):
+    """The ribbon replaces the toolbars; Help → About names the version."""
+    rb = window.ribbon
+    assert window.menuWidget() is rb
+    assert [rb.tabText(i) for i in range(rb.count())] == ["Home", "Pages", "View", "Help"]
+    home = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
+    assert window.open_act in home and window.sign_act in home
+    assert not window.save_act.isEnabled()  # no document yet
+
+    shown = []
+    monkeypatch.setattr(gui_app.QMessageBox, "about",
+                        lambda parent, title, text: shown.append((title, text)))
+    window.about_act.trigger()
+    [(title, text)] = shown
+    assert title == "About PDF Signer"
+    assert gui_app.version() in text and "pyHanko" in text
+    assert gui_app.HOMEPAGE in text

@@ -1155,35 +1155,7 @@ msgid "PDF Signer"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Main"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
 msgid "Open…"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "‹ Prev"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Next ›"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Fit"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Clear placement"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Settings…"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Pages"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1200,6 +1172,46 @@ msgstr ""
 
 #: src/pdfsigner/gui/app.py
 msgid "Undo"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Clear placement"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Settings…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Certificates…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Manage your certificates"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "‹ Prev"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Next ›"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Zoom out"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Fit"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Fit the page into the window"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Zoom in"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1220,6 +1232,75 @@ msgstr ""
 
 #: src/pdfsigner/gui/app.py
 msgid "Delete"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Delete pages"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Delete the pages selected in the Pages panel, or the current one"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "About PDF Signer"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "About Qt"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Documentation"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Home"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "File"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Sign"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Options"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Pages"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Rotate"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Crop"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "View"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Navigate"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Zoom"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Panels"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Help"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1269,10 +1350,6 @@ msgstr ""
 
 #: src/pdfsigner/gui/app.py
 msgid "Double-click for the full validation report"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Sign"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1374,10 +1451,6 @@ msgid "Selected pages ({count})"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Crop"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
 msgid "Apply to:"
 msgstr ""
 
@@ -1418,10 +1491,6 @@ msgstr ""
 msgid "Uncropped {n} page"
 msgid_plural "Uncropped {n} pages"
 msgstr[0] ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Delete pages"
-msgstr ""
 
 #: src/pdfsigner/gui/app.py
 msgid "A document can't lose all its pages."
@@ -1610,6 +1679,24 @@ msgid "Signing… If your card reader asks for the PIN or your security key blin
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+msgid "unknown"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "PDF Signer {version}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Sign PDFs with real certificates (PAdES) and a visible signature image, and check the signatures in them."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Built with: {libraries}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid ""
 "Cannot read the configuration:\n"
@@ -1771,10 +1858,6 @@ msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "e.g. Work, YubiKey"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "File"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py

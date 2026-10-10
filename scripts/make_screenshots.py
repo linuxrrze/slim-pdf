@@ -182,6 +182,7 @@ def main() -> None:
 
     # page tools: a scanned attachment page that needs rotating and cropping
     win.open(doc)
+    win.ribbon.setCurrentIndex(1)  # the Pages tab
     win.view.go_to(1)
     win.thumbs.show_page(1)
     # the page menu on the second thumbnail; a popup is its own window, so it
@@ -207,6 +208,7 @@ def main() -> None:
     grab(win, "gui-pages.png")
     win._escape()
     win.dirty = False
+    win.ribbon.setCurrentIndex(0)
 
     # password prompt (shown non-modally just for the picture)
     dlg = QInputDialog(win)

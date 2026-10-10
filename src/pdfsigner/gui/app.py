@@ -2,11 +2,23 @@
 
 from __future__ import annotations
 
+import html
+import platform
 import sys
+from importlib import metadata
 from pathlib import Path
 
-from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTranslator
-from PySide6.QtGui import QAction, QColor, QGuiApplication, QIcon, QKeySequence, QPainter, QPixmap
+from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTranslator, QUrl, qVersion
+from PySide6.QtGui import (
+    QAction,
+    QColor,
+    QDesktopServices,
+    QGuiApplication,
+    QIcon,
+    QKeySequence,
+    QPainter,
+    QPixmap,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -23,7 +35,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
-    QToolBar,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -43,7 +55,7 @@ from ..signing import (
     sign_pdf,
     stamp_size,
 )
-from . import background
+from . import background, ribbon
 from .certdialog import CertManagerDialog, details_dialog
 from .screen import fit_to_screen
 from .settings import SettingsDialog
@@ -124,86 +136,142 @@ class MainWindow(QMainWindow):
         self.view.fieldActivated.connect(self._field_activated)
         self.setCentralWidget(self.view)
 
-        self._build_toolbar()
-        self._build_pages_toolbar()
+        self._build_actions()
         self._build_sign_panel()
         self._build_pages_panel()
+        self._build_ribbon()
+        self._update_page_actions()
         self.statusBar().showMessage(_(HINT))
         self._reload_certs()
         self._update_target()
 
-    # toolbar ----------------------------------------------------------------
+    # ribbon -------------------------------------------------------------------
 
-    def _build_toolbar(self) -> None:
-        tb = QToolBar(_("Main"))
-        tb.setMovable(False)
-        self.addToolBar(tb)
-        self.main_toolbar = tb
-
-        open_act = QAction(_("Open…"), self, shortcut=QKeySequence.Open, triggered=self.open_dialog)
-        tb.addAction(open_act)
-        tb.addSeparator()
-
-        tb.addAction(QAction(_("‹ Prev"), self, shortcut=QKeySequence.MoveToPreviousPage,
-                             triggered=lambda: self.view.go_to(self.view.page - 1)))
-        self.page_spin = QSpinBox()
-        self.page_spin.setMinimum(1)
-        self.page_spin.valueChanged.connect(lambda v: self.view.go_to(v - 1))
-        tb.addWidget(self.page_spin)
-        self.page_count = QLabel(" / 0 ")
-        tb.addWidget(self.page_count)
-        tb.addAction(QAction(_("Next ›"), self, shortcut=QKeySequence.MoveToNextPage,
-                             triggered=lambda: self.view.go_to(self.view.page + 1)))
-        tb.addSeparator()
-        tb.addAction(QAction("−", self, shortcut=QKeySequence.ZoomOut,
-                             triggered=lambda: self.view.set_zoom(self.view.zoom / 1.2)))
-        tb.addAction(QAction(_("Fit"), self, triggered=lambda: self.view.set_zoom(None)))
-        tb.addAction(QAction("+", self, shortcut=QKeySequence.ZoomIn,
-                             triggered=lambda: self.view.set_zoom(self.view.zoom * 1.2)))
-        tb.addSeparator()
-        tb.addAction(QAction(_("Clear placement"), self, shortcut=Qt.Key_Escape,
-                             triggered=self._escape))
-        tb.addSeparator()
-        tb.addAction(QAction(_("Settings…"), self, shortcut=QKeySequence.Preferences,
-                             triggered=self.settings_dialog))
-
-    def _build_pages_toolbar(self) -> None:
-        tb = QToolBar(_("Pages"))
-        tb.setMovable(False)
-        self.addToolBar(tb)
-        self.pages_toolbar = tb
-
-        def act(text, slot, shortcut=None, tip=""):
+    def _build_actions(self) -> None:
+        """Every command the ribbon offers, as actions of the window, so their
+        shortcuts work wherever the focus is."""
+        def act(text, slot, shortcut=None, theme="", fallback=None, tip="", page=False):
             a = QAction(text, self, triggered=slot)
             if shortcut:
                 a.setShortcut(QKeySequence(shortcut))
+            if theme:
+                a.setIcon(ribbon.icon(theme, fallback))
             a.setToolTip(tip or text)
-            tb.addAction(a)
-            self.page_actions.append(a)
+            self.addAction(a)
+            if page:  # needs a document
+                self.page_actions.append(a)
             return a
 
         self.page_actions: list[QAction] = []
-        self.save_act = act(_("Save"), self.save, tip=_("Save the edited document"))
-        self.save_as_act = act(_("Save as…"), self.save_as, "Ctrl+Shift+S")
-        self.undo_act = act(_("Undo"), self.undo, QKeySequence.Undo)
+        self.open_act = act(_("Open…"), self.open_dialog, QKeySequence.Open, "DocumentOpen",
+                            QStyle.SP_DialogOpenButton)
+        self.save_act = act(_("Save"), self.save, None, "DocumentSave",
+                            QStyle.SP_DialogSaveButton, _("Save the edited document"), True)
+        self.save_as_act = act(_("Save as…"), self.save_as, "Ctrl+Shift+S", "DocumentSaveAs",
+                               None, page=True)
+        self.undo_act = act(_("Undo"), self.undo, QKeySequence.Undo, "EditUndo",
+                            QStyle.SP_ArrowBack, page=True)
+        self.clear_act = act(_("Clear placement"), self._escape, Qt.Key_Escape, "EditClear",
+                             QStyle.SP_DialogResetButton)
+        self.settings_act = act(_("Settings…"), self.settings_dialog, QKeySequence.Preferences,
+                                "DocumentProperties", QStyle.SP_FileDialogDetailedView)
+        self.manage_act = act(_("Certificates…"), self.manage_certs, None, "SecurityHigh",
+                              None, _("Manage your certificates"))
 
-        # Page edits live in the pages' context menu (right-click a thumbnail
-        # or the page); the window holds them so their shortcuts work too.
-        def edit(text, slot, shortcut=None):
-            a = QAction(text, self, triggered=slot)
-            if shortcut:
-                a.setShortcut(QKeySequence(shortcut))
-            self.addAction(a)
-            self.page_actions.append(a)
-            return a
+        self.prev_act = act(_("‹ Prev"), lambda: self.view.go_to(self.view.page - 1),
+                            QKeySequence.MoveToPreviousPage, "GoPrevious", QStyle.SP_ArrowLeft)
+        self.next_act = act(_("Next ›"), lambda: self.view.go_to(self.view.page + 1),
+                            QKeySequence.MoveToNextPage, "GoNext", QStyle.SP_ArrowRight)
+        self.zoom_out_act = act(_("Zoom out"), lambda: self.view.set_zoom(self.view.zoom / 1.2),
+                                QKeySequence.ZoomOut, "ZoomOut")
+        self.fit_act = act(_("Fit"), lambda: self.view.set_zoom(None), None, "ZoomFitBest",
+                           None, _("Fit the page into the window"))
+        self.zoom_in_act = act(_("Zoom in"), lambda: self.view.set_zoom(self.view.zoom * 1.2),
+                               QKeySequence.ZoomIn, "ZoomIn")
+        self.page_spin = QSpinBox()
+        self.page_spin.setMinimum(1)
+        self.page_spin.valueChanged.connect(lambda v: self.view.go_to(v - 1))
+        self.page_count = QLabel(" / 0 ")
 
-        self.rotate_left_act = edit(_("Rotate left"), lambda: self.rotate_pages(-90), "Ctrl+L")
-        self.rotate_right_act = edit(_("Rotate right"), lambda: self.rotate_pages(90), "Ctrl+R")
-        self.crop_act = edit(_("Crop…"), self._toggle_crop)
+        # Page edits are also in the pages' context menu (right-click a
+        # thumbnail or the page).
+        self.rotate_left_act = act(_("Rotate left"), lambda: self.rotate_pages(-90), "Ctrl+L",
+                                   "ObjectRotateLeft", page=True)
+        self.rotate_right_act = act(_("Rotate right"), lambda: self.rotate_pages(90), "Ctrl+R",
+                                    "ObjectRotateRight", page=True)
+        self.crop_act = act(_("Crop…"), self._toggle_crop, page=True)
         self.crop_act.setCheckable(True)
-        self.uncrop_act = edit(_("Uncrop"), self.reset_crop)
-        self.delete_act = edit(_("Delete"), self.delete_pages)
-        self._update_page_actions()
+        self.uncrop_act = act(_("Uncrop"), self.reset_crop, page=True)
+        self.delete_act = act(_("Delete"), self.delete_pages, page=True)
+        # the menu names the pages ("Delete page 3"); the ribbon can't know
+        # which ones until clicked
+        self.delete_pages_act = act(_("Delete pages"), self.delete_pages, None, "EditDelete",
+                                    QStyle.SP_TrashIcon,
+                                    _("Delete the pages selected in the Pages panel, or the "
+                                      "current one"), True)
+
+        self.about_act = act(_("About PDF Signer"), self.about, None, "HelpAbout",
+                             QStyle.SP_MessageBoxInformation)
+        self.about_act.setMenuRole(QAction.AboutRole)
+        self.about_qt_act = act(_("About Qt"), QApplication.aboutQt)
+        self.about_qt_act.setMenuRole(QAction.AboutQtRole)
+        self.docs_act = act(_("Documentation"), self.open_docs, QKeySequence.HelpContents,
+                            "HelpFaq", QStyle.SP_DialogHelpButton)
+
+    def _build_ribbon(self) -> None:
+        rb = ribbon.Ribbon()
+        self.ribbon = rb
+
+        if ICON.exists():
+            self.sign_act.setIcon(QIcon(str(ICON)))
+        home = rb.tab(_("Home"))
+        g = home.group(_("File"))
+        g.add(self.open_act)
+        g.add(self.save_act)
+        g.add(self.save_as_act, large=False)
+        g.add(self.undo_act, large=False)
+        g = home.group(_("Sign"))
+        g.add(self.sign_act)
+        g.add(self.clear_act, large=False)
+        g.add(self.manage_act, large=False)
+        g = home.group(_("Options"))
+        g.add(self.settings_act)
+
+        pages_tab = rb.tab(_("Pages"))
+        g = pages_tab.group(_("Rotate"))
+        g.add(self.rotate_left_act)
+        g.add(self.rotate_right_act)
+        g = pages_tab.group(_("Crop"))
+        g.add(self.crop_act)
+        g.add(self.uncrop_act)
+        g = pages_tab.group(_("Delete"))
+        g.add(self.delete_pages_act)
+
+        view = rb.tab(_("View"))
+        g = view.group(_("Navigate"))
+        g.add(self.prev_act)
+        spin = QWidget()
+        row = QHBoxLayout(spin)
+        row.setContentsMargins(4, 0, 4, 0)
+        row.addWidget(self.page_spin)
+        row.addWidget(self.page_count)
+        g.add_widget(spin)
+        g.add(self.next_act)
+        g = view.group(_("Zoom"))
+        g.add(self.zoom_out_act)
+        g.add(self.fit_act)
+        g.add(self.zoom_in_act)
+        g = view.group(_("Panels"))
+        g.add(self.pages_dock.toggleViewAction(), large=False)
+
+        help_tab = rb.tab(_("Help"))
+        g = help_tab.group(_("Help"))
+        g.add(self.docs_act)
+        g.add(self.about_act)
+        g.add(self.about_qt_act, large=False)
+
+        rb.refit()
+        self.setMenuWidget(rb)  # where the menu bar would be
 
     def page_menu(self) -> QMenu:
         """The pages' context menu, for the selected pages (or the current one)."""
@@ -346,6 +414,12 @@ class MainWindow(QMainWindow):
             pixmap, aspect = (None if pm.isNull() else pm), w / h
         self.view.set_signature_appearance(pixmap, aspect)
         self._update_target()
+
+    def about(self) -> None:
+        QMessageBox.about(self, _("About PDF Signer"), about_text())
+
+    def open_docs(self) -> None:
+        QDesktopServices.openUrl(QUrl(DOCS_URL))
 
     def settings_dialog(self) -> None:
         dlg = SettingsDialog(self.config, self)
@@ -591,21 +665,6 @@ class MainWindow(QMainWindow):
         if answer == QMessageBox.Save:
             return self.save()
         return answer == QMessageBox.Discard
-
-    def _arrange_toolbars(self) -> None:
-        """Page tools go to a second row when both toolbars don't fit
-        (longer labels in German, narrow windows)."""
-        need = (self.main_toolbar.sizeHint().width()
-                + self.pages_toolbar.sizeHint().width() + 16)
-        wrapped = self.toolBarBreak(self.pages_toolbar)
-        if need > self.width() and not wrapped:
-            self.insertToolBarBreak(self.pages_toolbar)
-        elif need <= self.width() and wrapped:
-            self.removeToolBarBreak(self.pages_toolbar)
-
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
-        self._arrange_toolbars()
 
     def closeEvent(self, event) -> None:
         if self._maybe_save():
@@ -874,10 +933,41 @@ class MainWindow(QMainWindow):
 
 
 ICON = Path(__file__).with_name("icon.png")
+HOMEPAGE = "https://github.com/linuxrrze/slim-pdf"
+DOCS_URL = HOMEPAGE + "/blob/main/docs/gui.md"
 STAMP_PREVIEW_PX = 240  # height of the placed stamp's preview, sharp enough when zoomed
 HARDWARE_TYPES = ("pkcs11", "system")
 TOKEN_HINT = N_("Signing… If your card reader asks for the PIN or your security key "
                 "blinks, confirm there.")
+
+
+def version() -> str:
+    try:
+        return metadata.version("pdfsigner")
+    except metadata.PackageNotFoundError:  # run from a source tree
+        return _("unknown")
+
+
+def about_text() -> str:
+    """The About box: what this is, its version, and what it is built on."""
+    def dist(name):
+        try:
+            return metadata.version(name)
+        except metadata.PackageNotFoundError:
+            return "?"
+
+    libs = [("pyHanko", dist("pyhanko")), ("pypdfium2", dist("pypdfium2")),
+            ("Qt", qVersion()), ("PySide6", dist("PySide6")),
+            ("Python", platform.python_version())]
+    return "".join([
+        "<h3>{}</h3>".format(html.escape(_("PDF Signer {version}").format(version=version()))),
+        "<p>{}</p>".format(html.escape(_(
+            "Sign PDFs with real certificates (PAdES) and a visible signature image, "
+            "and check the signatures in them."))),
+        "<p>{}</p>".format(html.escape(_("Built with: {libraries}").format(
+            libraries=", ".join(f"{name} {v}" for name, v in libs)))),
+        '<p><a href="{url}">{url}</a></p>'.format(url=HOMEPAGE),
+    ])
 
 
 def setup_language(app: QApplication, configured: str | None) -> str:
