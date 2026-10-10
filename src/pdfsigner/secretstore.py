@@ -18,7 +18,6 @@ See docs/secret-storage.md for the trade-offs.
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -198,21 +197,22 @@ KEEPASSXC_CLI_CANDIDATES = {
 CLI_TIMEOUT = 120  # seconds; leaves time to touch a YubiKey
 
 
-def _same_dir(a: str, b: str) -> bool:
-    return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b))
-
-
 def _which_absolute(name: str) -> str | None:
     """Like shutil.which, but never from the current directory: on Windows
-    shutil.which looks there first, and relative PATH entries ("." or empty)
-    do the same everywhere. A keepassxc-cli planted in e.g. the Downloads
-    folder would otherwise get the master password."""
+    shutil.which looks there first (even with an explicit path), and
+    relative PATH entries ("." or empty) do the same everywhere. A
+    keepassxc-cli planted in e.g. the Downloads folder would otherwise get
+    the master password."""
+    exts = [""]
+    if sys.platform == "win32":
+        exts = [e for e in os.environ.get("PATHEXT", ".COM;.EXE;.BAT;.CMD").split(os.pathsep) if e]
     for d in os.environ.get("PATH", "").split(os.pathsep):
         if not d or not os.path.isabs(d):
             continue
-        found = shutil.which(name, path=d)
-        if found and os.path.isabs(found) and _same_dir(os.path.dirname(found), d):
-            return found
+        for ext in exts:
+            candidate = os.path.join(d, name + ext)
+            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                return candidate
     return None
 
 

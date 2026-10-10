@@ -1,6 +1,7 @@
 import io
 import sys
 import types
+from pathlib import Path
 
 import pytest
 from pyhanko import stamp
@@ -366,7 +367,7 @@ def test_pkcs11_session_is_opened_and_closed(monkeypatch, p12):
         assert isinstance(s, FakeSigner)
         assert not FakeSession.closed
     assert FakeSession.closed
-    assert calls == {"open": ("/lib/opensc.so", "My Card", "123456"),
+    assert calls == {"open": (str(Path("/lib/opensc.so")), "My Card", "123456"),
                      "signer": dict(signing_cert="CERT", key_label="SIGN key", key_id=b"\x02",
                                     use_raw_mechanism=True,
                                     base_sign_kwargs={"pin": "123456"})}

@@ -232,18 +232,6 @@ def test_cli_never_from_current_directory(monkeypatch, tmp_path):
         secretstore.keepassxc_cli()
 
 
-def test_cli_rejects_relative_hit(monkeypatch, tmp_path):
-    """What shutil.which does on Windows: the current directory first."""
-    monkeypatch.delenv("PDFSIGNER_KEEPASSXC_CLI", raising=False)
-    monkeypatch.setattr(secretstore, "KEEPASSXC_CLI_CANDIDATES", {})
-    real = _exe(tmp_path / "bin")
-    monkeypatch.setenv("PATH", str(real.parent))
-    monkeypatch.setattr(secretstore.shutil, "which",
-                        lambda name, path=None: os.path.join(".", name + ".EXE"))
-    with pytest.raises(SecretError, match="not found"):
-        secretstore.keepassxc_cli()
-
-
 def test_profile_validation():
     with pytest.raises(ValueError, match="keepass_yubikey requires"):
         CertProfile(name="x", path="a.p12", keepass_yubikey="2").validate()
