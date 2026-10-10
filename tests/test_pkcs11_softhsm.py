@@ -164,3 +164,21 @@ def test_cli_certs_test_and_sign(token, tok_profile, form_pdf, cfg_path, monkeyp
     assert "Token Signer" in capsys.readouterr().out
     assert cli.main(["sign", str(form_pdf), "--field", "Applicant"]) == 0
     assert inspect_pdf(form_pdf.with_name(f"{form_pdf.stem}-signed.pdf")).field("Applicant").filled
+
+
+def test_token_error_while_signing(tok_profile, form_pdf, tmp_path, monkeypatch):
+    """Errors from the token during signing (card removed, touch timeout, ...)
+    are reported like other token errors, not as a traceback."""
+    from pkcs11.exceptions import DeviceRemoved
+    from pyhanko.sign.pkcs11 import PKCS11Signer
+
+    async def fail(self, data, digest_algorithm, dry_run=False):
+        if dry_run:
+            return b"0" * 512
+        raise DeviceRemoved()
+
+    monkeypatch.setattr(PKCS11Signer, "async_sign_raw", fail)
+    with pytest.raises(SigningError, match="refused to sign: DeviceRemoved"):
+        with open_signer(tok_profile, Credentials(secret=PIN)) as s:
+            sign_pdf(form_pdf, tmp_path / "out.pdf", s, tok_profile, field_name="Applicant")
+    assert not (tmp_path / "out.pdf").exists()
