@@ -104,30 +104,32 @@ The tooltip shows what the signature covers. Extra trusted roots come from
 
 ![Cropping a page](images/gui-pages.png)
 
-The second half of the toolbar edits pages. Rotate and crop apply to the
-pages selected in the *Pages* panel, or to the current page if at most one
-is selected:
+![The page menu](images/gui-page-menu.png)
+
+Right-click a page in the *Pages* panel (or the page itself) for the page
+menu. It acts on the pages selected in the panel (Ctrl/Shift-click to select
+several); right-clicking a page outside the selection selects just that one:
 
 * **Rotate left / Rotate right** (`Ctrl+L` / `Ctrl+R`) turn pages by 90°.
-* **Crop**: drag a rectangle around the area to keep, then choose *This
+* **Crop…**: drag a rectangle around the area to keep, then choose *This
   page*, *Selected pages* or *All pages*. `Esc` cancels. **Uncrop** shows the
   whole page again; cropping only hides content.
-* **Undo** (`Ctrl+Z`) goes back one edit.
+* **Delete page / Delete N pages** (also the `Delete` key in the *Pages*
+  panel) removes them; at least one page stays. Form fields on deleted pages
+  go with them.
+
+The toolbar keeps:
+
+* **Undo** (`Ctrl+Z`), which goes back one edit, also a deletion.
 * **Save** and **Save as…** (`Ctrl+Shift+S`; Save has no shortcut because
   `Ctrl+S` signs) write the edited document. The
   title bar shows `*` while there are unsaved edits, and pdfsigner asks
   before you close or open another file. Signing an edited document saves
   the edits together with the signature.
-* **Split…** writes several files: *every N pages*, or explicit parts like
-  `1-3; 4-6; 7-`, into a folder with a name pattern containing `{n}`. If
-  some of them already exist, pdfsigner asks before replacing them.
-* **Merge…** combines the current document with other PDFs. Add files,
-  order them with *Up*/*Down*, and optionally enter pages per file (e.g.
-  `2-3`). The result is saved as a new file and opened.
 
 Page edits invalidate existing signatures, so pdfsigner warns first: edit
-pages, then sign. Split and merge produce new documents without the
-signatures (see [cli.md](cli.md#page-tools-rotate-crop-delete-split-merge)).
+pages, then sign. Splitting and merging documents is available on the
+command line (see [cli.md](cli.md#page-tools-rotate-crop-delete-split-merge)).
 
 ## Settings
 
@@ -197,5 +199,6 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | `Esc` | Remove the placed signature, or cancel cropping |
 | `Ctrl+S` | Sign |
 | `Ctrl+L` / `Ctrl+R` | Rotate the selected pages left / right |
+| `Delete` | Delete the selected pages (in the *Pages* panel) |
 | `Ctrl+Z` | Undo the last page edit |
 | `Ctrl+Shift+S` | Save as |

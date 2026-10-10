@@ -400,7 +400,6 @@ msgid "empty"
 msgstr ""
 
 #: src/pdfsigner/cli.py
-#: src/pdfsigner/gui/pagetools.py
 #, python-brace-format
 msgid "page {page}"
 msgstr ""
@@ -1022,23 +1021,11 @@ msgid "Rotate left"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Rotate the selected pages (or the current page) counter-clockwise"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
 msgid "Rotate right"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Rotate the selected pages (or the current page) clockwise"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Crop"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Drag a rectangle on the page to crop to it"
+msgid "Crop…"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1046,17 +1033,19 @@ msgid "Uncrop"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Show the whole page again"
+msgid "Delete"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Split…"
+#, python-brace-format
+msgid "Delete page {page}"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/pagetools.py
-msgid "Merge…"
-msgstr ""
+#, python-brace-format
+msgid "Delete {n} page"
+msgid_plural "Delete {n} pages"
+msgstr[0] ""
 
 #: src/pdfsigner/gui/app.py
 #: src/pdfsigner/gui/certdialog.py
@@ -1118,7 +1107,6 @@ msgid "PDF"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/pagetools.py
 #, python-brace-format
 msgid "Password for {name}"
 msgstr ""
@@ -1200,6 +1188,10 @@ msgid "Selected pages ({count})"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+msgid "Crop"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 msgid "Apply to:"
 msgstr ""
 
@@ -1242,59 +1234,31 @@ msgid_plural "Uncropped {n} pages"
 msgstr[0] ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Split"
+msgid "Delete pages"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "The split files will not contain the signature(s) {names}. Continue?"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "A part would overwrite the open document {file}."
+msgid "A document can't lose all its pages."
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid ""
-"{n} file already exists:\n"
-"{paths}\n"
+"Deleting pages will invalidate the signature(s) {names}.\n"
 "\n"
-"Replace it?"
-msgid_plural ""
-"{n} files already exist:\n"
-"{paths}\n"
-"\n"
-"Replace them?"
-msgstr[0] ""
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid ""
-"Wrote {n} file:\n"
-"{paths}"
-msgid_plural ""
-"Wrote {n} files:\n"
-"{paths}"
-msgstr[0] ""
-
-#: src/pdfsigner/gui/app.py
-msgid "(current document)"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-msgid "Merge"
+"Edit pages before signing. Continue anyway?"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
-msgid "Signatures in {names} will not be carried over. Continue?"
+msgid "Deleted page {page}"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Save merged PDF"
-msgstr ""
+#, python-brace-format
+msgid "Deleted {n} page"
+msgid_plural "Deleted {n} pages"
+msgstr[0] ""
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
@@ -1471,7 +1435,6 @@ msgid "Add"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-#: src/pdfsigner/gui/pagetools.py
 #: src/pdfsigner/gui/settings.py
 msgid "Remove"
 msgstr ""
@@ -1788,105 +1751,6 @@ msgstr ""
 
 #: src/pdfsigner/gui/document.py
 msgid "coordinate conversion failed"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Split PDF"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Every"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Parts"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "e.g. 1-3; 4-6; 7-  (one file per part)"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "page(s) per file"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Folder"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "File names"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-#, python-brace-format
-msgid "{count} page"
-msgid_plural "{count} pages"
-msgstr[0] ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Output folder"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "enter at least one part"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-#, python-brace-format
-msgid "the file name needs {n} for the part number"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Merge PDFs"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "all pages, or e.g. 1-3,5"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Add files…"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Up"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Down"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Pages of the selected file:"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-#, python-brace-format
-msgid "{name}  ({count} page; {pages})"
-msgid_plural "{name}  ({count} pages; {pages})"
-msgstr[0] ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "all pages"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-#, python-brace-format
-msgid "wrong password for {name}"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "Add PDFs"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-#, python-brace-format
-msgid "{name}: {error}"
-msgstr ""
-
-#: src/pdfsigner/gui/pagetools.py
-msgid "add at least one file"
 msgstr ""
 
 #: src/pdfsigner/gui/pageview.py

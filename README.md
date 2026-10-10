@@ -22,7 +22,8 @@ share the same certificate profiles.
   info are embedded (PAdES B-LT, or B-LTA with a timestamp server).
 * Signature images can be PNG/JPEG or **PDF (vector)**.
 * Stamps are drawn upright on rotated pages (`/Rotate`).
-* **Page tools:** rotate, crop, split and merge (CLI and GUI).
+* **Page tools:** rotate, crop and delete pages (CLI and the GUI's page
+  menu); split and merge on the command line.
 * **English and German** (GUI and command line), following the system
   language or `language` in the config.
 * **Verify** signatures (`pdfsigner verify`, and a *Signatures* list in the

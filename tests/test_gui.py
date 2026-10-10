@@ -1028,7 +1028,6 @@ def test_windows_fit_small_screens(qapp, p12, lang, tmp_path, monkeypatch):
     from PySide6.QtWidgets import QDialogButtonBox
 
     from pdfsigner import i18n
-    from pdfsigner.gui.pagetools import MergeDialog, SplitDialog
     from pdfsigner.gui.settings import SettingsDialog
 
     i18n.set_language(lang)
@@ -1038,8 +1037,7 @@ def test_windows_fit_small_screens(qapp, p12, lang, tmp_path, monkeypatch):
     cfg.put(CertProfile(name="w", path=str(p12[0]), secret="keepassxc", keepass_db="d.kdbx",
                         keepass_entry="e"))
     avail = qapp.primaryScreen().availableGeometry()
-    windows = [gui_app.MainWindow(cfg), CertManagerDialog(cfg), SettingsDialog(cfg),
-               SplitDialog(3, tmp_path / "a.pdf"), MergeDialog()]
+    windows = [gui_app.MainWindow(cfg), CertManagerDialog(cfg), SettingsDialog(cfg)]
     try:
         for w in windows:
             w.show()

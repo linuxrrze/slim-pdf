@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QInputDialog,
+    QMenu,
     QMessageBox,
     QPushButton,
     QSpinBox,
@@ -49,7 +50,7 @@ from .settings import SettingsDialog
 from .dialogs import ask_secret
 from .document import PdfDocument, signature_pixmap
 from .pageview import PageView
-from .pagetools import MergeDialog, MergeInput, PagesPanel, SplitDialog
+from .pagetools import PagesPanel
 
 STATUS_COLORS = {validation.VALID: "#2e7d32", validation.UNTRUSTED: "#ef8c00",
                  validation.INVALID: "#c62828"}
@@ -103,6 +104,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(_("PDF Signer"))
         fit_to_screen(self, 1100, 900)
         self.view = PageView()
+        self.view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.view.customContextMenuRequested.connect(
+            lambda pos: self._show_page_menu(self.view.mapToGlobal(pos)))
         self.view.targetChanged.connect(self._update_target)
         self.view.pageChanged.connect(self._sync_page_spin)
         self.view.cropSelected.connect(self._crop_selected)
@@ -170,23 +174,52 @@ class MainWindow(QMainWindow):
         self.save_act = act(_("Save"), self.save, tip=_("Save the edited document"))
         self.save_as_act = act(_("Save as…"), self.save_as, "Ctrl+Shift+S")
         self.undo_act = act(_("Undo"), self.undo, QKeySequence.Undo)
-        tb.addSeparator()
-        act(_("Rotate left"), lambda: self.rotate_pages(-90), "Ctrl+L",
-            _("Rotate the selected pages (or the current page) counter-clockwise"))
-        act(_("Rotate right"), lambda: self.rotate_pages(90), "Ctrl+R",
-            _("Rotate the selected pages (or the current page) clockwise"))
-        self.crop_act = act(_("Crop"), self._toggle_crop, None,
-                            _("Drag a rectangle on the page to crop to it"))
+
+        # Page edits live in the pages' context menu (right-click a thumbnail
+        # or the page); the window holds them so their shortcuts work too.
+        def edit(text, slot, shortcut=None):
+            a = QAction(text, self, triggered=slot)
+            if shortcut:
+                a.setShortcut(QKeySequence(shortcut))
+            self.addAction(a)
+            self.page_actions.append(a)
+            return a
+
+        self.rotate_left_act = edit(_("Rotate left"), lambda: self.rotate_pages(-90), "Ctrl+L")
+        self.rotate_right_act = edit(_("Rotate right"), lambda: self.rotate_pages(90), "Ctrl+R")
+        self.crop_act = edit(_("Crop…"), self._toggle_crop)
         self.crop_act.setCheckable(True)
-        act(_("Uncrop"), self.reset_crop, None, _("Show the whole page again"))
-        tb.addSeparator()
-        act(_("Split…"), self.split_dialog)
-        act(_("Merge…"), self.merge_dialog)
+        self.uncrop_act = edit(_("Uncrop"), self.reset_crop)
+        self.delete_act = edit(_("Delete"), self.delete_pages)
         self._update_page_actions()
+
+    def page_menu(self) -> QMenu:
+        """The pages' context menu, for the selected pages (or the current one)."""
+        target = self.target_pages()
+        self.delete_act.setText(
+            _("Delete page {page}").format(page=target[0] + 1) if len(target) == 1
+            else ngettext("Delete {n} page", "Delete {n} pages", len(target)).format(
+                n=len(target)))
+        menu = QMenu(self)
+        menu.addActions([self.rotate_left_act, self.rotate_right_act])
+        menu.addSeparator()
+        menu.addActions([self.crop_act, self.uncrop_act])
+        menu.addSeparator()
+        menu.addAction(self.delete_act)
+        return menu
+
+    def _show_page_menu(self, global_pos) -> None:
+        if self.data is not None:
+            self._exec_menu(self.page_menu(), global_pos)
+
+    def _exec_menu(self, menu: QMenu, global_pos) -> None:
+        menu.exec(global_pos)
 
     def _build_pages_panel(self) -> None:
         self.thumbs = PagesPanel()
         self.thumbs.pageActivated.connect(self.view.go_to)
+        self.thumbs.menuRequested.connect(self._show_page_menu)
+        self.thumbs.deleteRequested.connect(self.delete_pages)  # Delete key on thumbnails
         self.view.pageChanged.connect(self.thumbs.show_page)
         dock = QDockWidget(_("Pages"))
         dock.setWidget(self.thumbs)
@@ -477,73 +510,30 @@ class MainWindow(QMainWindow):
         self.apply_edit(pages.crop(self.data, target, reset=True, password=self.pdf_password),
                         message)
 
-    def split_dialog(self) -> None:
+
+    def delete_pages(self) -> None:
         if self.data is None:
             return
-        dlg = SplitDialog(len(self.doc), self.path, self)
-        if not dlg.exec():
+        target = self.target_pages()
+        if len(target) == len(self.doc):
+            QMessageBox.information(self, _("Delete pages"),
+                                    _("A document can't lose all its pages."))
             return
-        names = pages.signature_names(self.data, self.pdf_password)
-        if names and QMessageBox.warning(
-                self, _("Split"), _("The split files will not contain the signature(s) "
-                                    "{names}. Continue?").format(names=", ".join(names)),
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No) != QMessageBox.Yes:
-            return
-        existing = [p for p in dlg.result_paths if p.exists()]
-        if self.path is not None and self.path in existing:
-            QMessageBox.critical(self, _("Split"), _(
-                "A part would overwrite the open document {file}.").format(file=self.path))
-            return
-        if existing and QMessageBox.question(
-                self, _("Split"), ngettext(
-                    "{n} file already exists:\n{paths}\n\nReplace it?",
-                    "{n} files already exist:\n{paths}\n\nReplace them?",
-                    len(existing)).format(n=len(existing),
-                                          paths="\n".join(str(p) for p in existing)),
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
+        if not self._confirm_breaking(_(
+                "Deleting pages will invalidate the signature(s) {names}.\n\n"
+                "Edit pages before signing. Continue anyway?")):
             return
         try:
-            parts = pages.split(self.data, dlg.result_parts, self.pdf_password)
-            for path, part in zip(dlg.result_paths, parts, strict=True):
-                _atomic_write(path, part)
-        except (OSError, SigningError, pages.PageError) as e:
-            QMessageBox.critical(self, _("Split"), str(e))
+            new = pages.delete(self.data, target, self.pdf_password)
+        except (pages.PageError, SigningError) as e:
+            QMessageBox.critical(self, _("Delete pages"), str(e))
             return
-        n = len(dlg.result_paths)
-        paths = "\n".join(str(p) for p in dlg.result_paths)
-        QMessageBox.information(self, _("Split"), ngettext(
-            "Wrote {n} file:\n{paths}", "Wrote {n} files:\n{paths}", n).format(n=n, paths=paths))
-
-    def merge_dialog(self) -> None:
-        first = None
-        if self.data is not None:
-            first = MergeInput(_("(current document)"), self.data, self.pdf_password, len(self.doc))
-        dlg = MergeDialog(first, self)
-        if not dlg.exec():
-            return
-        signed = [m.label for m in dlg.inputs if pages.signature_names(m.data, m.password)]
-        if signed and QMessageBox.warning(
-                self, _("Merge"), _("Signatures in {names} will not be carried "
-                                    "over. Continue?").format(names=", ".join(signed)),
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No) != QMessageBox.Yes:
-            return
-        start = str(self.path.with_name(f"{self.path.stem}-merged.pdf")) if self.path else ""
-        out, _filter = QFileDialog.getSaveFileName(self, _("Save merged PDF"), start,
-                                                   _("PDF") + " (*.pdf)")
-        if not out:
-            return
-        try:
-            _atomic_write(Path(out), pages.merge(dlg.selection()))
-        except (OSError, SigningError, pages.PageError) as e:
-            QMessageBox.critical(self, _("Merge"), str(e))
-            return
-        if self._maybe_save():
-            self.open(Path(out))
-
-    # saving ---------------------------------------------------------------------
-
+        if len(target) == 1:
+            message = _("Deleted page {page}").format(page=target[0] + 1)
+        else:
+            message = ngettext("Deleted {n} page", "Deleted {n} pages",
+                               len(target)).format(n=len(target))
+        self.apply_edit(new, message)
     def save(self) -> bool:
         if self.data is None or self.path is None:
             return False

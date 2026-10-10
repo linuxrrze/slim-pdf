@@ -4,11 +4,10 @@ import pytest
 
 QtWidgets = pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
 
-from PySide6.QtCore import QItemSelectionModel  # noqa: E402
+from PySide6.QtCore import QItemSelectionModel, Qt  # noqa: E402
+from PySide6.QtTest import QTest  # noqa: E402
 
-from pdfsigner import pages  # noqa: E402
 from pdfsigner.gui import app as gui_app  # noqa: E402
-from pdfsigner.gui import pagetools  # noqa: E402
 from pdfsigner.signing import inspect_pdf  # noqa: E402
 
 from conftest import make_pdf, sign_with, validate_all  # noqa: E402
@@ -163,100 +162,81 @@ def test_unsaved_changes_prompt(window, blank_pdf, tmp_path, monkeypatch):
     assert inspect_pdf(blank_pdf).page_rotation == [0, 0]  # discarded
 
 
-def test_split_dialog(window, tmp_path, monkeypatch):
-    src = make_pdf(tmp_path / "five.pdf", pages=5)
-    window.open(src)
-
-    def run_dialog(dlg):
-        dlg.parts_edit.setText("1-2; 5")
-        dlg.parts_radio.setChecked(True)
-        dlg._accept()
-        return True
-
-    monkeypatch.setattr(pagetools.SplitDialog, "exec", run_dialog)
-    boxes = Boxes(monkeypatch, gui_app)
-    window.split_dialog()
-    assert boxes.kinds() == ["information"]
-    assert [pages.page_count((tmp_path / f"five-part{i}.pdf").read_bytes()) for i in (1, 2)] \
-        == [2, 1]
+def page_widths(window):
+    return [round(window.doc.display_size(i)[0]) for i in range(len(window.doc))]
 
 
-def test_split_dialog_asks_before_replacing(window, tmp_path, monkeypatch):
-    src = make_pdf(tmp_path / "five.pdf", pages=5)
-    existing = tmp_path / "five-part1.pdf"
-    existing.write_bytes(b"precious")
-    window.open(src)
+def numbered(tmp_path, n=5):
+    """n pages; page i (1-based) is 100 + i*10 pt wide."""
+    import io
 
-    def run_dialog(dlg):
-        dlg.parts_edit.setText("1-2; 5")
-        dlg.parts_radio.setChecked(True)
-        dlg._accept()
-        return True
+    from pypdf import PdfWriter
 
-    monkeypatch.setattr(pagetools.SplitDialog, "exec", run_dialog)
-    boxes = Boxes(monkeypatch, gui_app, answer=QtWidgets.QMessageBox.No)
-    window.split_dialog()
-    assert boxes.kinds() == ["question"] and "five-part1.pdf" in boxes.text()
-    assert existing.read_bytes() == b"precious" and not (tmp_path / "five-part2.pdf").exists()
-    boxes = Boxes(monkeypatch, gui_app, answer=QtWidgets.QMessageBox.Yes)
-    window.split_dialog()
-    assert boxes.kinds() == ["question", "information"]
-    assert pages.page_count(existing.read_bytes()) == 2
+    w = PdfWriter()
+    for i in range(1, n + 1):
+        w.add_blank_page(100 + i * 10, 200)
+    buf = io.BytesIO()
+    w.write(buf)
+    path = tmp_path / "numbered.pdf"
+    path.write_bytes(buf.getvalue())
+    return path
 
 
-def test_split_dialog_validation(owned, tmp_path):
-    dlg = pagetools.SplitDialog(5, tmp_path / "x.pdf")
-    owned(dlg)
-    dlg.parts_radio.setChecked(True)
-    dlg._accept()
-    assert "at least one part" in dlg.error.text()
-    dlg.parts_edit.setText("9")
-    dlg._accept()
-    assert "out of range" in dlg.error.text()
-    dlg.every_radio.setChecked(True)
-    dlg.pattern_edit.setText("x.pdf")
-    dlg._accept()
-    assert "{n}" in dlg.error.text()
-    dlg.pattern_edit.setText("x-{n}.pdf")
-    dlg.every_spin.setValue(2)
-    dlg._accept()
-    assert dlg.result_parts == [[0, 1], [2, 3], [4]]
-    assert [p.name for p in dlg.result_paths] == ["x-1.pdf", "x-2.pdf", "x-3.pdf"]
-
-
-def test_merge_dialog(window, blank_pdf, tmp_path, save_to, monkeypatch):
-    other = make_pdf(tmp_path / "three.pdf", pages=3)
+def test_page_tools_are_in_the_context_menu(window, blank_pdf):
     window.open(blank_pdf)
-
-    def run_dialog(dlg):
-        assert dlg.inputs[0].label == "(current document)"
-        assert dlg.add_file(other)
-        dlg._refresh(1)
-        dlg.spec_edit.setText("2-3")
-        dlg._spec_edited("2-3")
-        dlg.list.setCurrentRow(1)
-        dlg._move(-1)  # other file first
-        dlg._accept()
-        return True
-
-    monkeypatch.setattr(pagetools.MergeDialog, "exec", run_dialog)
-    save_to["path"] = tmp_path / "merged.pdf"
-    window.merge_dialog()
-    assert window.path == tmp_path / "merged.pdf"
-    assert len(window.doc) == 4  # 2 of three.pdf + 2 of blank.pdf
+    texts = [a.text() for a in window.page_menu().actions() if not a.isSeparator()]
+    assert texts == ["Rotate left", "Rotate right", "Crop…", "Uncrop", "Delete page 1"]
+    toolbar = [a.text() for a in window.pages_toolbar.actions() if not a.isSeparator()]
+    assert toolbar == ["Save", "Save as…", "Undo"]  # editing moved out of the toolbar
+    assert window.rotate_left_act.shortcut().toString() == "Ctrl+L"  # shortcuts still work
 
 
-def test_merge_dialog_encrypted_input(owned, blank_pdf, tmp_path, monkeypatch):
-    from conftest import make_encrypted
+def test_right_click_selects_the_page_and_opens_the_menu(window, tmp_path, monkeypatch):
+    window.open(numbered(tmp_path))
+    shown = []
+    monkeypatch.setattr(window, "_exec_menu", lambda menu, pos: shown.append(
+        [a.text() for a in menu.actions() if not a.isSeparator()]))
+    thumbs = window.thumbs
+    rect = thumbs.visualItemRect(thumbs.item(2))
+    thumbs.customContextMenuRequested.emit(rect.center())  # right-click on page 3
+    assert thumbs.selected_pages() == [2] and window.view.page == 2
+    assert shown[-1][-1] == "Delete page 3"
+    select_thumbs(window, 0, 2, 3)
+    rect = thumbs.visualItemRect(thumbs.item(3))
+    thumbs.customContextMenuRequested.emit(rect.center())  # inside the selection: kept
+    assert thumbs.selected_pages() == [0, 2, 3]
+    assert shown[-1][-1] == "Delete 3 pages"
+    window.view.customContextMenuRequested.emit(window.view.rect().center())
+    assert len(shown) == 3  # the page view has the same menu
 
-    enc = make_encrypted(blank_pdf, tmp_path / "e.pdf", "pw")
-    monkeypatch.setattr(pagetools, "ask_secret", lambda parent, prompt: "pw")
-    dlg = pagetools.MergeDialog()
-    owned(dlg)
-    assert dlg.add_file(enc)
-    assert dlg.inputs[0].password == "pw" and dlg.inputs[0].page_count == 2
-    monkeypatch.setattr(pagetools, "ask_secret", lambda parent, prompt: None)
-    assert not dlg.add_file(enc)
-    dlg.inputs[0].spec = "7"
-    dlg._accept()
-    assert "out of range" in dlg.error.text()
+
+def test_delete_pages_and_undo(window, tmp_path, monkeypatch):
+    window.open(numbered(tmp_path))
+    select_thumbs(window, 1, 3)
+    window.delete_act.trigger()
+    assert page_widths(window) == [110, 130, 150] and window.dirty
+    assert "Deleted 2 pages" in window.statusBar().currentMessage()
+    window.undo()
+    assert page_widths(window) == [110, 120, 130, 140, 150]
+    # the Delete key in the thumbnail panel deletes too
+    select_thumbs(window, 0)
+    window.view.go_to(0)
+    QTest.keyClick(window.thumbs, Qt.Key_Delete)
+    assert page_widths(window) == [120, 130, 140, 150]
+    # not every page
+    boxes = Boxes(monkeypatch, gui_app)
+    select_thumbs(window, 0, 1, 2, 3)
+    window.delete_pages()
+    assert boxes.kinds() == ["information"] and len(window.doc) == 4
+
+
+def test_delete_from_signed_document_asks(window, profile, form_pdf, tmp_path, monkeypatch):
+    signed = tmp_path / "s.pdf"
+    sign_with(profile, form_pdf, signed, field_name="Applicant")
+    window.open(signed)
+    boxes = Boxes(monkeypatch, gui_app, answer=QtWidgets.QMessageBox.No)
+    window.view.go_to(0)
+    select_thumbs(window, 0)
+    window.delete_pages()
+    assert boxes.kinds() == ["warning"] and "Applicant" in boxes.text()
+    assert len(window.doc) == 2

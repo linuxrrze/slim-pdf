@@ -161,7 +161,7 @@ def test_gui_in_german(german, qapp_de):
     from PySide6.QtWidgets import QDialogButtonBox
 
     from pdfsigner.gui import app as gui_app
-    from pdfsigner.gui.pagetools import SplitDialog
+    from pdfsigner.gui.settings import SettingsDialog
 
     win = gui_app.MainWindow(Config())
     dlg = None
@@ -169,7 +169,7 @@ def test_gui_in_german(german, qapp_de):
         assert win.sign_btn.text() == "Signieren…"
         assert win.save_as_act.text() == "Speichern unter…"
         # Qt's own strings come from its German catalog
-        dlg = SplitDialog(3, Path("doc.pdf"))
+        dlg = SettingsDialog(Config())
         box = dlg.findChild(QDialogButtonBox)
         assert box.button(QDialogButtonBox.Cancel).text().replace("&", "") == "Abbrechen"
         # page tools wrap to a second toolbar row exactly when they don't fit
