@@ -90,8 +90,8 @@ def test_crop_by_dragging(window, blank_pdf, monkeypatch):
     drag_scene(window.view, (100, 100), (400, 300))
     assert not window.view.crop_mode and not window.crop_act.isChecked()
     w, h = window.doc.display_size(0)
-    pixel = 1 / window.view.transform().m11()  # mouse positions are whole pixels
-    assert (w, h) == pytest.approx((300, 200), abs=pixel + 0.01)
+    pixel = 1 / window.view.transform().m11()  # each end of the drag is a whole pixel
+    assert (w, h) == pytest.approx((300, 200), abs=2 * pixel + 0.01)
     assert window.doc.display_size(1) == pytest.approx((595, 842))
     assert window.dirty
 
@@ -110,7 +110,7 @@ def test_crop_all_pages_and_escape(window, blank_pdf, monkeypatch):
     drag_scene(window.view, (0, 0), (200, 100))
     pixel = 1 / window.view.transform().m11()
     assert [window.doc.display_size(i) for i in (0, 1)] == [
-        pytest.approx((200, 100), abs=pixel + 0.01)] * 2
+        pytest.approx((200, 100), abs=2 * pixel + 0.01)] * 2
     # a click without dragging doesn't crop
     before = window.data
     window.crop_act.trigger()

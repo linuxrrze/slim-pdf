@@ -33,4 +33,4 @@ jobs:
       - run: pip install -e ".[dev]"
       # Fail instead of silently skipping the GUI tests if Qt can't load.
       - run: python -c "from PySide6 import QtWidgets"
-      - run: pytest -q --cov=pdfsigner
+      - run: pytest -q -rs --cov=pdfsigner
