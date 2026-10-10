@@ -395,12 +395,23 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
                 cert_label=profile.cert_label or profile.key_label or None,
             )
             try:
-                signer.signing_cert  # loads certificate and key now, not mid-signing
+                _ = signer.signing_cert  # loads certificate and key now, not mid-signing
             except PKCS11Error as e:
                 raise token_error(e) from None
             yield signer
         finally:
             session.close()
+        return
+
+    if profile.type == "system":
+        from . import systemstore
+
+        backend = systemstore.get_backend()
+        try:
+            ident = systemstore.select(backend.identities(), profile.system_cert)
+            yield systemstore.SystemStoreSigner(backend, ident)
+        finally:
+            backend.close()
         return
 
     raise SigningError(f"unknown certificate type {profile.type!r}")

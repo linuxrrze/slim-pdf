@@ -1,6 +1,6 @@
 """Command line interface.
 
-    pdfsigner certs list|show|add|edit|remove|default|set-secret|test
+    pdfsigner certs list|show|add|edit|remove|default|set-secret|test|system
     pdfsigner fields FILE
     pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]
     pdfsigner verify FILE
@@ -59,6 +59,8 @@ PROFILE_OPTS = {
     "--token-label": ("token_label", "PKCS#11 token label"),
     "--key-label": ("key_label", "PKCS#11 key label"),
     "--cert-label": ("cert_label", "PKCS#11 certificate label (defaults to key label)"),
+    "--system-cert": ("system_cert", "Windows/macOS certificate store: thumbprint or part "
+                      "of the subject (see 'certs system')"),
     "--image": ("image", "signature image (PNG with transparency recommended)"),
     "--stamp-text": ("stamp_text", "text on the stamp; %%(signer)s and %%(ts)s are replaced; '' for none"),
     "--reason": ("reason", "signature reason"),
@@ -94,8 +96,11 @@ def _apply_profile_opts(profile: CertProfile, args) -> CertProfile:
         elif attr == "ltv":
             value = value == "yes"
         setattr(profile, attr, value)
-    if args.pkcs11_lib and args.type is None:
-        profile.type = "pkcs11"
+    if args.type is None:
+        if args.pkcs11_lib:
+            profile.type = "pkcs11"
+        elif args.system_cert:
+            profile.type = "system"
     return profile
 
 
@@ -105,7 +110,8 @@ def cmd_certs_list(cfg: Config, args) -> int:
         return 0
     for name, p in cfg.certs.items():
         mark = "*" if name == cfg.default else " "
-        src = p.path or (f"keepass:{p.keepass_attachment}" if p.keepass_attachment else p.pkcs11_lib)
+        src = (p.path or (f"keepass:{p.keepass_attachment}" if p.keepass_attachment else "")
+               or p.pkcs11_lib or (f"store:{p.system_cert}" if p.system_cert else ""))
         print(f"{mark} {name:20} {p.type:7} secret={p.secret:8} {src}")
     return 0
 
@@ -173,6 +179,21 @@ def cmd_certs_test(cfg: Config, args) -> int:
     p = cfg.get(args.name)
     with open_signer(p, resolve_credentials(p, _ask)) as signer:
         print(describe_signer(signer))
+    return 0
+
+
+def cmd_certs_system(cfg: Config, args) -> int:
+    from . import systemstore
+
+    backend = systemstore.get_backend()
+    try:
+        identities = backend.identities()
+        if not identities:
+            print(f"no certificates with a private key in the {backend.name}")
+        for ident in identities:
+            print(ident.describe())
+    finally:
+        backend.close()
     return 0
 
 
@@ -315,6 +336,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = csub.add_parser("default"); p.add_argument("name"); p.set_defaults(func=cmd_certs_default)
     p = csub.add_parser("set-secret", help="store passphrase/PIN in the OS keyring")
     p.add_argument("name"); p.set_defaults(func=cmd_certs_set_secret)
+    csub.add_parser("system", help="list certificates in the Windows/macOS store"
+                    ).set_defaults(func=cmd_certs_system)
     p = csub.add_parser("test", help="unlock the certificate and print its subject")
     p.add_argument("name", nargs="?"); p.set_defaults(func=cmd_certs_test)
 

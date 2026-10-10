@@ -50,6 +50,8 @@ class Credentials:
 
 
 def resolve_credentials(profile: CertProfile, ask: AskFn) -> Credentials:
+    if profile.type == "system":
+        return Credentials()  # Windows/macOS ask for PINs themselves
     what = "PIN" if profile.type == "pkcs11" else "passphrase"
     match profile.secret:
         case "none":

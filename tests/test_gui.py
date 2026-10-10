@@ -674,3 +674,41 @@ def test_dialog_keepassxc_rows(dialog):
     assert form.isRowVisible(dialog.yubikey_row)
     combo.setCurrentIndex(combo.findData("prompt"))
     assert not form.isRowVisible(dialog.yubikey_row)
+
+
+def test_dialog_system_store(dialog, monkeypatch):
+    from test_systemstore import FakeBackend
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from pki import MiniPKI
+    from test_systemstore import issue
+
+    ca = MiniPKI(port=1)
+    key = ec.generate_private_key(ec.SECP256R1())
+    backend = FakeBackend([(issue(ca, "Store Alice", key), key)])
+    monkeypatch.setattr(certdialog.systemstore, "get_backend", lambda: backend)
+
+    dialog.type_combo.setCurrentText("system")
+    assert dialog.sys_box.isVisible()
+    assert not dialog.p12_box.isVisible() and not dialog.p11_box.isVisible()
+    assert not dialog.secret_box.isVisible()  # the OS asks for PINs
+
+    monkeypatch.setattr(certdialog.QInputDialog, "getItem",
+                        staticmethod(lambda parent, title, label, items, *a: (items[0], True)))
+    dialog._choose_system_cert()
+    tp = backend.identities()[0].thumbprint
+    assert dialog.e["system_cert"].text() == tp
+    dialog._save()
+    saved = load_config(dialog.config.path).certs["work"]
+    assert (saved.type, saved.system_cert) == ("system", tp)
+
+
+def test_dialog_system_store_unavailable(dialog, monkeypatch):
+    from pdfsigner.signing import SigningError
+
+    def unsupported():
+        raise SigningError("only supported on Windows and macOS")
+
+    monkeypatch.setattr(certdialog.systemstore, "get_backend", unsupported)
+    boxes = Boxes(monkeypatch, certdialog)
+    dialog._choose_system_cert()
+    assert boxes.kinds() == ["critical"] and "only supported" in boxes.text()

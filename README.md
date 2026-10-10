@@ -11,7 +11,8 @@ share the same certificate profiles.
   earlier signatures stay valid. Before asking for any passphrase, pdfsigner
   checks for fields locked by earlier signatures and for documents certified
   as "no changes".
-* **Multiple certificate profiles:** PKCS#12 files or PKCS#11 tokens, each
+* **Multiple certificate profiles:** PKCS#12 files, PKCS#11 tokens, or the
+  Windows certificate store / macOS keychain, each
   with its own image, stamp text, reason, location and timestamp server.
 * **Secrets** come from a prompt, the OS keyring (including KeePassXC via
   Secret Service), or a KeePass database (directly, or via `keepassxc-cli` for
@@ -51,8 +52,8 @@ pip install -e ".[all]"
 | Shortcuts | `Ctrl` | `Cmd` | `Ctrl` |
 
 * Certificates in the **Windows certificate store** or the **macOS
-  Keychain** can't be used directly. Export them as `.p12` first (see
-  [docs/secret-storage.md](docs/secret-storage.md)).
+  keychain** can be used directly (`--system-cert`, new; see
+  [docs/secret-storage.md](docs/secret-storage.md#6-windows-certificate-store--macos-keychain-type--system)).
 * On Windows a PDF can't be overwritten while another program (e.g.
   Acrobat) has it open. pdfsigner then reports this instead of signing.
 
@@ -124,6 +125,7 @@ pytest --cov=pdfsigner       # ~200 tests, ~95 % line coverage
 | `test_ltv.py` | LTV against a local test CA serving a CRL: data is embedded and verifiable offline with revocation checks *required*; B-LTA with a document timestamp; refuses untrusted, revoked and unreachable cases. |
 | `test_validation.py` | Verdicts valid/untrusted/invalid, trust roots from options and config, tampered bytes, disallowed later changes, encrypted PDFs, `verify` exit codes. |
 | `test_keepassxc.py` | `keepassxc-cli` source against the real binary (binary-exact attachments via named pipe and temp file, key files, wrong password, missing entry/attachment) and a fake CLI (argument protocol, YubiKey option, no hang when the CLI fails). |
+| `test_systemstore.py`, `test_systemstore_native.py` | Windows store / macOS keychain: selection by thumbprint or subject, RSA and ECDSA signing through a fake backend; the native backends against a throwaway store (CI on Windows and macOS only). |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |
 | `test_gui.py`, `test_gui_coords.py` | Click to place, drag, resize with fixed aspect ratio (handle and Ctrl+wheel), clamping, page navigation, prepared fields, signing twice, error dialogs, encrypted PDFs, certificate manager. Screen-to-PDF mapping for all rotations. |
@@ -138,6 +140,5 @@ Screenshots are regenerated with
 ## Known gaps / next steps
 
 * **PKCS#11** is tested against SoftHSM, not yet with a physical token.
-* The Windows certificate store and the macOS Keychain can't be used as key
-  sources (pyHanko has no backend for them), so certificates must be exported
-  as `.p12`.
+* **Windows certificate store / macOS keychain** signing is tested in CI with
+  software keys only, not yet with smartcards.

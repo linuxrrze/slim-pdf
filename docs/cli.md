@@ -3,7 +3,7 @@
 ```
 pdfsigner [--config FILE] [--verbose] <command> ...
 
-  certs list | show | add | edit | remove | default | set-secret | test
+  certs list | show | add | edit | remove | default | set-secret | test | system
   fields FILE
   sign FILE [target] [options]
   verify FILE [--trust CERT]
@@ -54,7 +54,7 @@ saved to ~/.config/pdfsigner/config.toml
 
 | Option | Meaning |
 |---|---|
-| `--type TYPE` | `pkcs12` (default) or `pkcs11`. Rarely needed: `--pkcs11-lib` implies `pkcs11`. |
+| `--type TYPE` | `pkcs12` (default), `pkcs11` or `system`. Rarely needed: `--pkcs11-lib` implies `pkcs11`, `--system-cert` implies `system`. |
 | `--p12 FILE` | PKCS#12 file (`.p12`/`.pfx`). `~` and `$VARS` are expanded when used. |
 | `--image FILE` | Signature image: PNG/JPEG (a transparent background works best) or a PDF, whose first page is embedded as vector graphics (see below). |
 | `--stamp-text TEXT` | Text below the image. `%(signer)s` = certificate CN, `%(ts)s` = signing time, `\n` = line break. `''` = image only. Default: `Digitally signed by %(signer)s\n%(ts)s`. |
@@ -195,6 +195,20 @@ The prompt then reads *KeePass master password for Passwords.kdbx (then
 touch your YubiKey)*.
 
 See [secret-storage.md](secret-storage.md#3-keepassxc-cli-secret--keepassxc) for details.
+
+### Windows certificate store / macOS keychain
+
+```console
+$ pdfsigner certs system
+$ pdfsigner certs add store --system-cert "Alice Example" --image ~/certs/signature.png
+```
+
+`certs system` lists the certificates with a private key in the current
+user's store (Windows) or keychain (macOS) as *thumbprint, subject, expiry*.
+`--system-cert` takes the thumbprint or part of the subject and sets the type
+to `system`. The operating system asks for PINs itself, so these profiles
+have no `--secret`. Details in
+[secret-storage.md](secret-storage.md#6-windows-certificate-store--macos-keychain-type--system).
 
 ### Smartcard / token (PKCS#11)
 
@@ -497,7 +511,7 @@ key_label = "SIGN key"
 ```
 
 All keys: `type`, `path`, `pkcs11_lib`, `token_label`, `key_label`,
-`cert_label`, `image`, `stamp_text`, `reason`, `location`, `contact_info`,
+`cert_label`, `system_cert`, `image`, `stamp_text`, `reason`, `location`, `contact_info`,
 `timestamp_url`, `ltv`, `secret`, `keepass_db`, `keepass_keyfile`, `keepass_entry`,
 `keepass_attachment`, `keepass_yubikey`. Unknown keys are rejected, so typos don't go
 unnoticed. The file is written with mode `0600` and **never contains

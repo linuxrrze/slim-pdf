@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import secretstore
+from .. import secretstore, systemstore
 from ..config import (
     CERT_TYPES,
     KEEPASS_SOURCES,
@@ -114,6 +114,17 @@ class CertManagerDialog(QDialog):
         f.addRow("File", _path_row(line("path", "~/certs/me.p12 (empty if stored in KeePass)"),
                                    "PKCS#12 file", "PKCS#12 (*.p12 *.pfx);;All files (*)"))
 
+        self.sys_box = QGroupBox("System certificate store (Windows / macOS)")
+        f = QFormLayout(self.sys_box)
+        row = QWidget()
+        lay = QHBoxLayout(row)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(line("system_cert", "thumbprint or part of the subject"))
+        choose = QPushButton("Choose…")
+        choose.clicked.connect(self._choose_system_cert)
+        lay.addWidget(choose)
+        f.addRow("Certificate", row)
+
         self.p11_box = QGroupBox("PKCS#11 token / smartcard")
         f = QFormLayout(self.p11_box)
         f.addRow("Module", _path_row(line("pkcs11_lib", PKCS11_EXAMPLE),
@@ -178,7 +189,8 @@ class CertManagerDialog(QDialog):
 
         right = QVBoxLayout()
         right.addLayout(general)
-        for box in (self.p12_box, self.p11_box, appearance, meta, secret):
+        self.secret_box = secret
+        for box in (self.p12_box, self.p11_box, self.sys_box, appearance, meta, secret):
             right.addWidget(box)
         right.addWidget(test_btn)
         right.addStretch()
@@ -291,7 +303,10 @@ class CertManagerDialog(QDialog):
     def _update_visibility(self) -> None:
         is_p12 = self.type_combo.currentText() == "pkcs12"
         self.p12_box.setVisible(is_p12)
-        self.p11_box.setVisible(not is_p12)
+        self.p11_box.setVisible(self.type_combo.currentText() == "pkcs11")
+        self.sys_box.setVisible(self.type_combo.currentText() == "system")
+        # Windows/macOS ask for PINs themselves
+        self.secret_box.setVisible(self.type_combo.currentText() != "system")
         source = self.secret_combo.currentData()
         self.keyring_btn.setVisible(source == "keyring")
         for _, w in self.kp_widgets:
@@ -321,6 +336,26 @@ class CertManagerDialog(QDialog):
             return
         QMessageBox.information(
             self, "Keyring", f"Stored in {secretstore.keyring_backend_name()}")
+
+    def _choose_system_cert(self) -> None:
+        try:
+            backend = systemstore.get_backend()
+            try:
+                identities = backend.identities()
+            finally:
+                backend.close()
+        except SigningError as e:
+            QMessageBox.critical(self, "System certificate store", str(e))
+            return
+        if not identities:
+            QMessageBox.information(self, "System certificate store",
+                                    f"No certificates with a private key in the {backend.name}.")
+            return
+        items = [i.describe() for i in identities]
+        choice, ok = QInputDialog.getItem(self, "System certificate store",
+                                          "Certificate:", items, 0, False)
+        if ok:
+            self.e["system_cert"].setText(identities[items.index(choice)].thumbprint)
 
     def _test(self) -> None:
         if not self._current:

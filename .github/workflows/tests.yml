@@ -14,6 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       QT_QPA_PLATFORM: offscreen
+      # import a throwaway identity into the Windows store / macOS keychain
+      PDFSIGNER_TEST_SYSTEM_STORE: ${{ matrix.os != 'ubuntu-latest' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

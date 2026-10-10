@@ -16,7 +16,7 @@ from pathlib import Path
 import tomli_w
 from platformdirs import user_config_dir
 
-CERT_TYPES = ("pkcs12", "pkcs11")
+CERT_TYPES = ("pkcs12", "pkcs11", "system")
 
 # Where the secret (PKCS#12 passphrase or PKCS#11 PIN) comes from.
 #   prompt  - ask interactively every time
@@ -51,6 +51,10 @@ class CertProfile:
     token_label: str = ""
     key_label: str = ""
     cert_label: str = ""
+
+    # system: Windows certificate store / macOS keychain; SHA-1 thumbprint
+    # or part of the subject (see `pdfsigner certs system`)
+    system_cert: str = ""
 
     # Appearance
     image: str = ""
@@ -87,6 +91,8 @@ class CertProfile:
                              "'keepass' or 'keepassxc'")
         if self.keepass_yubikey and self.secret != "keepassxc":
             raise ValueError(f"{self.name}: keepass_yubikey requires secret = 'keepassxc'")
+        if self.type == "system" and not self.system_cert:
+            raise ValueError(f"{self.name}: system needs system_cert (thumbprint or subject)")
         if self.type == "pkcs11" and not self.pkcs11_lib:
             raise ValueError(f"{self.name}: pkcs11 needs pkcs11_lib")
         if not isinstance(self.ltv, bool):

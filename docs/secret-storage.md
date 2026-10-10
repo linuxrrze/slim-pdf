@@ -138,15 +138,42 @@ certificates import`. Then you can delete the `.p12`, or keep it in KeePass
 as a backup. The PIN source is independent (`prompt`, `keyring`,
 `keepass` or `keepassxc`).
 
-Install with `pip install 'pdfsigner[pkcs11]'`.
+Install with `pip install 'pdfsigner[pkcs11]'`. The test suite signs with
+a SoftHSM 2 software token (`tests/test_pkcs11_softhsm.py`); it hasn't been
+tried with a physical token yet.
 
-Keys in the **Windows certificate store** or the **macOS Keychain** (for
-example a certificate installed through the browser) can't be used directly,
-because pyHanko only signs with PKCS#12 files and PKCS#11 modules. Export the
-certificate with its private key as `.p12` (on Windows: *certmgr.msc → Export
-→ Yes, export the private key*; on macOS: Keychain Access → *Export* as
-`.p12`), then store it on disk or as a KeePass attachment. The test suite signs with a SoftHSM 2 software token
-(`tests/test_pkcs11_softhsm.py`); it hasn't been tried with a physical token yet.
+## 6. Windows certificate store / macOS keychain (`type = "system"`)
+
+A certificate installed through the browser, the company's enrolment, or a
+smartcard driver lives in the operating system's store. pdfsigner can sign
+with it directly; the private key never leaves the store:
+
+* **Windows:** the personal store of the current user (*certmgr.msc →
+  Personal*), through CNG. Smartcards with a minidriver work too; Windows
+  shows its own PIN dialog.
+* **macOS:** identities in the keychain search list (login keychain,
+  smartcards via CryptoTokenKit). macOS asks whether pdfsigner (Python) may
+  use the key; *Always Allow* stops it asking again.
+
+```console
+$ pdfsigner certs system          # one line per certificate: thumbprint, subject, expiry
+$ pdfsigner certs add store --system-cert "Alice Example" --image ~/certs/signature.png
+```
+
+`system_cert` is either the SHA-1 thumbprint (spaces and colons are
+ignored) or part of the subject; if that matches several certificates,
+pdfsigner lists them and asks for the thumbprint. There is no `secret`
+for these profiles: the operating system asks for PINs and access itself.
+RSA (PKCS#1 v1.5) and ECDSA keys are supported.
+
+pyHanko has no backend for these stores, so pdfsigner talks to them directly
+(`src/pdfsigner/_winstore.py`, `_macstore.py`, via `ctypes`). This is
+**new and only tested in CI** with software keys imported into a throwaway
+store (`tests/test_systemstore_native.py`), not yet with smartcards.
+
+If you'd rather not rely on it, export the certificate with its private key
+as `.p12` (Windows: *certmgr.msc → Export → Yes, export the private key*;
+macOS: Keychain Access → *Export*) and use a PKCS#12 profile.
 
 ## General notes
 

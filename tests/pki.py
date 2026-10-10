@@ -50,8 +50,11 @@ class MiniPKI:
     def crl_url(self) -> str:
         return f"http://127.0.0.1:{self.port}/root.crl"
 
-    def issue(self, cn: str, passphrase: bytes) -> tuple[bytes, x509.Certificate]:
-        key = ec.generate_private_key(ec.SECP256R1())
+    def issue(self, cn: str, passphrase: bytes, *, key=None, chain: bool = True,
+              legacy: bool = False) -> tuple[bytes, x509.Certificate]:
+        """PKCS#12 with a new leaf. ``legacy`` uses 3DES/SHA-1 encryption, which
+        every Windows and macOS importer understands."""
+        key = key or ec.generate_private_key(ec.SECP256R1())
         cert = (
             x509.CertificateBuilder().subject_name(_name(cn)).issuer_name(self.root.subject)
             .public_key(key.public_key()).serial_number(x509.random_serial_number())
@@ -69,9 +72,15 @@ class MiniPKI:
                 relative_name=None, reasons=None, crl_issuer=None)]), critical=False)
             .sign(self.root_key, hashes.SHA256())
         )
+        if legacy:
+            enc = (serialization.PrivateFormat.PKCS12.encryption_builder()
+                   .kdf_rounds(50000)
+                   .key_cert_algorithm(pkcs12.PBES.PBESv1SHA1And3KeyTripleDESCBC)
+                   .hmac_hash(hashes.SHA1()).build(passphrase))
+        else:
+            enc = serialization.BestAvailableEncryption(passphrase)
         data = pkcs12.serialize_key_and_certificates(
-            cn.encode(), key, cert, [self.root],
-            serialization.BestAvailableEncryption(passphrase))
+            cn.encode(), key, cert, [self.root] if chain else None, enc)
         return data, cert
 
     def crl(self) -> bytes:

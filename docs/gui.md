@@ -103,6 +103,10 @@ image:
 
 ![Certificate manager: KeePass profile](images/gui-certs-keepass.png)
 
+For type *system* (Windows certificate store / macOS keychain), *Choose…*
+lists the certificates in the store; the passphrase section disappears
+because the operating system asks for PINs itself.
+
 Smartcard or USB token via PKCS#11:
 
 ![Certificate manager: PKCS#11 profile](images/gui-certs-pkcs11.png)
