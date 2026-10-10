@@ -38,7 +38,7 @@ def test_self_signed_is_untrusted(signed):
     assert r.coverage == "entire document"
     assert r.reason == "Test"
     assert r.signed_at is not None and r.timestamp is None
-    assert r.problems == ["the certificate doesn't chain to a trusted root"]
+    assert r.problems == ["the certificate is self-signed and not in the trust list"]
 
 
 def test_trusted_root_makes_it_valid(signed, alice_pem):
@@ -115,7 +115,7 @@ def test_cli_verify_exit_codes(signed, alice_pem, blank_pdf, cfg_path, capsys):
     assert "signer:   Common Name: Alice Example" in out
     assert "covers:   entire document" in out
     assert "reason:   Test" in out
-    assert "problem:  the certificate doesn't chain to a trusted root" in out
+    assert "problem:  the certificate is self-signed and not in the trust list" in out
 
     assert run("verify", signed, "--trust", alice_pem) == 0
     assert "Applicant: VALID" in capsys.readouterr().out
@@ -164,3 +164,53 @@ def test_cli_output_escapes_text_from_the_pdf(profile, blank_pdf, tmp_path, cfg_
     assert "reason:   x\\x1b[1A\\x1b[2K\\rContract: VALID" in text
     assert run("fields", out) == 0
     assert "\x1b" not in capsys.readouterr().out
+
+
+# --- why "untrusted" / "invalid" -------------------------------------------------------
+
+
+def _ca_profile(tmp_path, ca, cn="Carol CA-issued"):
+    from conftest import PASSPHRASE
+
+    data, cert = ca.issue(cn, PASSPHRASE.encode())
+    p = tmp_path / "carol.p12"
+    p.write_bytes(data)
+    return CertProfile(name="carol", path=str(p)), cert
+
+
+def test_ca_issued_but_untrusted_root(form_pdf, tmp_path):
+    from pki import MiniPKI
+
+    ca = MiniPKI(port=1)
+    profile, _cert = _ca_profile(tmp_path, ca)
+    out = tmp_path / "s.pdf"
+    sign_with(profile, form_pdf, out, field_name="Applicant")
+    [r] = verify_pdf(out)
+    assert r.status == UNTRUSTED
+    assert r.problems == ["the certificate doesn't chain to a trusted root"]
+    root = write_pem(ca.root, tmp_path / "root.pem")
+    [r] = verify_pdf(out, trust=[root])
+    assert r.status == VALID
+
+
+def test_untrusted_timestamp_authority(profile, blank_pdf, alice_pem, tmp_path, monkeypatch):
+    """A timestamp from an unknown TSA: not invalid, but not trusted either,
+    and its time isn't presented as the signing time."""
+    from pyhanko.keys import load_cert_from_pemder
+    from pyhanko.sign.timestamps.dummy_client import DummyTimeStamper
+
+    from pdfsigner import signing
+    from pki import make_tsa
+
+    tsa_cert, tsa_key = make_tsa()
+    tsa_pem = write_pem(tsa_cert, tmp_path / "tsa.pem")
+    monkeypatch.setattr(signing.timestamps, "HTTPTimeStamper", lambda url: DummyTimeStamper(
+        load_cert_from_pemder(str(tsa_pem)), tsa_key))
+    profile.timestamp_url = "http://tsa.example"
+    out = tmp_path / "ts.pdf"
+    sign_with(profile, blank_pdf, out)
+    [r] = verify_pdf(out, trust=[alice_pem])
+    assert r.status == UNTRUSTED and r.timestamp is None
+    assert r.problems == ["the timestamp authority isn't trusted"]
+    [r] = verify_pdf(out, trust=[alice_pem, tsa_pem])
+    assert r.status == VALID and r.timestamp is not None

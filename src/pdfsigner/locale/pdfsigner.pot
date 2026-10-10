@@ -2277,6 +2277,30 @@ msgid "only part of the document"
 msgstr ""
 
 #: src/pdfsigner/validation.py
+msgid "the certificate was not valid at the time of signing"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the certificate is self-signed and not in the trust list"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the certificate is not meant for signatures (key usage)"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the certificate doesn't chain to a trusted root"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the certificate's revocation status is not known yet"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the certificate (or its CA) is revoked"
+msgstr ""
+
+#: src/pdfsigner/validation.py
 msgid "the signed content was modified"
 msgstr ""
 
@@ -2297,5 +2321,26 @@ msgid "the signature doesn't cover a complete revision"
 msgstr ""
 
 #: src/pdfsigner/validation.py
-msgid "the certificate doesn't chain to a trusted root"
+msgid "the signature's timestamp is broken"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the content timestamp is broken"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+#, python-brace-format
+msgid "the signature doesn't meet the field's requirements: {error}"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the timestamp authority isn't trusted"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the content timestamp authority isn't trusted"
+msgstr ""
+
+#: src/pdfsigner/validation.py
+msgid "the signature could not be fully validated"
 msgstr ""

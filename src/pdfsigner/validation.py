@@ -119,6 +119,29 @@ def _coverage(st, revision: int, revisions: int) -> str:
     return _("only part of the document")
 
 
+def _trust_problem(indic, cert) -> str:
+    """Why the signer's certificate isn't trusted, from pyHanko's AdES
+    sub-indication (and the certificate, where the indication is ambiguous)."""
+    name = getattr(indic, "name", "")
+    if name in ("EXPIRED", "NOT_YET_VALID", "OUT_OF_BOUNDS_NO_POE",
+                "OUT_OF_BOUNDS_NOT_REVOKED"):
+        return _("the certificate was not valid at the time of signing")
+    if name in ("CHAIN_CONSTRAINTS_FAILURE", "SIG_CONSTRAINTS_FAILURE"):
+        # certvalidator raises the same error for an untrusted self-signed
+        # certificate and for a wrong key usage
+        if cert.self_signed == "maybe" or cert.self_issued:
+            return _("the certificate is self-signed and not in the trust list")
+        usage = cert.key_usage_value.native if cert.key_usage_value else None
+        if usage is not None and not {"digital_signature", "non_repudiation"} & set(usage):
+            return _("the certificate is not meant for signatures (key usage)")
+        return _("the certificate doesn't chain to a trusted root")
+    if name in ("TRY_LATER", "REVOCATION_OUT_OF_BOUNDS_NO_POE"):
+        return _("the certificate's revocation status is not known yet")
+    if name in ("REVOKED_NO_POE", "REVOKED_CA_NO_POE"):
+        return _("the certificate (or its CA) is revoked")
+    return _("the certificate doesn't chain to a trusted root")
+
+
 def report(sig, st, revision: int, revisions: int) -> SignatureReport:
     cert = st.signing_cert
     problems = []
@@ -133,23 +156,39 @@ def report(sig, st, revision: int, revisions: int) -> SignatureReport:
     if st.coverage not in (SignatureCoverageLevel.ENTIRE_FILE,
                            SignatureCoverageLevel.ENTIRE_REVISION):
         problems.append(_("the signature doesn't cover a complete revision"))
+    ts = st.timestamp_validity
+    content_ts = getattr(st, "content_timestamp_validity", None)
+    if ts is not None and not (ts.intact and ts.valid):
+        problems.append(_("the signature's timestamp is broken"))
+    if content_ts is not None and not (content_ts.intact and content_ts.valid):
+        problems.append(_("the content timestamp is broken"))
+    if getattr(st, "seed_value_constraint_error", None) is not None:
+        problems.append(_("the signature doesn't meet the field's requirements: {error}").format(
+            error=st.seed_value_constraint_error))
 
     if problems:
         status = INVALID
     elif st.bottom_line:
         status = VALID
     else:
+        # Everything that can be checked is intact; what's missing is trust.
         status = UNTRUSTED
-        problems.append(_("the certificate doesn't chain to a trusted root"))
+        if not st.trusted:
+            problems.append(_trust_problem(st.trust_problem_indic, cert))
+        for t, what in ((ts, _("the timestamp authority isn't trusted")),
+                        (content_ts, _("the content timestamp authority isn't trusted"))):
+            if t is not None and not t.trusted:
+                problems.append(what)
+        if not problems:
+            problems.append(_("the signature could not be fully validated"))
 
-    ts = st.timestamp_validity
     return SignatureReport(
         field=sig.field_name,
         status=status,
         signer=cert.subject.human_friendly,
         issuer=cert.issuer.human_friendly,
         signed_at=st.signer_reported_dt,
-        timestamp=ts.timestamp if ts is not None and ts.valid else None,
+        timestamp=ts.timestamp if ts is not None and ts.trusted else None,
         coverage=_coverage(st, revision, revisions),
         reason=_str(sig.sig_object, "/Reason"),
         location=_str(sig.sig_object, "/Location"),
