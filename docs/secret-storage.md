@@ -130,6 +130,43 @@ OpenSC's.
 | Yubico (`ykcs11`, from yubico-piv-tool) | `/usr/lib/x86_64-linux-gnu/libykcs11.so` | `/opt/homebrew/lib/libykcs11.dylib` | `C:\Program Files\Yubico\Yubico PIV Tool\bin\libykcs11.dll` |
 | OpenSC | `/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so` | `/Library/OpenSC/lib/opensc-pkcs11.so` | `C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll` |
 
+`pdfsigner certs pkcs11` (or *Show token contents…* in the GUI) finds these
+modules by itself and lists tokens, keys, certificates and the PIN state.
+
+### Which cards
+
+| Device | How | Status |
+|---|---|---|
+| YubiKey 5 (PIV) | ykcs11 or OpenSC; or `type = "system"` on Windows (minidriver) and macOS (built-in) | Expected to work; the token layout (labels, slot IDs, PIN before every signature) is tested with SoftHSM |
+| Nitrokey 3 (PIV), Nitrokey HSM 2, other PIV cards | OpenSC | Expected to work |
+| National ID and qualified-signature cards (e.g. Belgian eID, Estonian ID, D-Trust) | The issuer's PKCS#11 module | Expected to work; the signature key usually wants the PIN for every signature, so the profile needs a PIN source |
+| OpenPGP cards (YubiKey/Nitrokey OpenPGP application) | – | Not suitable: they usually hold no X.509 certificate, and GnuPG keeps the card busy |
+| German ID card (nPA) | – | Can't create signatures through PKCS#11 |
+| Cloud HSMs, remote signing services | – | Not supported |
+
+Key types tested on a (software) token: RSA 2048 (imported and generated on
+the token, also with a PIN before every signature), EC P-256 and P-384,
+Ed25519. Tokens that can only sign a precomputed hash (common for cards)
+are detected; the hash is then computed by pdfsigner. A card with two PINs
+(authentication and signature) appears as two tokens; `token_label`
+chooses one.
+
+### Troubleshooting
+
+* **"no token found":** is the card inserted and the reader connected? On
+  Linux the `pcscd` service must run. If GnuPG used the card,
+  `gpgconf --kill scdaemon` releases it.
+* **"N tokens found":** several cards, or one card with two PINs: set
+  `token_label` (see `pdfsigner certs pkcs11`).
+* **"no private key …":** keys are often only visible after the PIN:
+  `pdfsigner certs pkcs11 --login` lists them with their IDs.
+* **"the PIN … is locked":** unblock it with the PUK (YubiKey:
+  `ykman piv access unblock-pin`; OpenSC: `pkcs15-tool --unblock-pin`).
+* **Nothing happens while signing:** the card may be waiting for a touch
+  (blinking YubiKey) or the PIN on the reader's keypad.
+* **Windows/macOS store:** the PIN dialog comes from the operating system;
+  on Windows it opens in front of PDF Signer.
+
 ### YubiKey (PIV)
 
 Slot 9c ("Digital Signature") is meant for signing. Both modules give its
@@ -188,8 +225,9 @@ scdaemon` releases it.
 
 Install with `pip install 'pdfsigner[pkcs11]'`. The test suite signs with
 SoftHSM 2 software tokens (`tests/test_pkcs11_softhsm.py`), one of them laid
-out like a YubiKey with Yubico's labels; it hasn't been tried with a
-physical token yet.
+out like a YubiKey with Yubico's labels; PIN pads and PIN-lock states are
+tested with simulated tokens. None of this has been tried with a physical
+card yet.
 
 ## 6. Windows certificate store / macOS keychain (`type = "system"`)
 

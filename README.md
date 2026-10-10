@@ -161,8 +161,10 @@ Screenshots are regenerated with
 ## Known gaps / next steps
 
 * **PKCS#11** is tested against SoftHSM (including a token laid out like a
-  YubiKey: Yubico's labels, slot IDs, PIN before every signature), not yet
-  with a physical token.
+  YubiKey: Yubico's labels, slot IDs, PIN before every signature; RSA, P-256,
+  P-384 and Ed25519 keys) and simulated tokens (PIN pad, PIN-lock states),
+  not yet with a physical card. See the card overview in
+  [secret-storage.md](docs/secret-storage.md#which-cards).
 * **Windows certificate store / macOS keychain** signing is tested in CI with
   software keys only, not yet with smartcards. On macOS, smartcard
   identities come from a separate keychain query that has never seen a card.
