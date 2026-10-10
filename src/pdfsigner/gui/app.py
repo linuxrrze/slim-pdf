@@ -660,15 +660,26 @@ class MainWindow(QMainWindow):
             QGuiApplication.setOverrideCursor(Qt.WaitCursor)
 
 
+ICON = Path(__file__).with_name("icon.png")
+
+
 def main(argv: list[str] | None = None, config_path: Path | None = None) -> int:
+    """GUI entry point. ``--smoke-test`` builds the window (and opens the
+    file, if given), then exits 0 without waiting for the user; the
+    installer builds use it to check that the bundled app starts."""
     argv = sys.argv[1:] if argv is None else argv
     app = QApplication.instance() or QApplication([sys.argv[0], *argv])
     app.setApplicationName("pdfsigner")
+    if ICON.exists():
+        app.setWindowIcon(QIcon(str(ICON)))
     win = MainWindow(load_config(config_path))
     win.show()
     files = [a for a in argv if not a.startswith("-")]
-    if files:
-        win.open(Path(files[0]))
+    opened = win.open(Path(files[0])) if files else True
+    if "--smoke-test" in argv:
+        app.processEvents()
+        win.close()
+        return 0 if opened and (not files or win.doc is not None) else 1
     return app.exec()
 
 

@@ -1,0 +1,141 @@
+name: installers
+
+# Builds the Windows installer and the macOS disk images, smoke-tests the
+# frozen apps, and attaches them to a GitHub release for tags v*.
+# Code signing is optional; see packaging/README.md for the secrets.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+          - os: macos-15         # Apple Silicon
+          - os: macos-15-intel   # Intel
+    runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+      # secrets can't be used in `if:` directly
+      HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT_P12 != '' }}
+      HAS_MACOS_CERT: ${{ secrets.MACOS_CERT_P12 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[all]" pyinstaller
+      - name: Version
+        id: version
+        shell: bash
+        run: echo "version=$(python -c 'import tomllib;print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')" >> "$GITHUB_OUTPUT"
+      - name: Icons
+        run: python packaging/make_icons.py
+      - name: Freeze
+        run: pyinstaller packaging/pdfsigner.spec --noconfirm
+
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        run: python packaging/smoke_test.py "dist/PDF Signer/pdfsigner.exe" "dist/PDF Signer/PDF Signer.exe"
+      - name: Smoke test (macOS)
+        if: runner.os == 'macOS'
+        run: python packaging/smoke_test.py "dist/PDF Signer.app/Contents/MacOS/pdfsigner" "dist/PDF Signer.app/Contents/MacOS/pdfsigner-gui"
+
+      # --- Windows ------------------------------------------------------------
+      - name: Sign executables (optional)
+        if: runner.os == 'Windows' && env.HAS_WINDOWS_CERT == 'true'
+        env:
+          WINDOWS_CERT_P12: ${{ secrets.WINDOWS_CERT_P12 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:WINDOWS_CERT_P12))
+          $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1).FullName
+          & $signtool sign /f cert.pfx /p $env:WINDOWS_CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 "dist\PDF Signer\PDF Signer.exe" "dist\PDF Signer\pdfsigner.exe"
+      - name: Installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.version.outputs.version }}" packaging\windows\pdfsigner.iss
+      - name: Sign installer (optional)
+        if: runner.os == 'Windows' && env.HAS_WINDOWS_CERT == 'true'
+        env:
+          WINDOWS_CERT_P12: ${{ secrets.WINDOWS_CERT_P12 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1).FullName
+          & $signtool sign /f cert.pfx /p $env:WINDOWS_CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 (Get-Item dist\PDF-Signer-*-setup.exe).FullName
+          Remove-Item cert.pfx
+      - name: Test the installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $setup = (Get-Item dist\PDF-Signer-*-setup.exe).FullName
+          Start-Process -Wait -FilePath $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/DIR=$env:RUNNER_TEMP\pdfsigner-inst"
+          & "$env:RUNNER_TEMP\pdfsigner-inst\pdfsigner.exe" --help
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Start-Process -Wait -FilePath "$env:RUNNER_TEMP\pdfsigner-inst\unins000.exe" -ArgumentList "/VERYSILENT"
+
+      # --- macOS ----------------------------------------------------------------
+      - name: Import signing certificate (optional)
+        if: runner.os == 'macOS' && env.HAS_MACOS_CERT == 'true'
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          echo "$MACOS_CERT_P12" | base64 --decode > cert.p12
+          security create-keychain -p ci build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p ci build.keychain
+          security import cert.p12 -k build.keychain -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci build.keychain
+          rm cert.p12
+      - name: Disk image (macOS)
+        if: runner.os == 'macOS'
+        env:
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: packaging/macos/build_dmg.sh "${{ steps.version.outputs.version }}"
+      - name: Test the disk image (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          dmg=$(ls dist/PDF-Signer-*.dmg)
+          hdiutil attach "$dmg" -mountpoint /Volumes/pdfsigner-test -nobrowse
+          "/Volumes/pdfsigner-test/PDF Signer.app/Contents/MacOS/pdfsigner" --help
+          hdiutil detach /Volumes/pdfsigner-test
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: |
+            dist/PDF-Signer-*-setup.exe
+            dist/PDF-Signer-*.dmg
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

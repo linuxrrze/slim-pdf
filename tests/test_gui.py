@@ -713,3 +713,11 @@ def test_dialog_system_store_unavailable(dialog, monkeypatch):
     boxes = Boxes(monkeypatch, certdialog)
     dialog._choose_system_cert()
     assert boxes.kinds() == ["critical"] and "only supported" in boxes.text()
+
+
+def test_main_smoke_test(qapp, form_pdf, cfg_path, monkeypatch):
+    # the QMessageBox for a broken file would block; there is none for a good file
+    assert gui_app.main(["--smoke-test", str(form_pdf)]) == 0
+    assert gui_app.main(["--smoke-test"]) == 0
+    assert gui_app.ICON.exists()
+    assert not QtWidgets.QApplication.windowIcon().isNull()

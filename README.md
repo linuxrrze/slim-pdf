@@ -28,7 +28,14 @@ share the same certificate profiles.
 
 ## Install
 
-Python ≥ 3.11 on Linux, macOS or Windows.
+**Windows and macOS:** an installer (`PDF-Signer-<version>-setup.exe`) and
+disk images (`PDF-Signer-<version>-macos-<arch>.dmg`) are built for every
+release tag and attached to the GitHub release. They contain the GUI and the
+`pdfsigner` command, no Python needed. See
+[packaging/README.md](packaging/README.md) for details, code signing and
+building them yourself.
+
+**From source** (any platform, Python ≥ 3.11):
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
