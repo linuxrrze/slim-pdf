@@ -74,5 +74,14 @@ branch can't produce a signed binary:
 | `MACOS_SIGN_IDENTITY` | Its name, e.g. `Developer ID Application: Marcel Ritter (TEAMID)` |
 | `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_PASSWORD` | Notarization (app-specific password) |
 
+On Windows, Inno Setup signs both executables, the uninstaller and the
+setup. The certificate is imported into the runner's certificate store for
+that (no key file in the workspace, no password on a command line) and
+removed again at the end of the job. On macOS it goes into a temporary
+keychain with a random password, which is deleted at the end.
+
 The macOS app is signed with the hardened runtime and the entitlements in
-`macos/entitlements.plist`, which Python and Qt need.
+`macos/entitlements.plist` (see the comments there for why each is needed).
+
+A tag must match the version in `pyproject.toml` (`v0.1.0` ↔ `0.1.0`);
+otherwise the workflow stops before building.

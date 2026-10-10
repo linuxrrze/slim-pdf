@@ -46,7 +46,13 @@ jobs:
       - name: Version
         id: version
         shell: bash
-        run: echo "version=$(python -c 'import tomllib;print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(python -c 'import tomllib;print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME doesn't match the version in pyproject.toml ($version)"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Icons
         run: python packaging/make_icons.py
       - name: Freeze
@@ -60,32 +66,40 @@ jobs:
         run: python packaging/smoke_test.py "dist/PDF Signer.app/Contents/MacOS/pdfsigner" "dist/PDF Signer.app/Contents/MacOS/pdfsigner-gui"
 
       # --- Windows ------------------------------------------------------------
-      - name: Sign executables (optional)
-        if: runner.os == 'Windows' && env.HAS_WINDOWS_CERT == 'true'
-        env:
-          WINDOWS_CERT_P12: ${{ secrets.WINDOWS_CERT_P12 }}
-          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
-        shell: pwsh
-        run: |
-          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:WINDOWS_CERT_P12))
-          $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1).FullName
-          & $signtool sign /f cert.pfx /p $env:WINDOWS_CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 "dist\PDF Signer\PDF Signer.exe" "dist\PDF Signer\pdfsigner.exe"
+      # With a certificate, Inno Setup signs both executables, the uninstaller
+      # and the installer. The .pfx goes into the user's certificate store and
+      # signtool picks it by thumbprint: no key file in the workspace, no
+      # password on a command line.
       - name: Installer (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: |
-          choco install innosetup --version=6.7.1 -y --no-progress
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.version.outputs.version }}" packaging\windows\pdfsigner.iss
-      - name: Sign installer (optional)
-        if: runner.os == 'Windows' && env.HAS_WINDOWS_CERT == 'true'
         env:
+          VERSION: ${{ steps.version.outputs.version }}
           WINDOWS_CERT_P12: ${{ secrets.WINDOWS_CERT_P12 }}
           WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
-        shell: pwsh
         run: |
-          $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1).FullName
-          & $signtool sign /f cert.pfx /p $env:WINDOWS_CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 (Get-Item dist\PDF-Signer-*-setup.exe).FullName
-          Remove-Item cert.pfx
+          choco install innosetup --version=6.7.1 -y --no-progress
+          $iscc = @("/DAppVersion=$env:VERSION")
+          if ($env:HAS_WINDOWS_CERT -eq 'true') {
+            $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+            try {
+              [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT_P12))
+              $pw = ConvertTo-SecureString $env:WINDOWS_CERT_PASSWORD -AsPlainText -Force
+              $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pw
+            } finally {
+              Remove-Item $pfx -ErrorAction SilentlyContinue
+            }
+            "SIGNING_THUMBPRINT=$($cert.Thumbprint)" | Out-File -Append $env:GITHUB_ENV
+            $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1).FullName
+            $iscc += "/DSign"
+            $iscc += "/Ssigntool=`"$signtool`" sign /sha1 $($cert.Thumbprint) /s My /fd sha256 /tr http://timestamp.digicert.com /td sha256 `$f"
+          }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" @iscc packaging\windows\pdfsigner.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Remove the signing certificate (Windows)
+        if: always() && runner.os == 'Windows' && env.SIGNING_THUMBPRINT != ''
+        shell: pwsh
+        run: Remove-Item "Cert:\CurrentUser\My\$env:SIGNING_THUMBPRINT" -DeleteKey -ErrorAction SilentlyContinue
       - name: Test the installer (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -103,21 +117,30 @@ jobs:
           MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
           MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
         run: |
-          echo "$MACOS_CERT_P12" | base64 --decode > cert.p12
-          security create-keychain -p ci build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p ci build.keychain
-          security import cert.p12 -k build.keychain -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k ci build.keychain
-          rm cert.p12
+          p12="$RUNNER_TEMP/signing.p12"
+          keychain="$RUNNER_TEMP/build.keychain-db"
+          kc_password="$(openssl rand -hex 24)"
+          trap 'rm -f "$p12"' EXIT
+          echo "$MACOS_CERT_P12" | base64 --decode > "$p12"
+          security create-keychain -p "$kc_password" "$keychain"
+          echo "SIGNING_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$kc_password" "$keychain"
+          security import "$p12" -k "$keychain" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$kc_password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
       - name: Disk image (macOS)
         if: runner.os == 'macOS'
         env:
+          VERSION: ${{ steps.version.outputs.version }}
           MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-        run: packaging/macos/build_dmg.sh "${{ steps.version.outputs.version }}"
+        run: packaging/macos/build_dmg.sh "$VERSION"
+      - name: Remove the signing keychain (macOS)
+        if: always() && runner.os == 'macOS' && env.SIGNING_KEYCHAIN != ''
+        run: security delete-keychain "$SIGNING_KEYCHAIN" || true
       - name: Test the disk image (macOS)
         if: runner.os == 'macOS'
         run: |

@@ -13,13 +13,20 @@
 #endif
 #define AppName "PDF Signer"
 #define AppExe "PDF Signer.exe"
+; /DSign (with /Ssigntool=... from the release workflow) signs the two
+; executables, the uninstaller and the setup itself.
+#ifdef Sign
+  #define SignFlag " sign"
+#else
+  #define SignFlag ""
+#endif
 
 [Setup]
 AppId={{6E0B2B5C-4C1E-4E55-9C1A-8F3D5B0D7A21}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher=Marcel Ritter
-AppPublisherURL=https://github.com/
+AppPublisherURL=https://github.com/linuxrrze/slim-pdf
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
@@ -35,6 +42,10 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 ChangesEnvironment=yes
+#ifdef Sign
+SignTool=signtool
+SignedUninstaller=yes
+#endif
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -46,7 +57,9 @@ Name: "addtopath"; Description: "Add the pdfsigner command to PATH"; GroupDescri
 Name: "openwith"; Description: "Offer PDF Signer in ""Open with"" for PDF files"; GroupDescription: "Integration:"
 
 [Files]
-Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourceDir}\*"; Excludes: "\PDF Signer.exe,\pdfsigner.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourceDir}\PDF Signer.exe"; DestDir: "{app}"; Flags: ignoreversion{#SignFlag}
+Source: "{#SourceDir}\pdfsigner.exe"; DestDir: "{app}"; Flags: ignoreversion{#SignFlag}
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
