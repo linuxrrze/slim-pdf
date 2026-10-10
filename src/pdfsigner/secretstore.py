@@ -188,11 +188,32 @@ def find_keepass_entry(kp, spec: str):
         group = kp.find_groups(path=parts[:i], first=True)
         if group is None:
             break
-        entry = kp.find_entries(group=group, title="/".join(parts[i:]),
-                                recursive=False, first=True)
-        if entry is not None:
-            return entry
-    return kp.find_entries(title=spec, first=True)
+        found = kp.find_entries(group=group, title="/".join(parts[i:]), recursive=False)
+        if found:
+            return _only_one(found, spec)
+    # A bare title is searched everywhere, except in the recycle bin: a deleted
+    # old entry (old passphrase, old .p12) must not be picked up.
+    trash = kp.recyclebin_group
+    found = [e for e in kp.find_entries(title=spec) if not _inside(e, trash)]
+    return _only_one(found, spec) if found else None
+
+
+def _inside(entry, group) -> bool:
+    g = entry.group
+    while g is not None and group is not None:
+        if g.uuid == group.uuid:
+            return True
+        g = g.parentgroup
+    return False
+
+
+def _only_one(entries: list, spec: str):
+    if len(entries) > 1:
+        paths = ", ".join("/".join(e.path) for e in entries)
+        raise SecretError(_("{count} KeePass entries match {entry!r} ({paths}); give the "
+                            "full path Group/Title").format(count=len(entries), entry=spec,
+                                                             paths=paths))
+    return entries[0]
 
 
 # --- keepassxc-cli -------------------------------------------------------------

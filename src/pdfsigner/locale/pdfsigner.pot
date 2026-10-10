@@ -1968,6 +1968,11 @@ msgid "attachment {attachment!r} not found on entry {entry!r}"
 msgstr ""
 
 #: src/pdfsigner/secretstore.py
+#, python-brace-format
+msgid "{count} KeePass entries match {entry!r} ({paths}); give the full path Group/Title"
+msgstr ""
+
+#: src/pdfsigner/secretstore.py
 msgid "keepassxc-cli not found (install KeePassXC, or set PDFSIGNER_KEEPASSXC_CLI to its path)"
 msgstr ""
 

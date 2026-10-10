@@ -161,3 +161,25 @@ def test_cli_no_keyring_backend(no_keyring, p12, cfg_path, capsys, monkeypatch):
 def test_keyring_delete_missing_is_fine(mem_keyring):
 
     secretstore.keyring_delete("never-stored")
+
+
+def test_keepass_bare_title_skips_recycle_bin_and_refuses_ambiguity(keepass_db):
+    from pykeepass import PyKeePass
+
+    kp = PyKeePass(str(keepass_db), password="master")
+    old = kp.add_entry(kp.root_group, "Signing", "alice", "old-secret")
+    kp.trash_entry(old)  # deleted entries go to the recycle bin
+    kp.add_entry(kp.find_groups(name="Certificates", first=True), "Signing", "alice", "new-secret")
+    kp.save()
+    creds = resolve_credentials(kp_profile(keepass_db, keepass_entry="Signing"), lambda p: "master")
+    assert creds.secret == "new-secret"
+
+    kp = PyKeePass(str(keepass_db), password="master")
+    kp.add_entry(kp.add_group(kp.root_group, "Other"), "Signing", "bob", "other-secret")
+    kp.save()
+    with pytest.raises(SecretError, match=r"2 KeePass entries match 'Signing' "
+                                          r"\(.*Certificates/Signing.*Other/Signing.*\)"):
+        resolve_credentials(kp_profile(keepass_db, keepass_entry="Signing"), lambda p: "master")
+    creds = resolve_credentials(kp_profile(keepass_db, keepass_entry="Other/Signing"),
+                                lambda p: "master")
+    assert creds.secret == "other-secret"

@@ -63,7 +63,9 @@ pdfsigner certs add work --secret keepass \
     --keepass-attachment fau.p12        # omit --p12 entirely
 ```
 
-Entry paths are `Group/Sub/Title`. Titles may contain `/` themselves.
+Entry paths are `Group/Sub/Title`. Titles may contain `/` themselves. A
+bare title is searched in all groups except the recycle bin; if several
+entries have it, pdfsigner lists them and asks for the full path.
 
 Trade-offs:
 
