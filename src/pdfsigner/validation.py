@@ -157,10 +157,19 @@ def _coverage(st, revision: int, revisions: int) -> str:
     return _("only part of the document")
 
 
-def _trust_problem(indic, cert) -> str:
+def _trust_problem(indic, cert, md_algorithm: str = "") -> str:
     """Why the signer's certificate isn't trusted, from pyHanko's AdES
     sub-indication (and the certificate, where the indication is ambiguous)."""
     name = getattr(indic, "name", "")
+    if name in ("CRYPTO_CONSTRAINTS_FAILURE", "CRYPTO_CONSTRAINTS_FAILURE_NO_POE"):
+        # e.g. SHA-1, which isn't accepted any more (for signatures, or in
+        # the certificate chain)
+        if md_algorithm:
+            return _("the signature or its certificate chain uses an algorithm that is no "
+                     "longer considered secure (digest: {algorithm})").format(
+                         algorithm=md_algorithm.upper().replace("SHA", "SHA-"))
+        return _("the signature or its certificate chain uses an algorithm that is no "
+                 "longer considered secure")
     if name in ("EXPIRED", "NOT_YET_VALID", "OUT_OF_BOUNDS_NO_POE",
                 "OUT_OF_BOUNDS_NOT_REVOKED"):
         return _("the certificate was not valid at the time of signing")
@@ -226,7 +235,8 @@ def report(sig, st, revision: int, revisions: int) -> SignatureReport:
         # Everything that can be checked is intact; what's missing is trust.
         status = UNTRUSTED
         if not st.trusted:
-            problems.append(_trust_problem(st.trust_problem_indic, cert))
+            problems.append(_trust_problem(st.trust_problem_indic, cert,
+                                           getattr(st, "md_algorithm", "") or ""))
         for t, what in ((ts, _("the timestamp authority {tsa!r} isn't trusted (issuer "
                                 "{issuer!r})")),
                         (content_ts, _("the content timestamp authority {tsa!r} isn't "

@@ -264,3 +264,18 @@ def test_unsupported_in_order_with_others(legacy, p12_bob, tmp_path, capsys, cfg
     assert (second.field, second.status) == ("Supervisor", VALID)
     assert run("verify", legacy, "--trust", bob_pem) == 4  # not proven valid
     assert "Applicant: NOT CHECKED" in capsys.readouterr().out
+
+
+def test_weak_algorithm_is_named(p12):
+    """pyHanko rejects e.g. SHA-1: say so instead of blaming the chain."""
+    from asn1crypto import x509 as asn1_x509
+    from pyhanko.sign.ades.report import AdESIndeterminate
+
+    from pdfsigner.validation import _trust_problem
+
+    cert = asn1_x509.Certificate.load(p12[1].public_bytes(serialization.Encoding.DER))
+    indic = AdESIndeterminate.CRYPTO_CONSTRAINTS_FAILURE
+    assert _trust_problem(indic, cert, "sha1") == (
+        "the signature or its certificate chain uses an algorithm that is no longer "
+        "considered secure (digest: SHA-1)")
+    assert "no longer considered secure" in _trust_problem(indic, cert)

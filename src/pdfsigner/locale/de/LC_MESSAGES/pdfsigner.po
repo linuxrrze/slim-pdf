@@ -2686,6 +2686,15 @@ msgid "only part of the document"
 msgstr "nur ein Teil des Dokuments"
 
 #: src/pdfsigner/validation.py
+#, python-brace-format
+msgid "the signature or its certificate chain uses an algorithm that is no longer considered secure (digest: {algorithm})"
+msgstr "die Signatur oder ihre Zertifikatskette verwendet einen Algorithmus, der nicht mehr als sicher gilt (Hashverfahren: {algorithm})"
+
+#: src/pdfsigner/validation.py
+msgid "the signature or its certificate chain uses an algorithm that is no longer considered secure"
+msgstr "die Signatur oder ihre Zertifikatskette verwendet einen Algorithmus, der nicht mehr als sicher gilt"
+
+#: src/pdfsigner/validation.py
 msgid "the certificate was not valid at the time of signing"
 msgstr "das Zertifikat war zum Zeitpunkt der Signatur nicht gültig"
 
