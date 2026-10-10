@@ -9,6 +9,7 @@ from asn1crypto import x509
 
 from .i18n import _
 from .signing import SigningError
+from . import systemstore
 from .systemstore import StoreCancelled, StoreIdentity, p1363_to_der
 
 crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
@@ -65,6 +66,10 @@ ncrypt.NCryptSignHash.argtypes = [
 ncrypt.NCryptSignHash.restype = ctypes.c_long
 ncrypt.NCryptFreeObject.argtypes = [ctypes.c_size_t]
 ncrypt.NCryptFreeObject.restype = ctypes.c_long
+ncrypt.NCryptSetProperty.argtypes = [
+    ctypes.c_size_t, wt.LPCWSTR, ctypes.c_void_p, wt.DWORD, wt.DWORD]
+ncrypt.NCryptSetProperty.restype = ctypes.c_long
+NCRYPT_WINDOW_HANDLE_PROPERTY = "HWND Handle"
 
 
 def _message(code: int) -> str:
@@ -129,6 +134,12 @@ class WindowsStore:
                    _("accessing the private key failed: {error}"))
             raise SigningError(_("cannot access the private key"))
         try:
+            if systemstore.parent_window:
+                # The smartcard PIN dialog belongs to our window, so it opens
+                # in front of it. Best effort: not every key provider takes it.
+                hwnd = ctypes.c_void_p(systemstore.parent_window)
+                ncrypt.NCryptSetProperty(key, NCRYPT_WINDOW_HANDLE_PROPERTY,
+                                         ctypes.byref(hwnd), ctypes.sizeof(hwnd), 0)
             pad, flags = None, 0
             if mechanism == "rsassa_pkcs1v15":
                 try:

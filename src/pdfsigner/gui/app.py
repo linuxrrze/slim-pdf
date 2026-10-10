@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import i18n, pages, secretstore, validation
+from .. import i18n, pages, secretstore, systemstore, validation
 from ..config import Config, load_config
 from ..i18n import N_, _, ngettext
 from ..signing import (
@@ -746,6 +746,7 @@ class MainWindow(QMainWindow):
             if profile.type in HARDWARE_TYPES:  # may wait for a touch or a PIN pad
                 self.statusBar().showMessage(_(TOKEN_HINT))
                 QApplication.processEvents()
+                systemstore.parent_window = int(self.winId())
             with open_signer(profile, creds) as signer:
                 name = sign_pdf(
                     self.data, out, signer, profile,

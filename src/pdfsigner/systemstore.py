@@ -67,6 +67,11 @@ class Backend(Protocol):
     def close(self) -> None: ...
 
 
+# Native handle of the GUI's main window, set by the GUI: Windows then shows
+# a smartcard's PIN dialog in front of it instead of possibly behind it.
+parent_window: int | None = None
+
+
 def get_backend() -> Backend:
     if sys.platform == "win32":
         from ._winstore import WindowsStore

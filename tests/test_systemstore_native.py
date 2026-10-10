@@ -111,8 +111,12 @@ def test_listed(identity):
         backend.close()
 
 
-def test_sign_with_os_store(identity, ca, form_pdf, tmp_path):
+def test_sign_with_os_store(identity, ca, form_pdf, tmp_path, monkeypatch):
     cn, _ = identity
+    if sys.platform == "win32":  # exercise the PIN-dialog parent window path
+        import ctypes
+
+        monkeypatch.setattr(systemstore, "parent_window", ctypes.windll.user32.GetDesktopWindow())
     profile = CertProfile(name="store", type="system", system_cert=cn)
     out = tmp_path / "out.pdf"
     with open_signer(profile, Credentials()) as signer:
