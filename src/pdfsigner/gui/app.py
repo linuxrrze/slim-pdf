@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import html
 import sys
 from pathlib import Path
 
@@ -45,7 +44,7 @@ from ..signing import (
     stamp_size,
 )
 from . import background
-from .certdialog import CertManagerDialog
+from .certdialog import CertManagerDialog, details_dialog
 from .screen import fit_to_screen
 from .settings import SettingsDialog
 from .dialogs import ask_secret
@@ -74,6 +73,10 @@ HINT = N_("Wheel: zoom, drag: move the page. Click an empty field to sign it, or
           "corner or with Ctrl+wheel.")
 PLACE_HINT = N_("Click where the signature should go, or on an empty (dashed) field. "
                 "Esc cancels.")
+
+
+def _when(dt) -> str:
+    return f"{dt:%Y-%m-%d %H:%M:%S %Z}".strip() if dt else ""
 
 
 def _status_text(status: str) -> str:
@@ -658,18 +661,22 @@ class MainWindow(QMainWindow):
         r = next((r for r in self.reports if r.field == item.data(Qt.UserRole)), None)
         if r is None:
             return
-        box = QMessageBox(self)
-        box.setWindowTitle(_("Signature '{name}'").format(name=printable(r.field)))
-        box.setIcon(QMessageBox.Information if r.ok else QMessageBox.Warning)
-        lines = ["<b>{}</b>".format(html.escape(_status_text(r.status).upper())),
-                 _("Signer: {signer}").format(signer=r.signer),
-                 _("Issuer: {issuer}").format(issuer=r.issuer),
-                 _("Covers: {coverage}").format(coverage=r.coverage),
-                 *(_("Problem: {problem}").format(problem=p) for p in r.problems)]
-        lines = [lines[0], *(html.escape(printable(line)) for line in lines[1:])]
-        box.setText("<br>".join(lines))
-        box.setDetailedText(printable(r.details, keep_newlines=True))
-        box.exec()
+        rows = [(_("Result"), _status_text(r.status).upper(), STATUS_COLORS[r.status]),
+                # without the certificate's rows below, at least its names
+                *([] if r.certificate else [(_("Signer"), r.signer), (_("Issuer"), r.issuer)]),
+                (_("Signed at"), _when(r.signed_at)),
+                (_("Trusted timestamp"), _when(r.timestamp)),
+                (_("Covers"), r.coverage),
+                (_("Reason"), r.reason), (_("Location"), r.location)]
+        rows = [(_("Signature"), ""), *(row for row in rows if row[1])]
+        rows += [(_("Problem"), p) for p in r.problems]
+        rows = [(label, printable(value), *color) for label, value, *color in rows]
+        pem_text = ""
+        if r.certificate is not None:
+            rows += [(_("Signer's certificate"), ""), *certinfo.details(r.certificate)]
+            pem_text = certinfo.to_pem(r.certificate)
+        details_dialog(self, _("Signature '{name}'").format(name=printable(r.field)),
+                       rows, pem_text, printable(r.details, keep_newlines=True))
 
     def _fill_fields(self) -> None:
         self.fields_list.clear()

@@ -100,6 +100,7 @@ msgid "Country"
 msgstr "Land"
 
 #: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/app.py
 msgid "Issuer"
 msgstr "Aussteller"
 
@@ -120,11 +121,13 @@ msgid "Time of signing"
 msgstr "Uhrzeit der Signatur"
 
 #: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/app.py
 #: src/pdfsigner/gui/certdialog.py
 msgid "Reason"
 msgstr "Grund"
 
 #: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/app.py
 #: src/pdfsigner/gui/certdialog.py
 msgid "Location"
 msgstr "Ort"
@@ -1547,29 +1550,42 @@ msgstr[0] "{n} Signatur: {counts}"
 msgstr[1] "{n} Signaturen: {counts}"
 
 #: src/pdfsigner/gui/app.py
+msgid "Result"
+msgstr "Ergebnis"
+
+#: src/pdfsigner/gui/app.py
+msgid "Signer"
+msgstr "Unterzeichner"
+
+#: src/pdfsigner/gui/app.py
+msgid "Signed at"
+msgstr "Signiert am"
+
+#: src/pdfsigner/gui/app.py
+msgid "Trusted timestamp"
+msgstr "Vertrauenswürdiger Zeitstempel"
+
+#: src/pdfsigner/gui/app.py
+msgid "Covers"
+msgstr "Umfang"
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/pageview.py
+msgid "Signature"
+msgstr "Signatur"
+
+#: src/pdfsigner/gui/app.py
+msgid "Problem"
+msgstr "Problem"
+
+#: src/pdfsigner/gui/app.py
+msgid "Signer's certificate"
+msgstr "Zertifikat des Unterzeichners"
+
+#: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid "Signature '{name}'"
 msgstr "Signatur '{name}'"
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "Signer: {signer}"
-msgstr "Unterzeichner: {signer}"
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "Issuer: {issuer}"
-msgstr "Aussteller: {issuer}"
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "Covers: {coverage}"
-msgstr "Umfang: {coverage}"
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "Problem: {problem}"
-msgstr "Problem: {problem}"
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
@@ -1730,6 +1746,14 @@ msgstr "Zertifikat von {name!r}"
 #: src/pdfsigner/gui/certdialog.py
 msgid "Certificate (PEM, public):"
 msgstr "Zertifikat (PEM, öffentlich):"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Full report…"
+msgstr "Vollständiger Bericht…"
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The validation report as pyHanko writes it"
+msgstr "Der Prüfbericht, wie pyHanko ihn schreibt"
 
 #: src/pdfsigner/gui/certdialog.py
 #, python-brace-format
@@ -2131,10 +2155,6 @@ msgstr "{prompt}:"
 #: src/pdfsigner/gui/document.py
 msgid "coordinate conversion failed"
 msgstr "Koordinatenumrechnung fehlgeschlagen"
-
-#: src/pdfsigner/gui/pageview.py
-msgid "Signature"
-msgstr "Signatur"
 
 #: src/pdfsigner/gui/pageview.py
 #, python-brace-format

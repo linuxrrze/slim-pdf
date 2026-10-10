@@ -89,27 +89,56 @@ def show_certificate(parent: QWidget, name: str, pem_text: str) -> None:
             "The certificate hasn't been read yet. Save the profile or use the test "
             "in its editor; both read it from the key."))
         return
+    details_dialog(parent, _("Certificate of {name!r}").format(name=name),
+                   certinfo.details(cert), pem_text)
+
+
+def details_dialog(parent: QWidget, title: str, rows, pem_text: str = "",
+                   report: str = "") -> QDialog:
+    """(label, value) rows as a table, then the certificate's PEM; the
+    certificate details and the signature details share it. A row with an
+    empty value is a heading; ``report`` goes behind a button."""
     dlg = QDialog(parent)
-    dlg.setWindowTitle(_("Certificate of {name!r}").format(name=name))
+    dlg.setWindowTitle(title)
     tree = QTreeWidget()
     tree.setHeaderHidden(True)
     tree.setColumnCount(2)
     tree.setRootIsDecorated(False)
     tree.setWordWrap(True)
-    for label, value in certinfo.details(cert):
+    for label, value, *color in rows:
         item = QTreeWidgetItem([label, value])
         item.setToolTip(1, value)
+        if not value:  # a heading
+            font = item.font(0)
+            font.setBold(True)
+            item.setFont(0, font)
+        if color:
+            item.setForeground(1, QColor(color[0]))
         tree.addTopLevelItem(item)
+    for i in range(tree.topLevelItemCount()):  # only works once in the tree
+        if not tree.topLevelItem(i).text(1):
+            tree.topLevelItem(i).setFirstColumnSpanned(True)
     tree.resizeColumnToContents(0)
-    pem_view = QPlainTextEdit(pem_text)
-    pem_view.setReadOnly(True)
-    pem_view.setFixedHeight(90)
     buttons = QDialogButtonBox(QDialogButtonBox.Close)
     buttons.rejected.connect(dlg.reject)
     lay = QVBoxLayout(dlg)
     lay.addWidget(tree, 1)
-    lay.addWidget(QLabel(_("Certificate (PEM, public):")))
-    lay.addWidget(pem_view)
+    if pem_text:
+        pem_view = QPlainTextEdit(pem_text)
+        pem_view.setReadOnly(True)
+        pem_view.setFixedHeight(90)
+        lay.addWidget(QLabel(_("Certificate (PEM, public):")))
+        lay.addWidget(pem_view)
+    dlg.report = None
+    if report:
+        dlg.report = QPlainTextEdit(report)
+        dlg.report.setReadOnly(True)
+        dlg.report.setVisible(False)
+        lay.addWidget(dlg.report, 1)
+        toggle = buttons.addButton(_("Full report…"), QDialogButtonBox.ActionRole)
+        toggle.setCheckable(True)
+        toggle.setToolTip(_("The validation report as pyHanko writes it"))
+        toggle.toggled.connect(dlg.report.setVisible)
     lay.addWidget(buttons)
     fit_to_screen(dlg, 640, 480)
     dlg.tree = tree  # for the tests
@@ -117,6 +146,7 @@ def show_certificate(parent: QWidget, name: str, pem_text: str) -> None:
         parent._exec_details(dlg)
     else:
         dlg.exec()
+    return dlg
 
 
 def _summary(p: CertProfile) -> str:

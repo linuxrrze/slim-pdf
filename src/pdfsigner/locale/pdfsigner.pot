@@ -98,6 +98,7 @@ msgid "Country"
 msgstr ""
 
 #: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/app.py
 msgid "Issuer"
 msgstr ""
 
@@ -118,11 +119,13 @@ msgid "Time of signing"
 msgstr ""
 
 #: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/app.py
 #: src/pdfsigner/gui/certdialog.py
 msgid "Reason"
 msgstr ""
 
 #: src/pdfsigner/certinfo.py
+#: src/pdfsigner/gui/app.py
 #: src/pdfsigner/gui/certdialog.py
 msgid "Location"
 msgstr ""
@@ -1491,28 +1494,41 @@ msgid_plural "{n} signatures: {counts}"
 msgstr[0] ""
 
 #: src/pdfsigner/gui/app.py
+msgid "Result"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Signer"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Signed at"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Trusted timestamp"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Covers"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/pageview.py
+msgid "Signature"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Problem"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Signer's certificate"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid "Signature '{name}'"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "Signer: {signer}"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "Issuer: {issuer}"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "Covers: {coverage}"
-msgstr ""
-
-#: src/pdfsigner/gui/app.py
-#, python-brace-format
-msgid "Problem: {problem}"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1663,6 +1679,14 @@ msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Certificate (PEM, public):"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "Full report…"
+msgstr ""
+
+#: src/pdfsigner/gui/certdialog.py
+msgid "The validation report as pyHanko writes it"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -2056,10 +2080,6 @@ msgstr ""
 
 #: src/pdfsigner/gui/document.py
 msgid "coordinate conversion failed"
-msgstr ""
-
-#: src/pdfsigner/gui/pageview.py
-msgid "Signature"
 msgstr ""
 
 #: src/pdfsigner/gui/pageview.py

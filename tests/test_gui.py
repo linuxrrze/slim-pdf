@@ -387,12 +387,13 @@ def test_click_on_field_signs_it_then_shows_the_signature(window, form_pdf, save
     assert window.cert_combo.currentData() == "bob"
 
     shown = []
-    monkeypatch.setattr(gui_app.QMessageBox, "exec", lambda self: shown.append(self.text()))
+    monkeypatch.setattr(window, "_exec_details", shown.append, raising=False)
     window.view.go_to(1)
     c = field_center(window, "Applicant")
     click_scene(window.view, c.x(), c.y())
-    [text] = shown
-    assert "Bob Example" in text
+    [dlg] = shown
+    assert any("Bob Example" in dlg.tree.topLevelItem(i).text(1)
+               for i in range(dlg.tree.topLevelItemCount()))
 
 
 def test_click_on_field_with_one_certificate_asks_nothing(window, form_pdf, save_to,
@@ -929,19 +930,23 @@ def test_signatures_panel(window, form_pdf, save_to, p12, tmp_path, monkeypatch)
     assert "1 signature: 1 valid" in window.statusBar().currentMessage()
 
     shown = []
-    monkeypatch.setattr(gui_app.QMessageBox, "exec",
-                        lambda self: shown.append((self.text(), self.detailedText())))
+    monkeypatch.setattr(window, "_exec_details", shown.append, raising=False)
     window.view.go_to(0)
     item = window.sigs_list.item(0)
     window._signature_clicked(item)
     assert window.view.page == 1  # the field is on page 2
     window.show_signature_details(item)
-    [(text, details)] = shown
-    assert "<b>VALID</b>" in text and "Alice Example" in text
-    assert "Bottom line" in details
+    [dlg] = shown
+    items = {dlg.tree.topLevelItem(i).text(0): dlg.tree.topLevelItem(i).text(1)
+             for i in range(dlg.tree.topLevelItemCount())}
+    # the verdict first, then the same rows as the certificate manager's details
+    assert items["Result"] == "VALID" and items["Signer's certificate"] == ""  # a heading
+    assert "Alice Example" in items["Subject"] and items["Key"] == "EC secp256r1"
+    assert "SHA-256 fingerprint" in items
+    assert "Bottom line" in dlg.report.toPlainText() and not dlg.report.isVisibleTo(dlg)
 
 
-def test_signatures_panel_unsupported_format(window, form_pdf, tmp_path):
+def test_signatures_panel_unsupported_format(window, form_pdf, tmp_path, monkeypatch):
     """A legacy adbe.x509.rsa_sha1 signature is listed, greyed, not dropped."""
     from conftest import sign_with
 
@@ -953,6 +958,14 @@ def test_signatures_panel_unsupported_format(window, form_pdf, tmp_path):
     assert row.startswith("Applicant: not checked\n")
     assert "1 signature: 1 not checked" in window.statusBar().currentMessage()
     assert "adbe.x509.rsa_sha1" in window.sigs_list.item(0).toolTip()
+    shown = []
+    monkeypatch.setattr(window, "_exec_details", shown.append, raising=False)
+    window.show_signature_details(window.sigs_list.item(0))
+    [dlg] = shown
+    items = {dlg.tree.topLevelItem(i).text(0): dlg.tree.topLevelItem(i).text(1)
+             for i in range(dlg.tree.topLevelItemCount())}
+    assert items["Result"] == "NOT CHECKED" and "adbe.x509.rsa_sha1" in items["Problem"]
+    assert dlg.report is None  # no pyHanko report for these
 
 
 def test_lists_escape_text_from_the_pdf(window, blank_pdf, tmp_path):

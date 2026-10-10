@@ -93,6 +93,7 @@ class SignatureReport:
     changed_later: bool = False
     problems: list[str] = field(default_factory=list)
     details: str = ""  # pyHanko's full report
+    certificate: x509.Certificate | None = None  # the signer's
 
     @property
     def ok(self) -> bool:
@@ -268,6 +269,7 @@ def report(sig, st, revision: int, revisions: int) -> SignatureReport:
         location=_str(sig.sig_object, "/Location"),
         problems=problems,
         details=st.pretty_print_details(),
+        certificate=cert,
     )
 
 
@@ -322,7 +324,8 @@ def unsupported_report(name: str, sig_object, size: int) -> SignatureReport:
         signed_at=signed_at, coverage=coverage,
         reason=_str(sig_object, "/Reason"), location=_str(sig_object, "/Location"),
         problems=[_("the signature uses the format {format}, which pdfsigner cannot check "
-                    "(a legacy format, unlike PAdES/PKCS#7)").format(format=subfilter)])
+                    "(a legacy format, unlike PAdES/PKCS#7)").format(format=subfilter)],
+        certificate=cert)
 
 
 def verify_pdf(path: Path | str | bytes, *, trust=(), system_trust: bool = True,

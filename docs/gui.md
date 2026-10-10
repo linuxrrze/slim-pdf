@@ -111,7 +111,10 @@ A signature followed by allowed changes, such as filled-in form fields or
 further signatures, gets a third line *then changed (allowed)*: what you
 see now is not exactly what was signed. The tooltip says which changes.
 
-Click a signature to jump to its page. Double-click it for the full report.
+Click a signature to jump to its page. Double-click it (or click the signed
+field on the page) for its details: the verdict, time, what it covers and
+any problems, then the signer's certificate in the same form as *Manage…* →
+*Details…* shows your own, and pyHanko's full report behind *Full report…*.
 The tooltip shows what the signature covers. Extra trusted roots come from
 *Settings…* (or `trust = [...]` in the config file, see
 [cli.md](cli.md#check-signatures-pdfsigner-verify)).
