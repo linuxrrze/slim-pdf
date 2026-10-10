@@ -1223,12 +1223,12 @@ msgid "Manage your certificates"
 msgstr "Ihre Zertifikate verwalten"
 
 #: src/pdfsigner/gui/app.py
-msgid "‹ Prev"
-msgstr "‹ Zurück"
+msgid "Previous"
+msgstr "Zurück"
 
 #: src/pdfsigner/gui/app.py
-msgid "Next ›"
-msgstr "Weiter ›"
+msgid "Next"
+msgstr "Weiter"
 
 #: src/pdfsigner/gui/app.py
 msgid "Zoom out"
@@ -1759,6 +1759,10 @@ msgstr "PDFs mit echten Zertifikaten (PAdES) und sichtbarem Signaturbild signier
 #, python-brace-format
 msgid "Built with: {libraries}"
 msgstr "Erstellt mit: {libraries}"
+
+#: src/pdfsigner/gui/app.py
+msgid "Icons: Tabler Icons (MIT license)"
+msgstr "Symbole: Tabler Icons (MIT-Lizenz)"
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format

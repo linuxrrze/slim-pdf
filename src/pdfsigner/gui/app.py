@@ -35,7 +35,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
-    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -57,7 +56,7 @@ from ..signing import (
 )
 from . import background, ribbon
 from .certdialog import CertManagerDialog, details_dialog
-from .screen import fit_to_screen
+from .screen import fit_to_screen, scrollable
 from .settings import SettingsDialog
 from .dialogs import ask_secret
 from .document import PdfDocument, render_stamp
@@ -150,12 +149,12 @@ class MainWindow(QMainWindow):
     def _build_actions(self) -> None:
         """Every command the ribbon offers, as actions of the window, so their
         shortcuts work wherever the focus is."""
-        def act(text, slot, shortcut=None, theme="", fallback=None, tip="", page=False):
+        def act(text, slot, shortcut=None, icon="", tip="", page=False):
             a = QAction(text, self, triggered=slot)
             if shortcut:
                 a.setShortcut(QKeySequence(shortcut))
-            if theme:
-                a.setIcon(ribbon.icon(theme, fallback))
+            if icon:
+                a.setIcon(ribbon.icon(icon))
             a.setToolTip(tip or text)
             self.addAction(a)
             if page:  # needs a document
@@ -163,31 +162,29 @@ class MainWindow(QMainWindow):
             return a
 
         self.page_actions: list[QAction] = []
-        self.open_act = act(_("Open…"), self.open_dialog, QKeySequence.Open, "DocumentOpen",
-                            QStyle.SP_DialogOpenButton)
-        self.save_act = act(_("Save"), self.save, None, "DocumentSave",
-                            QStyle.SP_DialogSaveButton, _("Save the edited document"), True)
-        self.save_as_act = act(_("Save as…"), self.save_as, "Ctrl+Shift+S", "DocumentSaveAs",
-                               None, page=True)
-        self.undo_act = act(_("Undo"), self.undo, QKeySequence.Undo, "EditUndo",
-                            QStyle.SP_ArrowBack, page=True)
-        self.clear_act = act(_("Clear placement"), self._escape, Qt.Key_Escape, "EditClear",
-                             QStyle.SP_DialogResetButton)
+        self.open_act = act(_("Open…"), self.open_dialog, QKeySequence.Open, "folder-open")
+        self.save_act = act(_("Save"), self.save, None, "device-floppy",
+                            _("Save the edited document"), True)
+        self.save_as_act = act(_("Save as…"), self.save_as, "Ctrl+Shift+S", "file-export",
+                               page=True)
+        self.undo_act = act(_("Undo"), self.undo, QKeySequence.Undo, "arrow-back-up",
+                            page=True)
+        self.clear_act = act(_("Clear placement"), self._escape, Qt.Key_Escape, "eraser")
         self.settings_act = act(_("Settings…"), self.settings_dialog, QKeySequence.Preferences,
-                                "DocumentProperties", QStyle.SP_FileDialogDetailedView)
-        self.manage_act = act(_("Certificates…"), self.manage_certs, None, "SecurityHigh",
-                              None, _("Manage your certificates"))
+                                "settings")
+        self.manage_act = act(_("Certificates…"), self.manage_certs, None, "certificate",
+                              _("Manage your certificates"))
 
-        self.prev_act = act(_("‹ Prev"), lambda: self.view.go_to(self.view.page - 1),
-                            QKeySequence.MoveToPreviousPage, "GoPrevious", QStyle.SP_ArrowLeft)
-        self.next_act = act(_("Next ›"), lambda: self.view.go_to(self.view.page + 1),
-                            QKeySequence.MoveToNextPage, "GoNext", QStyle.SP_ArrowRight)
+        self.prev_act = act(_("Previous"), lambda: self.view.go_to(self.view.page - 1),
+                            QKeySequence.MoveToPreviousPage, "chevron-left")
+        self.next_act = act(_("Next"), lambda: self.view.go_to(self.view.page + 1),
+                            QKeySequence.MoveToNextPage, "chevron-right")
         self.zoom_out_act = act(_("Zoom out"), lambda: self.view.set_zoom(self.view.zoom / 1.2),
-                                QKeySequence.ZoomOut, "ZoomOut")
-        self.fit_act = act(_("Fit"), lambda: self.view.set_zoom(None), None, "ZoomFitBest",
-                           None, _("Fit the page into the window"))
+                                QKeySequence.ZoomOut, "zoom-out")
+        self.fit_act = act(_("Fit"), lambda: self.view.set_zoom(None), None, "viewport-wide",
+                           _("Fit the page into the window"))
         self.zoom_in_act = act(_("Zoom in"), lambda: self.view.set_zoom(self.view.zoom * 1.2),
-                               QKeySequence.ZoomIn, "ZoomIn")
+                               QKeySequence.ZoomIn, "zoom-in")
         self.page_spin = QSpinBox()
         self.page_spin.setMinimum(1)
         self.page_spin.valueChanged.connect(lambda v: self.view.go_to(v - 1))
@@ -196,34 +193,31 @@ class MainWindow(QMainWindow):
         # Page edits are also in the pages' context menu (right-click a
         # thumbnail or the page).
         self.rotate_left_act = act(_("Rotate left"), lambda: self.rotate_pages(-90), "Ctrl+L",
-                                   "ObjectRotateLeft", page=True)
+                                   "rotate-2", page=True)
         self.rotate_right_act = act(_("Rotate right"), lambda: self.rotate_pages(90), "Ctrl+R",
-                                    "ObjectRotateRight", page=True)
-        self.crop_act = act(_("Crop…"), self._toggle_crop, page=True)
+                                    "rotate-clockwise-2", page=True)
+        self.crop_act = act(_("Crop…"), self._toggle_crop, None, "crop", page=True)
         self.crop_act.setCheckable(True)
-        self.uncrop_act = act(_("Uncrop"), self.reset_crop, page=True)
-        self.delete_act = act(_("Delete"), self.delete_pages, page=True)
+        self.uncrop_act = act(_("Uncrop"), self.reset_crop, None, "arrows-maximize", page=True)
+        self.delete_act = act(_("Delete"), self.delete_pages, None, "trash", page=True)
         # the menu names the pages ("Delete page 3"); the ribbon can't know
         # which ones until clicked
-        self.delete_pages_act = act(_("Delete pages"), self.delete_pages, None, "EditDelete",
-                                    QStyle.SP_TrashIcon,
+        self.delete_pages_act = act(_("Delete pages"), self.delete_pages, None, "trash",
                                     _("Delete the pages selected in the Pages panel, or the "
                                       "current one"), True)
 
-        self.about_act = act(_("About PDF Signer"), self.about, None, "HelpAbout",
-                             QStyle.SP_MessageBoxInformation)
+        self.about_act = act(_("About PDF Signer"), self.about, None, "info-circle")
         self.about_act.setMenuRole(QAction.AboutRole)
-        self.about_qt_act = act(_("About Qt"), QApplication.aboutQt)
+        self.about_qt_act = act(_("About Qt"), QApplication.aboutQt, None, "info-square")
         self.about_qt_act.setMenuRole(QAction.AboutQtRole)
         self.docs_act = act(_("Documentation"), self.open_docs, QKeySequence.HelpContents,
-                            "HelpFaq", QStyle.SP_DialogHelpButton)
+                            "book")
 
     def _build_ribbon(self) -> None:
         rb = ribbon.Ribbon()
         self.ribbon = rb
 
-        if ICON.exists():
-            self.sign_act.setIcon(QIcon(str(ICON)))
+        self.sign_act.setIcon(ribbon.icon("signature"))
         home = rb.tab(_("Home"))
         g = home.group(_("File"))
         g.add(self.open_act)
@@ -262,7 +256,9 @@ class MainWindow(QMainWindow):
         g.add(self.fit_act)
         g.add(self.zoom_in_act)
         g = view.group(_("Panels"))
-        g.add(self.pages_dock.toggleViewAction(), large=False)
+        panel = self.pages_dock.toggleViewAction()
+        panel.setIcon(ribbon.icon("layout-sidebar"))
+        g.add(panel)
 
         help_tab = rb.tab(_("Help"))
         g = help_tab.group(_("Help"))
@@ -377,7 +373,7 @@ class MainWindow(QMainWindow):
         self.reports: list[validation.SignatureReport] = []
 
         dock = QDockWidget(_("Sign"))
-        dock.setWidget(panel)
+        dock.setWidget(scrollable(panel))  # scrolls on small screens, below the ribbon
         dock.setFeatures(QDockWidget.DockWidgetMovable)
         dock.setMinimumWidth(280)
         self.addDockWidget(Qt.RightDockWidgetArea, dock)
@@ -966,6 +962,7 @@ def about_text() -> str:
             "and check the signatures in them."))),
         "<p>{}</p>".format(html.escape(_("Built with: {libraries}").format(
             libraries=", ".join(f"{name} {v}" for name, v in libs)))),
+        "<p>{}</p>".format(html.escape(_("Icons: Tabler Icons (MIT license)"))),
         '<p><a href="{url}">{url}</a></p>'.format(url=HOMEPAGE),
     ])
 

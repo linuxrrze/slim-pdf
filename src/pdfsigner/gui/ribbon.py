@@ -2,13 +2,17 @@
 place of a menu bar. Qt has none built in; this is tabs of plain widgets.
 
 Buttons show QActions, so shortcuts, enabled state, check state and text
-follow the actions the window already has.
+follow the actions the window already has. Icons: Tabler Icons (MIT), in
+``icons/``.
 """
 
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction, QIcon
+from pathlib import Path
+
+from PySide6.QtCore import QPoint, QRect, QRectF, QSize, Qt
+from PySide6.QtGui import QAction, QIcon, QIconEngine, QPainter, QPalette, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -23,18 +27,45 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+ICON_DIR = Path(__file__).with_name("icons")
 LARGE_ICON = 32
 SMALL_ICON = 16
 
 
-def icon(theme: str, fallback: QStyle.StandardPixmap | None = None) -> QIcon:
-    """The platform's icon (Windows, macOS, a Linux icon theme), else Qt's
-    built-in one, else none (the button shows its text only)."""
-    themed = getattr(QIcon.ThemeIcon, theme, None)  # Qt >= 6.7
-    result = QIcon.fromTheme(themed) if themed is not None else QIcon()
-    if result.isNull() and fallback is not None:
-        result = QApplication.style().standardIcon(fallback)
-    return result
+class SvgIcon(QIconEngine):
+    """A monochrome SVG drawn in the palette's text colour (greyed when
+    disabled), so it suits light and dark themes, at any size and scale."""
+
+    def __init__(self, svg: bytes):
+        super().__init__()
+        self.svg = svg
+
+    def paint(self, painter: QPainter, rect: QRect, mode: QIcon.Mode, state) -> None:
+        group = QPalette.Disabled if mode == QIcon.Disabled else QPalette.Active
+        color = QApplication.palette().color(group, QPalette.ButtonText)
+        QSvgRenderer(self.svg.replace(b"currentColor", color.name().encode())).render(
+            painter, QRectF(rect))
+
+    def pixmap(self, size: QSize, mode: QIcon.Mode, state) -> QPixmap:
+        return self.scaledPixmap(size, mode, state, 1.0)
+
+    def scaledPixmap(self, size: QSize, mode: QIcon.Mode, state, scale: float) -> QPixmap:
+        pm = QPixmap(size * scale)
+        pm.fill(Qt.transparent)
+        painter = QPainter(pm)
+        painter.setRenderHint(QPainter.Antialiasing)
+        self.paint(painter, QRect(QPoint(0, 0), size * scale), mode, state)
+        painter.end()
+        pm.setDevicePixelRatio(scale)
+        return pm
+
+    def clone(self) -> QIconEngine:
+        return SvgIcon(self.svg)
+
+
+def icon(name: str) -> QIcon:
+    """One of the bundled Tabler icons (icons/<name>.svg, MIT license)."""
+    return QIcon(SvgIcon((ICON_DIR / f"{name}.svg").read_bytes()))
 
 
 class RibbonGroup(QFrame):

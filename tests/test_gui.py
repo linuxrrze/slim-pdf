@@ -1514,3 +1514,34 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     assert title == "About PDF Signer"
     assert gui_app.version() in text and "pyHanko" in text
     assert gui_app.HOMEPAGE in text
+
+
+def test_ribbon_icons_render_in_the_palette_colour(window, qapp):
+    """Every ribbon button has a bundled icon that draws something, in the
+    palette's text colour (so dark themes get light icons)."""
+    from PySide6.QtCore import QSize
+    from PySide6.QtGui import QColor, QPalette
+
+    from pdfsigner.gui import ribbon
+
+    rb = window.ribbon
+    for i in range(rb.count()):
+        for b in rb.tab_page(i).findChildren(QtWidgets.QToolButton):
+            assert not b.defaultAction().icon().isNull(), b.defaultAction().text()
+
+    def colours(icon, mode=gui_app.QIcon.Normal):
+        img = icon.pixmap(QSize(32, 32), mode).toImage()
+        return {img.pixelColor(x, y).rgb() for x in range(32) for y in range(32)
+                if img.pixelColor(x, y).alpha() == 255}
+
+    old = qapp.palette()
+    try:
+        dark = QPalette(old)
+        dark.setColor(QPalette.Active, QPalette.ButtonText, QColor("#eeeeee"))
+        dark.setColor(QPalette.Disabled, QPalette.ButtonText, QColor("#777777"))
+        qapp.setPalette(dark)
+        icon = ribbon.icon("crop")
+        assert colours(icon) == {QColor("#eeeeee").rgb()}
+        assert colours(icon, gui_app.QIcon.Disabled) == {QColor("#777777").rgb()}
+    finally:
+        qapp.setPalette(old)

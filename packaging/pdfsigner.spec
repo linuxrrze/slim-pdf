@@ -27,7 +27,8 @@ datas = (
     collect_data_files("certifi")
     + collect_data_files("pyhanko")
     + collect_data_files("pypdfium2_raw", include_py_files=False)
-    + collect_data_files("pdfsigner", includes=["gui/icon.png", "locale/*/LC_MESSAGES/*.mo"])
+    + collect_data_files("pdfsigner", includes=["gui/icon.png", "gui/icons/*",
+                                                     "locale/*/LC_MESSAGES/*.mo"])
     + [(str(ICONS / "pdfsigner.png"), ".")]
 )
 # Metadata the bundle can't work without (keyring finds its backends through

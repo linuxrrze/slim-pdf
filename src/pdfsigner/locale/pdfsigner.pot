@@ -1191,11 +1191,11 @@ msgid "Manage your certificates"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "‹ Prev"
+msgid "Previous"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
-msgid "Next ›"
+msgid "Next"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1694,6 +1694,10 @@ msgstr ""
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
 msgid "Built with: {libraries}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Icons: Tabler Icons (MIT license)"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
