@@ -1163,15 +1163,12 @@ def about_text() -> str:
     return "".join([
         "<h3>{}</h3>".format(html.escape(_("Slim PDF {version}").format(version=version()))),
         "<p>{}</p>".format(html.escape(_(
-            "Sign PDFs with real certificates (PAdES) and a visible signature image, "
-            "and check the signatures in them."))),
+            "Sign PDFs with real certificates (PAdES), check signatures, fill in forms, "
+            "add text and images, and edit pages."))),
         "<p>{}</p>".format(html.escape(_("Built with: {libraries}").format(
             libraries=", ".join(f"{name} {v}" for name, v in libs)))),
         "<p>{}</p>".format(html.escape(_("Icons: Tabler Icons (MIT license)"))),
         '<p><a href="{url}">{url}</a></p>'.format(url=HOMEPAGE),
-        "<p><small>{}</small></p>".format(html.escape(_(
-            "If Slim PDF stops responding, where it hung is logged to {path}").format(
-                path=watchdog.log_path()))),
     ])
 
 

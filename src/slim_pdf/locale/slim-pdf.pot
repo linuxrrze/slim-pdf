@@ -1923,7 +1923,7 @@ msgid "Slim PDF {version}"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Sign PDFs with real certificates (PAdES) and a visible signature image, and check the signatures in them."
+msgid "Sign PDFs with real certificates (PAdES), check signatures, fill in forms, add text and images, and edit pages."
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1933,11 +1933,6 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Icons: Tabler Icons (MIT license)"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-#, python-brace-format
-msgid "If Slim PDF stops responding, where it hung is logged to {path}"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py

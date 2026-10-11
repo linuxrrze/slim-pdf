@@ -1532,6 +1532,7 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     assert title == "About Slim PDF"
     assert gui_app.version() in text and "pyHanko" in text
     assert gui_app.HOMEPAGE in text
+    assert "freezes.log" not in text and "stops responding" not in text
     help_tab = [b.defaultAction().text() for b in
                 rb.tab_page(rb.count() - 1).findChildren(QtWidgets.QToolButton)]
     assert help_tab == ["Documentation", "About Slim PDF"]  # no "About Qt"

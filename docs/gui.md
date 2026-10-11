@@ -345,8 +345,7 @@ version, the process ID and the Qt platform (`xcb` for X11/XWayland,
 * macOS: `~/Library/Logs/slim-pdf/`
 * Windows: `%LOCALAPPDATA%\slim-pdf\Logs\`
 
-(*Help → About Slim PDF* shows the exact path; `SLIM_PDF_LOG_DIR`
-overrides it). Versions from before the rename wrote to a `pdfsigner`
+(`SLIM_PDF_LOG_DIR` overrides it). Versions from before the rename wrote to a `pdfsigner`
 folder instead.
 
 If the desktop reports a hang but the log shows no freeze or stall at that
