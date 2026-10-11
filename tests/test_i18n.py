@@ -173,7 +173,7 @@ def test_gui_in_german(german, qapp_de):
         box = dlg.findChild(QDialogButtonBox)
         assert box.button(QDialogButtonBox.Cancel).text().replace("&", "") == "Abbrechen"
         assert [win.ribbon.tabText(i) for i in range(win.ribbon.count())] == [
-            "Start", "Bearbeiten", "Seiten", "Ansicht", "Hilfe"]
+            "Start", "Bearbeiten", "Seiten", "Hilfe"]
         # a narrow window scrolls the ribbon instead of growing to fit it
         assert win.ribbon.minimumSizeHint().width() < 500
     finally:

@@ -1535,9 +1535,11 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     """The ribbon replaces the toolbars; Help → About names the version."""
     rb = window.ribbon
     assert window.menuWidget() is rb
-    assert [rb.tabText(i) for i in range(rb.count())] == ["Home", "Edit", "Pages", "View",
-                                                          "Help"]
+    assert [rb.tabText(i) for i in range(rb.count())] == ["Home", "Edit", "Pages", "Help"]
     home = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
+    # the Pages panel is shown or hidden from Home
+    assert window.pages_dock.toggleViewAction() in home
+    assert window.pages_dock.toggleViewAction().text() == "Pages panel"
     assert window.open_act in home and window.sign_act in home
     # everything the sign panel had as controls is in the ribbon now
     assert window.settings_act in home and window.clear_act in home

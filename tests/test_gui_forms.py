@@ -25,7 +25,7 @@ def test_side_panel_follows_the_ribbon_tab(window, fill_pdf):
     rb.setCurrentIndex(gui_app.EDIT_TAB)
     assert dock.isVisible() and window.side_stack.currentWidget() is window.form_panel
     assert dock.windowTitle() == "Form"
-    for tab in range(2, rb.count()):  # Pages, View, Help
+    for tab in range(2, rb.count()):  # Pages, Help
         rb.setCurrentIndex(tab)
         assert not dock.isVisible()
     rb.setCurrentIndex(gui_app.HOME_TAB)
