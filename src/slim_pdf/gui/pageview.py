@@ -19,7 +19,10 @@ from PySide6.QtWidgets import (
     QGraphicsRectItem,
     QGraphicsScene,
     QGraphicsView,
+    QLineEdit,
+    QPlainTextEdit,
     QStyle,
+    QWidget,
 )
 
 from ..i18n import _
@@ -203,9 +206,10 @@ class FormItem(QGraphicsRectItem):
     """A fillable form field's widget: invisible (the page shows the field)
     until the mouse is over it; a click fills it in."""
 
-    def __init__(self, name: str, rect: QRectF, fillable: bool, label: str = ""):
+    def __init__(self, name: str, rect: QRectF, fillable: bool, label: str = "",
+                 state: str = ""):
         super().__init__(rect)
-        self.name, self.fillable = name, fillable
+        self.name, self.fillable, self.state = name, fillable, state  # state: the button's
         self.setZValue(4)
         self.setPen(QPen(Qt.NoPen))
         self.setAcceptHoverEvents(True)
@@ -234,6 +238,53 @@ class FormItem(QGraphicsRectItem):
         super().hoverLeaveEvent(event)
 
 
+class _InlineLine(QLineEdit):
+    """One-line editor over a text field: Enter or leaving it fills it in,
+    Esc cancels."""
+
+    def __init__(self, view: PageView):
+        super().__init__(view.viewport())
+        self.view = view
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            return self.view.finish_text_edit(False, focus_view=True)
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            return self.view.finish_text_edit(True, focus_view=True)
+        super().keyPressEvent(event)
+
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        self.view.finish_text_edit(True)
+
+
+class _InlineText(QPlainTextEdit):
+    """Multi-line editor over a text field: Ctrl+Enter, Tab or leaving it
+    fills it in, Esc cancels; Enter starts a new line."""
+
+    def __init__(self, view: PageView):
+        super().__init__(view.viewport())
+        self.view = view
+        self.setTabChangesFocus(True)
+
+    def text(self) -> str:
+        return self.toPlainText()
+
+    def setText(self, text: str) -> None:  # noqa: N802 - like QLineEdit
+        self.setPlainText(text)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            return self.view.finish_text_edit(False, focus_view=True)
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter) and event.modifiers() & Qt.ControlModifier:
+            return self.view.finish_text_edit(True, focus_view=True)
+        super().keyPressEvent(event)
+
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        self.view.finish_text_edit(True)
+
+
 class PageView(QGraphicsView):
     """Shows one page. Emits ``targetChanged`` when the signing target changes.
 
@@ -242,7 +293,9 @@ class PageView(QGraphicsView):
     signature or picks an empty field, then the view is back to the default
     (``placeModeChanged``). Outside place mode, a click (not a drag) on a
     field emits ``fieldActivated(name)``, on a form field
-    ``formFieldActivated(name)``. In crop mode, dragging draws a rectangle;
+    ``formFieldActivated(name, button state)``; ``edit_text`` opens an
+    editor over a text field, ``textEdited(name, text)`` reports its result.
+    In crop mode, dragging draws a rectangle;
     ``cropSelected(page, display rect)`` is emitted on release. Insert mode
     works the same way, for one rectangle (or a click: an empty rectangle at
     that point), emitted as ``insertSelected``; then it ends.
@@ -254,7 +307,8 @@ class PageView(QGraphicsView):
     insertSelected = Signal(int, QRectF)
     placeModeChanged = Signal(bool)
     fieldActivated = Signal(str)
-    formFieldActivated = Signal(str)
+    formFieldActivated = Signal(str, str)
+    textEdited = Signal(str, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -284,7 +338,9 @@ class PageView(QGraphicsView):
         self._field_items: list[FieldItem] = []
         self._form_items: list[FormItem] = []
         # (signal, field name, press position) of a click on a field
-        self._field_press: tuple[Signal, str, object] | None = None
+        # (what a click does, press position) of a press on a field
+        self._field_press: tuple[object, object] | None = None
+        self._inline: tuple[str, QWidget] | None = None  # (field, editor) of edit_text
         self._sig_pixmap: QPixmap | None = None
         self._sig_aspect = 3.0
 
@@ -345,6 +401,59 @@ class PageView(QGraphicsView):
         if on:
             self.clear_target()
         self._update_mode()
+
+    def edit_text(self, name: str, text: str, multiline: bool = False,
+                  max_len: int | None = None) -> None:
+        """Type into the form field ``name`` right on the page: an editor over
+        (the first widget of) it on this page; ``textEdited`` follows."""
+        self.finish_text_edit(True)
+        item = next((i for i in self._form_items if i.name == name), None)
+        if item is None:
+            return
+        editor = _InlineText(self) if multiline else _InlineLine(self)
+        if max_len and not multiline:
+            editor.setMaxLength(max_len)
+        editor.setText(text)
+        self._inline = (name, item, editor, text, multiline)
+        self._place_inline()
+        editor.show()
+        editor.setFocus()
+        editor.selectAll()
+
+    @property
+    def inline_editor(self) -> QWidget | None:
+        return self._inline[2] if self._inline else None
+
+    def _place_inline(self) -> None:
+        if self._inline is None:
+            return
+        _name, item, editor, _text, multiline = self._inline
+        r = self.mapFromScene(item.rect()).boundingRect()
+        font = editor.font()
+        if multiline:
+            font.setPixelSize(max(11, min(round(11 * self.zoom), 28)))
+        else:
+            font.setPixelSize(max(11, min(round(r.height() * 0.65), 28)))
+        editor.setFont(font)
+        lines = 2 if multiline else 1
+        height = max(r.height(), editor.fontMetrics().height() * lines + 8)
+        editor.setGeometry(r.x(), r.y(), max(r.width(), 60), height)
+
+    def finish_text_edit(self, commit: bool, focus_view: bool = False) -> None:
+        """Close the editor of ``edit_text``; with ``commit``, report the text
+        (if it changed). Reported later, from the event loop: filling it in
+        rebuilds the page this editor sits on."""
+        if self._inline is None:
+            return
+        name, _item, editor, old, _multiline = self._inline
+        self._inline = None
+        text = editor.text()
+        editor.hide()
+        editor.deleteLater()
+        if focus_view:
+            self.setFocus()
+        if commit and text != old:
+            QTimer.singleShot(0, lambda: self.textEdited.emit(name, text))
 
     def highlight_form_field(self, name: str | None) -> None:
         """Mark the form field ``name`` (None: none) and show it: its page,
@@ -477,6 +586,7 @@ class PageView(QGraphicsView):
     # rendering ---------------------------------------------------------------
 
     def _render(self) -> None:
+        self.finish_text_edit(True)  # e.g. another page: its field is gone
         scene = self.scene()
         for item in list(scene.items()):
             if item.parentItem() is None:
@@ -513,7 +623,7 @@ class PageView(QGraphicsView):
                 if wd.page != self.page or wd.rect[2] <= wd.rect[0]:
                     continue
                 x, y, fw, fh = self.doc.rect_to_display(self.page, wd.rect)
-                item = FormItem(f.name, QRectF(x, y, fw, fh), f.fillable, f.label)
+                item = FormItem(f.name, QRectF(x, y, fw, fh), f.fillable, f.label, wd.state)
                 item.set_active(f.name == self.active_form_field)
                 scene.addItem(item)
                 self._form_items.append(item)
@@ -542,6 +652,7 @@ class PageView(QGraphicsView):
         self._page_scale = scale
 
     def _schedule_detail(self, *args) -> None:
+        self._place_inline()  # follows scrolling and zooming
         if self._detail_item is not None:
             self._detail_timer.start()  # restarts: renders once zooming/scrolling pauses
 
@@ -592,9 +703,11 @@ class PageView(QGraphicsView):
             top = next(iter(self.items(event.position().toPoint())), None)
             at = event.position().toPoint()
             if isinstance(top, FieldItem) and not top.field.locked:
-                self._field_press = (self.fieldActivated, top.field.name, at)
+                name = top.field.name
+                self._field_press = (lambda: self.fieldActivated.emit(name), at)
             elif isinstance(top, FormItem) and top.fillable:
-                self._field_press = (self.formFieldActivated, top.name, at)
+                name, state = top.name, top.state
+                self._field_press = (lambda: self.formFieldActivated.emit(name, state), at)
             else:
                 self._field_press = None
             return super().mousePressEvent(event)  # drag the signature, or the page
@@ -645,10 +758,10 @@ class PageView(QGraphicsView):
         press, self._field_press = self._field_press, None
         super().mouseReleaseEvent(event)
         if press is not None and event.button() == Qt.LeftButton:
-            signal, name, start = press
+            click, start = press
             moved = (event.position().toPoint() - start).manhattanLength()
             if moved < QApplication.startDragDistance():
-                signal.emit(name)
+                click()
 
     def select_field(self, name: str) -> None:
         f = next((f for f in self.fields if f.name == name), None)

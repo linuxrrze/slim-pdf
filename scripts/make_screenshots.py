@@ -116,7 +116,8 @@ def registration_pdf(path: Path) -> Path:
     # (label, PDF y of the field's top): the fields are at x 50..300
     for label, top, x in (("Name", 780, 310), ("Address", 750, 310),
                           ("I take part in the workshop dinner", 664, 72),
-                          ("T-shirt size: S, L", 634, 102), ("Country", 600, 210),
+                          ("S", 634, 66), ("L", 634, 96), ("T-shirt size", 634, 112),
+                          ("Country", 600, 210),
                           ("Workshop", 570, 210), ("Reference (filled in by us)", 480, 210),
                           ("First name for the badge", 440, 210)):
         p.drawText(QPointF(x, A4_H - top + 11), label)
@@ -247,9 +248,13 @@ def main() -> None:
                                          "country": "de", "colour": "green"}),
                    "Filled in 4 fields")
     win.show_form_field("address")
-    win.form_panel.editors["address"].setPlainText("Martensstraße 3\n91058 Erlangen")
+    # typing right on the page, into the badge name field
+    win.view.highlight_form_field("person.first")
+    win.view.edit_text("person.first", "")
+    win.view.inline_editor.setText("Alice")
     QTest.qWait(60)
     shot = win.grab()
+    win.view.finish_text_edit(False)
     shot.save(str(OUT / "gui-form.png"))
     print("wrote", OUT / "gui-form.png")
 

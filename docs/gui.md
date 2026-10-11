@@ -150,16 +150,24 @@ The tooltip shows what the signature covers. Extra trusted roots come from
 
 ![Filling in a form](images/gui-form.png)
 
-On the *Edit* tab, the side panel lists the document's form fields with
-their values: text fields, check boxes, radio buttons (labelled with the
-text printed next to them on the page), drop-downs and list boxes. A click on a form field on the page
-switches there and puts the cursor in that field; the other way round,
-the field whose editor has the cursor is framed in blue on the page, which
-turns to that page if needed. Read-only fields and
-fields locked by a signature are greyed out. **Apply** (or `Enter` in a
-one-line field) fills in the fields you changed, **Discard** goes back to
-the document's values; like page edits, filling in is undone with **Undo**
-and written with **Save**.
+Form fields are filled in right on the page, or in the side panel of the
+*Edit* tab. A change is filled in as soon as it is made, and each one is
+undone with **Undo** (and written with **Save**) like a page edit.
+
+* **On the page:** a click on a text field opens an editor over it:
+  `Enter` (`Ctrl+Enter` in a multi-line field) or a click elsewhere fills
+  it in, `Esc` cancels. A click toggles a check box or chooses a radio
+  button; a drop-down or list box offers its choices in a menu.
+* **In the side panel:** every field with its value: text fields, check
+  boxes, radio buttons (labelled with the text printed next to them on the
+  page), drop-downs and list boxes. Text is filled in when you leave the
+  field (`Enter`, `Tab` or a click elsewhere), the others when you pick a
+  value. Everything works with the keyboard alone: `Tab` moves from field to
+  field, `Space` toggles, the arrow keys choose.
+
+The field being edited is framed in blue on the page, which turns to its
+page if needed; a click on a field on the page switches to the *Edit* tab.
+Read-only fields and fields locked by a signature can't be changed.
 
 Text must be in the Windows-1252 character set (Latin script, €); other
 characters are refused. Filling in a form after signing is an allowed

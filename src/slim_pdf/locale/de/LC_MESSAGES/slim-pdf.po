@@ -1738,6 +1738,11 @@ msgstr[0] "{n} Seite verschoben"
 msgstr[1] "{n} Seiten verschoben"
 
 #: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/formpanel.py
+msgid "(none)"
+msgstr "(keine)"
+
+#: src/slim_pdf/gui/app.py
 msgid "Fill in form"
 msgstr "Formular ausfüllen"
 
@@ -2483,22 +2488,6 @@ msgid "coordinate conversion failed"
 msgstr "Koordinatenumrechnung fehlgeschlagen"
 
 #: src/slim_pdf/gui/formpanel.py
-msgid "Apply"
-msgstr "Übernehmen"
-
-#: src/slim_pdf/gui/formpanel.py
-msgid "Fill in the changed fields (Undo takes it back)"
-msgstr "Die geänderten Felder ausfüllen (Rückgängig nimmt das zurück)"
-
-#: src/slim_pdf/gui/formpanel.py
-msgid "Discard"
-msgstr "Verwerfen"
-
-#: src/slim_pdf/gui/formpanel.py
-msgid "Back to the values in the document"
-msgstr "Zurück zu den Werten im Dokument"
-
-#: src/slim_pdf/gui/formpanel.py
 msgid "Form fields"
 msgstr "Formularfelder"
 
@@ -2524,12 +2513,8 @@ msgid "This document has no form fields to fill in."
 msgstr "Dieses Dokument hat keine Formularfelder zum Ausfüllen."
 
 #: src/slim_pdf/gui/formpanel.py
-msgid "Click a field on the page, or edit it here; Apply fills in what you changed."
-msgstr "Ein Feld auf der Seite anklicken oder hier bearbeiten; Übernehmen füllt aus, was geändert wurde."
-
-#: src/slim_pdf/gui/formpanel.py
-msgid "(none)"
-msgstr "(keine)"
+msgid "Click a field on the page, or edit it here. Changes are filled in right away; Undo takes them back."
+msgstr "Ein Feld auf der Seite anklicken oder hier bearbeiten. Änderungen werden sofort ausgefüllt; Rückgängig nimmt sie zurück."
 
 #: src/slim_pdf/gui/insertdialog.py
 msgid "Black"

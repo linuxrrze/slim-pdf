@@ -1,5 +1,7 @@
 """The form panel (right-hand side, Edit tab): one editor per form field,
-in form order; Apply fills in the changed fields, Discard resets them."""
+in form order. A change is filled in as soon as it is made: a check box,
+radio button or choice when it is picked, text when the editor is left
+(Enter, Tab or a click elsewhere). Every change is one Undo step."""
 
 from __future__ import annotations
 
@@ -13,8 +15,8 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPlainTextEdit,
-    QPushButton,
     QRadioButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -33,6 +35,7 @@ class RadioGroup(QWidget):
         super().__init__()
         lay = (QHBoxLayout if len(options) <= 3 else QVBoxLayout)(self)
         lay.setContentsMargins(0, 0, 0, 0)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)  # no gap below
         self.group = QButtonGroup(self)
         self.buttons: dict[str, QRadioButton] = {}
         for state, label in options:
@@ -43,7 +46,8 @@ class RadioGroup(QWidget):
             lay.addWidget(b)
         if isinstance(lay, QHBoxLayout):
             lay.addStretch()
-        self.group.buttonToggled.connect(lambda *_a: changed())
+        # only the newly chosen button, not the one that went off
+        self.group.buttonToggled.connect(lambda button, on: on and changed())
 
     @property
     def value(self) -> str:
@@ -62,7 +66,7 @@ class RadioGroup(QWidget):
 
 
 class FormPanel(QWidget):
-    """``applyRequested(values)``: the fields whose value changed;
+    """``applyRequested(values)``: a field was changed ({name: value});
     ``fieldFocused(name)``: the cursor went into a field's editor."""
 
     applyRequested = Signal(dict)
@@ -74,6 +78,7 @@ class FormPanel(QWidget):
         self.editors: dict[str, QWidget] = {}
         self._owner: dict[QWidget, str] = {}
         self.labels: dict[tuple[str, str], str] = {}
+        self._quiet = False  # setting values ourselves: no commits
 
         self.hint = QLabel()
         self.hint.setWordWrap(True)
@@ -85,68 +90,93 @@ class FormPanel(QWidget):
         holder.addLayout(self.form_layout)
         holder.addStretch()
         self.scroll = scrollable(self.form)
-        self.apply_btn = QPushButton(_("Apply"))
-        self.apply_btn.setDefault(True)
-        self.apply_btn.setToolTip(_("Fill in the changed fields (Undo takes it back)"))
-        self.apply_btn.clicked.connect(lambda: self.applyRequested.emit(self.values()))
-        self.discard_btn = QPushButton(_("Discard"))
-        self.discard_btn.setToolTip(_("Back to the values in the document"))
-        self.discard_btn.clicked.connect(self.discard)
-        buttons = QHBoxLayout()
-        buttons.addStretch()
-        buttons.addWidget(self.discard_btn)
-        buttons.addWidget(self.apply_btn)
 
         lay = QVBoxLayout(self)
         lay.addWidget(QLabel("<b>{}</b>".format(_("Form fields"))))
         lay.addWidget(self.hint)
         lay.addWidget(self.scroll, 1)
-        lay.addLayout(buttons)
         self.set_fields([], has_document=False)
 
     def set_fields(self, fields: list[forms.FormField], labels=None,
                    has_document: bool = True) -> None:
         """Editors for ``fields`` with their current values; ``labels`` names
-        radio buttons: {(field name, state): label}."""
-        self.fields = list(fields)
+        radio buttons: {(field name, state): label}. The same fields as
+        before (the document after a change) keep their editors, so the
+        cursor stays where it is."""
+        fields = list(fields)
         if labels is not None:
             self.labels = labels
+        same = [(f.name, f.kind) for f in fields] == [(f.name, f.kind) for f in self.fields]
+        self.fields = fields
+        if same and self.editors:
+            self.refresh()
+            return
         while self.form_layout.rowCount():
             self.form_layout.removeRow(0)
         self.editors = {}
-        self._owner: dict[QWidget, str] = {}
-        for f in self.fields:
-            editor = self._editor(f)
-            self.editors[f.name] = editor
-            for w in [editor, *editor.findChildren(QWidget)]:  # e.g. radio buttons
-                self._owner[w] = f.name
-                w.installEventFilter(self)
-            label = printable(f.label or f.name)
-            if f.page is not None:
-                label = _("{name} (p. {page})").format(name=label, page=f.page + 1)
-            if not f.fillable:
-                editor.setEnabled(False)
-                editor.setToolTip(_("Locked by a signature") if f.locked else _("Read-only"))
-            if f.label:
-                editor.setToolTip("\n".join(filter(None, [editor.toolTip(), printable(f.name)])))
-            self.form_layout.addRow(label, editor)
+        self._owner = {}
+        self._quiet = True
+        try:
+            for f in self.fields:
+                editor = self._editor(f)
+                self.editors[f.name] = editor
+                for w in [editor, *editor.findChildren(QWidget)]:  # e.g. radio buttons
+                    self._owner[w] = f.name
+                    w.installEventFilter(self)
+                label = printable(f.label or f.name)
+                if f.page is not None:
+                    label = _("{name} (p. {page})").format(name=label, page=f.page + 1)
+                if not f.fillable:
+                    editor.setEnabled(False)
+                    editor.setToolTip(_("Locked by a signature") if f.locked
+                                      else _("Read-only"))
+                if f.label:
+                    editor.setToolTip("\n".join(filter(None, [editor.toolTip(),
+                                                              printable(f.name)])))
+                self.form_layout.addRow(label, editor)
+        finally:
+            self._quiet = False
         if not has_document:
             self.hint.setText(_("Open a PDF with a form to fill it in here."))
         elif not self.fields:
             self.hint.setText(_("This document has no form fields to fill in."))
         else:
-            self.hint.setText(_("Click a field on the page, or edit it here; Apply fills "
-                                "in what you changed."))
+            self.hint.setText(_("Click a field on the page, or edit it here. Changes are "
+                                "filled in right away; Undo takes them back."))
         self.scroll.setVisible(bool(self.fields))
-        self._update_buttons()
+
+    def refresh(self) -> None:
+        """Show the fields' values (e.g. after a change was refused)."""
+        self._quiet = True
+        try:
+            for f in self.fields:
+                w = self.editors[f.name]
+                if isinstance(w, QCheckBox):
+                    w.setChecked(bool(f.value))
+                elif isinstance(w, RadioGroup):
+                    w.set_value(str(f.value))
+                elif isinstance(w, QComboBox):
+                    index = w.findData(f.value)
+                    if index >= 0:
+                        w.setCurrentIndex(index)
+                    elif w.isEditable():
+                        w.setEditText(str(f.value))
+                elif isinstance(w, QPlainTextEdit):
+                    if w.toPlainText() != f.value:
+                        w.setPlainText(str(f.value))
+                elif w.text() != f.value:
+                    w.setText(str(f.value))
+                w.setEnabled(f.fillable)
+        finally:
+            self._quiet = False
 
     def eventFilter(self, obj, event) -> bool:
-        if event.type() == QEvent.FocusIn and obj in self._owner:
-            self.fieldFocused.emit(self._owner[obj])
+        if obj in self._owner:
+            if event.type() == QEvent.FocusIn:
+                self.fieldFocused.emit(self._owner[obj])
+            elif event.type() == QEvent.FocusOut and isinstance(obj, QPlainTextEdit):
+                self.commit(self._owner[obj])  # multi-line text: when it is left
         return False
-
-    def discard(self) -> None:
-        self.set_fields(self.fields, self.labels)
 
     def focus(self, name: str) -> None:
         editor = self.editors.get(name)
@@ -154,8 +184,21 @@ class FormPanel(QWidget):
             editor.setFocus()
             self.scroll.ensureWidgetVisible(editor)
 
+    def commit(self, name: str) -> None:
+        """Ask for the field's new value to be filled in, if it changed."""
+        if self._quiet:
+            return
+        f = next((f for f in self.fields if f.name == name), None)
+        if f is None or not f.fillable or name not in self.editors:
+            return
+        value = self.value(f)
+        if value != f.value:
+            self.applyRequested.emit({name: value})
+
     def _editor(self, f: forms.FormField) -> QWidget:
-        changed = self._update_buttons
+        def changed(*_args, name=f.name):
+            self.commit(name)
+
         if f.kind == forms.CHECKBOX:
             w = QCheckBox()
             w.setChecked(bool(f.value))
@@ -170,27 +213,25 @@ class FormPanel(QWidget):
             w.addItem(_("(none)"), "")
             for value, label in f.options:
                 w.addItem(printable(label), value)
-            if f.kind == forms.CHOICE and f.combo and f.editable:
+            if f.combo and f.editable:
                 w.setEditable(True)
-                w.editTextChanged.connect(changed)
+                w.lineEdit().editingFinished.connect(changed)
             index = w.findData(f.value)
             if index >= 0:
                 w.setCurrentIndex(index)
             elif w.isEditable():
                 w.setEditText(str(f.value))
-            w.currentIndexChanged.connect(changed)
+            w.activated.connect(changed)  # picked by the user, not set by us
             return w
         if f.multiline:
             w = QPlainTextEdit(str(f.value))
-            w.setTabChangesFocus(True)
+            w.setTabChangesFocus(True)  # Tab leaves it (and fills it in)
             w.setFixedHeight(w.fontMetrics().lineSpacing() * 4 + 12)
-            w.textChanged.connect(changed)
             return w
         w = QLineEdit(str(f.value))
         if f.max_len:
             w.setMaxLength(f.max_len)
-        w.textChanged.connect(changed)
-        w.returnPressed.connect(self.apply_btn.click)
+        w.editingFinished.connect(changed)  # Enter, Tab or a click elsewhere
         return w
 
     def value(self, f: forms.FormField):
@@ -209,12 +250,3 @@ class FormPanel(QWidget):
         if isinstance(w, QPlainTextEdit):
             return w.toPlainText()
         return w.text()
-
-    def values(self) -> dict[str, str | bool]:
-        return {f.name: v for f in self.fields  # (editors still being built: skipped)
-                if f.fillable and f.name in self.editors and (v := self.value(f)) != f.value}
-
-    def _update_buttons(self, *_args) -> None:
-        changed = bool(self.fields) and bool(self.values())
-        self.apply_btn.setEnabled(changed)
-        self.discard_btn.setEnabled(changed)

@@ -111,12 +111,26 @@ class PdfDocument:
             self._pages[index] = self._pdf[index]
         return self._pages[index]
 
-    def text_in(self, index: int, box) -> str:
-        """The page's text inside ``box`` (PDF user space), one line."""
-        page = self.page(index)
-        textpage = page.get_textpage()
+    def label_right_of(self, index: int, x: float, y1: float, y2: float, limit: float,
+                       gap: float = 6.0) -> str:
+        """The text that starts right of ``x`` on the line from ``y1`` to
+        ``y2`` (PDF user space), up to ``limit`` or the first gap wider than
+        ``gap`` points: the label printed next to a check box or button."""
+        textpage = self.page(index).get_textpage()
         try:
-            text = textpage.get_text_bounded(*box)
+            # runs reaching into the area (one may start left of it, e.g. a
+            # line "YES  NO" with a box before each word)
+            runs = sorted((max(r[0], x), r[1], r[2], r[3])
+                          for r in (textpage.get_rect(i) for i in range(textpage.count_rects()))
+                          if r[2] > x + 1 and r[0] < limit and r[1] < y2 and r[3] > y1)
+            if not runs:
+                return ""
+            end = runs[0][2]
+            for left, _bottom, right, _top in runs[1:]:
+                if left - end > gap:
+                    break
+                end = max(end, right)
+            text = textpage.get_text_bounded(x, y1 - 2, min(end + 1, limit), y2 + 2)
         finally:
             textpage.close()
         return " ".join(text.split())

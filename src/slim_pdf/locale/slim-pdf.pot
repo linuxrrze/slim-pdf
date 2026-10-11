@@ -1681,6 +1681,11 @@ msgid_plural "Moved {n} pages"
 msgstr[0] ""
 
 #: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/formpanel.py
+msgid "(none)"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
 msgid "Fill in form"
 msgstr ""
 
@@ -2396,22 +2401,6 @@ msgid "coordinate conversion failed"
 msgstr ""
 
 #: src/slim_pdf/gui/formpanel.py
-msgid "Apply"
-msgstr ""
-
-#: src/slim_pdf/gui/formpanel.py
-msgid "Fill in the changed fields (Undo takes it back)"
-msgstr ""
-
-#: src/slim_pdf/gui/formpanel.py
-msgid "Discard"
-msgstr ""
-
-#: src/slim_pdf/gui/formpanel.py
-msgid "Back to the values in the document"
-msgstr ""
-
-#: src/slim_pdf/gui/formpanel.py
 msgid "Form fields"
 msgstr ""
 
@@ -2437,11 +2426,7 @@ msgid "This document has no form fields to fill in."
 msgstr ""
 
 #: src/slim_pdf/gui/formpanel.py
-msgid "Click a field on the page, or edit it here; Apply fills in what you changed."
-msgstr ""
-
-#: src/slim_pdf/gui/formpanel.py
-msgid "(none)"
+msgid "Click a field on the page, or edit it here. Changes are filled in right away; Undo takes them back."
 msgstr ""
 
 #: src/slim_pdf/gui/insertdialog.py

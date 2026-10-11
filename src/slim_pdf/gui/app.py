@@ -64,7 +64,7 @@ from .dialogs import ask_secret
 from .formpanel import FormPanel
 from .insertdialog import TextDialog
 from .document import PdfDocument, render_stamp
-from .pageview import PageView
+from .pageview import FormItem, PageView
 from .pagetools import PagesPanel
 
 HOME_TAB, EDIT_TAB = 0, 1  # ribbon tabs with their own side panel
@@ -143,7 +143,8 @@ class MainWindow(QMainWindow):
         self.view.insertSelected.connect(self._insert_selected)
         self.view.placeModeChanged.connect(self._place_mode_changed)
         self.view.fieldActivated.connect(self._field_activated)
-        self.view.formFieldActivated.connect(self.show_form_field)
+        self.view.formFieldActivated.connect(self.form_field_clicked)
+        self.view.textEdited.connect(lambda name, text: self.fill_form({name: text}))
         self.setCentralWidget(self.view)
 
         self._build_actions()
@@ -760,7 +761,7 @@ class MainWindow(QMainWindow):
                     if other.page == w.page and ox1 > x2 and oy1 < y2 and oy2 > y1:
                         right = min(right, ox1)
                 try:
-                    text = self.doc.text_in(w.page, (x2 + 1, y1 - 2, right - 1, y2 + 2))
+                    text = self.doc.label_right_of(w.page, x2 + 1, y1, y2, right - 1)
                 except Exception:  # noqa: BLE001 - labels are a nicety
                     text = ""
                 if text:
@@ -768,26 +769,68 @@ class MainWindow(QMainWindow):
         return labels
 
     def show_form_field(self, name: str) -> None:
-        """A form field clicked on the page: the form panel, cursor in it."""
+        """The form panel, the cursor in the field ``name``."""
         self.show_tab(EDIT_TAB)
         self.form_panel.focus(name)
 
+    def form_field_clicked(self, name: str, state: str) -> None:
+        """A click on a form field on the page fills it in right there: text
+        is typed over the field, a check box toggles, a radio button is
+        chosen, a choice is picked from a menu. The form panel follows."""
+        f = next((f for f in self.form_fields if f.name == name), None)
+        if f is None or not f.fillable:
+            return
+        self.show_tab(EDIT_TAB)
+        self.view.highlight_form_field(name)
+        if f.kind == forms.TEXT:
+            self.view.edit_text(name, str(f.value), f.multiline, f.max_len)
+        elif f.kind == forms.CHECKBOX:
+            self.fill_form({name: not f.value})
+        elif f.kind == forms.RADIO:
+            if state:
+                self.fill_form({name: state})
+        else:
+            menu = QMenu(self)
+            for value, label in [("", _("(none)")), *f.options]:
+                action = menu.addAction(printable(label))
+                action.setData(value)
+                action.setCheckable(True)
+                action.setChecked(value == f.value)
+            item = next((i for i in self.view.scene().items()
+                         if isinstance(i, FormItem) and i.name == name), None)
+            at = (self.view.mapFromScene(item.rect().bottomLeft()) if item is not None
+                  else self.view.viewport().rect().center())
+            chosen = self._exec_choice_menu(menu, self.view.viewport().mapToGlobal(at))
+            if chosen is not None:
+                self.fill_form({name: chosen.data()})
+
+    def _exec_choice_menu(self, menu: QMenu, global_pos):
+        return menu.exec(global_pos)  # a hook for the tests
+
     def fill_form(self, values: dict) -> None:
-        """Fill in ``values`` (from the form panel's Apply), as an edit."""
+        """Fill in ``values`` ({name: value}, changed in the form panel or on
+        the page) as an edit; a refused change puts the panel back."""
+        current = {f.name: f.value for f in self.form_fields}
+        values = {k: v for k, v in values.items() if k not in current or current[k] != v}
         if self.data is None or not values:
             return
         try:
             new = forms.fill(self.data, values, self.pdf_password)
         except SigningError as e:  # forms.FormError among them
             QMessageBox.critical(self, _("Fill in form"), str(e))
+            self.form_panel.refresh()
             return
         if not self._confirm_signatures_survive(new, _(
                 "Filling in these fields will invalidate the signature(s) {names}.\n\n"
                 "Fill in forms before signing. Continue anyway?")):
+            self.form_panel.refresh()
             return
         n = len(values)
+        active = self.view.active_form_field
         self.apply_edit(new, ngettext("Filled in {n} field", "Filled in {n} fields", n).format(
             n=n))
+        if active is not None and self.ribbon.currentIndex() == EDIT_TAB:
+            self.view.highlight_form_field(active)  # still the one being edited
 
     def _confirm_signatures_survive(self, new: bytes, message: str) -> bool:
         """For edits that signatures may allow (filling in forms): check the

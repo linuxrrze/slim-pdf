@@ -33,48 +33,101 @@ def test_side_panel_follows_the_ribbon_tab(window, fill_pdf):
 
 
 def test_fill_in_and_undo(window, fill_pdf):
+    """Each change in the panel is filled in at once, as one undo step."""
     window.open(fill_pdf)
     assert len(window.form_fields) == 8
-    panel = window.form_panel
-    e = panel.editors
+    e = window.form_panel.editors
     assert not e["fixed"].isEnabled()  # read-only
-    assert not panel.apply_btn.isEnabled()  # nothing changed yet
     e["name"].setText("Ann Example")
-    e["address"].setPlainText("Street 1\nTown")
-    e["agree"].setChecked(True)
+    assert values(window)["name"] == ""  # text: once the editor is left
+    e["name"].editingFinished.emit()
+    assert values(window)["name"] == "Ann Example"
+    e["agree"].setChecked(True)  # check boxes, radio buttons, choices: at once
     e["size"].buttons["L"].setChecked(True)
     e["country"].setCurrentIndex(e["country"].findText("France"))
-    assert panel.apply_btn.isEnabled()
-    panel.apply_btn.click()
+    e["country"].activated.emit(e["country"].currentIndex())
     assert values(window) == {
-        "name": "Ann Example", "address": "Street 1\nTown", "agree": True, "size": "L",
+        "name": "Ann Example", "address": "", "agree": True, "size": "L",
         "country": "fr", "colour": "", "fixed": "constant", "person.first": ""}
-    assert window.dirty and "Filled in 5 fields" in window.statusBar().currentMessage()
-    assert panel.editors["name"].text() == "Ann Example"  # the panel shows the document
-    assert not panel.apply_btn.isEnabled()
+    assert window.dirty and len(window.undo_stack) == 4
+    assert "Filled in 1 field" in window.statusBar().currentMessage()
     window.undo()
-    assert values(window)["name"] == "" and panel.editors["name"].text() == ""
+    assert values(window)["country"] == "" and e["country"].currentData() == ""
+    assert e["name"].text() == "Ann Example"  # the panel shows the document
 
 
-def test_discard(window, fill_pdf):
+def test_keyboard_only(window, fill_pdf, qapp):
+    """Typing and Tab, Space on a check box: no mouse needed."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
     window.open(fill_pdf)
-    panel = window.form_panel
-    panel.editors["name"].setText("x")
-    panel.discard_btn.click()
-    assert panel.editors["name"].text() == "" and not panel.apply_btn.isEnabled()
-    assert not window.dirty and not window.undo_stack
+    window.show_form_field("name")
+    e = window.form_panel.editors
+    QTest.keyClicks(e["name"], "Bo")
+    QTest.keyClick(e["name"], Qt.Key_Tab)  # leaves it: filled in
+    assert values(window)["name"] == "Bo"
+    assert window.focusWidget() is e["address"]  # the cursor moved on, not lost
+    QTest.keyClicks(e["address"], "Line")
+    QTest.keyClick(e["address"], Qt.Key_Tab)
+    assert values(window)["address"] == "Line"
+    QTest.keyClick(e["agree"], Qt.Key_Space)
+    assert values(window)["agree"] is True
 
 
-def test_click_on_a_field_opens_it(window, fill_pdf, qapp):
-    window.open(fill_pdf)
-    items = [i for i in window.view.scene().items() if isinstance(i, FormItem)]
-    assert {i.name for i in items} == {f.name for f in window.form_fields}
-    assert not next(i for i in items if i.name == "fixed").fillable
-    qapp.processEvents()
-    centre = next(i for i in items if i.name == "address").rect().center()
+def click_field(window, name, index=0):
+    items = [i for i in window.view.scene().items() if isinstance(i, FormItem) and i.name == name]
+    items.sort(key=lambda i: i.rect().x())
+    centre = items[index].rect().center()
     click_scene(window.view, centre.x(), centre.y())
+
+
+def test_click_on_the_page_fills_in(window, fill_pdf, qapp, monkeypatch):
+    """Text is typed over the field, a check box toggles, a radio button is
+    chosen, a choice comes from a menu."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    window.open(fill_pdf)
+    qapp.processEvents()
+    click_field(window, "name")
     assert window.ribbon.currentIndex() == gui_app.EDIT_TAB
-    assert window.focusWidget() is window.form_panel.editors["address"]
+    editor = window.view.inline_editor
+    assert editor is not None and editor.hasFocus()
+    QTest.keyClicks(editor, "Zoe")
+    QTest.keyClick(editor, Qt.Key_Return)
+    qapp.processEvents()
+    assert values(window)["name"] == "Zoe" and window.view.inline_editor is None
+    assert window.form_panel.editors["name"].text() == "Zoe"
+
+    click_field(window, "name")  # Esc cancels
+    QTest.keyClicks(window.view.inline_editor, "x")
+    QTest.keyClick(window.view.inline_editor, Qt.Key_Escape)
+    qapp.processEvents()
+    assert values(window)["name"] == "Zoe"
+
+    click_field(window, "agree")
+    assert values(window)["agree"] is True
+    click_field(window, "agree")
+    assert values(window)["agree"] is False
+    click_field(window, "size", 1)  # the second button: L
+    assert values(window)["size"] == "L"
+
+    def pick(menu, pos):
+        [france] = [a for a in menu.actions() if a.text() == "France"]
+        return france
+
+    monkeypatch.setattr(window, "_exec_choice_menu", pick)
+    click_field(window, "country")
+    assert values(window)["country"] == "fr"
+    assert window.view.active_form_field == "country"  # still marked
+
+
+def test_read_only_fields_are_not_clicked(window, fill_pdf, qapp):
+    window.open(fill_pdf)
+    qapp.processEvents()
+    click_field(window, "fixed")
+    assert window.view.inline_editor is None and not window.dirty
 
 
 def test_no_form(window, blank_pdf):
@@ -88,10 +141,10 @@ def test_errors_are_shown(window, fill_pdf, monkeypatch):
     window.open(fill_pdf)
     boxes = Boxes(monkeypatch, gui_app)
     window.form_panel.editors["name"].setText("漢字")
-    window.form_panel.apply_btn.click()
+    window.form_panel.editors["name"].editingFinished.emit()
     assert boxes.kinds() == ["critical"] and "can't show" in boxes.text()
     assert not window.dirty
-    assert window.form_panel.editors["name"].text() == "漢字"  # kept for correcting
+    assert window.form_panel.editors["name"].text() == ""  # back to the document's value
 
 
 def test_signatures_are_checked_first(window, fill_pdf, profile, tmp_path, monkeypatch):
@@ -106,14 +159,14 @@ def test_signatures_are_checked_first(window, fill_pdf, profile, tmp_path, monke
     panel = window.form_panel
 
     panel.editors["name"].setText("Ann")
-    panel.apply_btn.click()
+    panel.editors["name"].editingFinished.emit()
     assert boxes.kinds() == [] and values(window)["name"] == "Ann"
     assert "then changed" in window.sigs_list.item(0).text()
 
     panel.editors["size"].buttons["S"].setChecked(True)
-    panel.apply_btn.click()
     assert boxes.kinds() == ["warning"] and "Signer" in boxes.text()
     assert values(window)["size"] == ""  # not filled in
+    assert panel.editors["size"].value == ""  # and not shown as if it were
 
 
 def test_signing_shows_the_sign_panel(window, blank_pdf):
