@@ -474,7 +474,8 @@ class MainWindow(QMainWindow):
         row.setContentsMargins(4, 0, 4, 0)
         row.addWidget(self.page_spin)
         row.addWidget(self.page_count)
-        rb.set_view_controls(_("View"), [panel, self.tools_panel_act], [
+        rb.set_view_controls(_("View"), [], [  # small buttons: narrow windows keep room
+            [panel, self.tools_panel_act],
             [self.prev_act, spin, self.next_act],
             [self.zoom_in_act, self.fit_act, self.zoom_out_act],
         ])
