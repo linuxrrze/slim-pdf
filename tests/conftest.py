@@ -57,6 +57,8 @@ def no_downloads(tmp_path_factory, monkeypatch):
     from slim_pdf import chain
 
     monkeypatch.setenv("SLIM_PDF_CACHE_DIR", str(tmp_path_factory.mktemp("cache")))
+    # and what the GUI remembers (the last folder) stays out of the user's files
+    monkeypatch.setenv("SLIM_PDF_STATE_DIR", str(tmp_path_factory.mktemp("state")))
 
     def offline(url):
         raise OSError(f"tests don't download ({url})")

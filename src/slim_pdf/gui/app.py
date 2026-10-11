@@ -53,7 +53,7 @@ from ..signing import (
     sign_pdf,
     stamp_size,
 )
-from . import background, ribbon, watchdog
+from . import background, ribbon, state, watchdog
 from .certdialog import details_dialog
 from .screen import fit_to_screen, scrollable
 from .settings import SettingsDialog
@@ -464,7 +464,8 @@ class MainWindow(QMainWindow):
     def open_dialog(self) -> None:
         if not self._maybe_save():
             return
-        start = str(self.path.parent) if self.path else ""
+        # where the last file came from, also in an earlier session
+        start = state.last_folder() or (str(self.path.parent) if self.path else "")
         path, _filter = QFileDialog.getOpenFileName(self, _("Open PDF"), start,
                                                     _("PDF") + " (*.pdf)")
         if path:
@@ -486,6 +487,7 @@ class MainWindow(QMainWindow):
             return False
 
         self.path, self.pdf_password = Path(path), password
+        state.remember_folder(self.path.parent)
         self.undo_stack = []
         self._show(data, info, page, dirty=False)
         return True

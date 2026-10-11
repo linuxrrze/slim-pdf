@@ -1643,3 +1643,33 @@ def test_fit_width_settles_at_every_view_size(qapp, tmp_path):
     finally:
         view.close()
         doc.close()
+
+
+def test_open_starts_in_the_last_folder(qapp, profile, tmp_path, monkeypatch):
+    """The folder of the last opened file is remembered, also for the next
+    session; a folder that is gone is ignored."""
+    from conftest import make_pdf
+    from slim_pdf.gui import state
+
+    folder = tmp_path / "letters"
+    folder.mkdir()
+    pdf = make_pdf(folder / "a.pdf", pages=1)
+    asked = []
+    monkeypatch.setattr(gui_app.QFileDialog, "getOpenFileName",
+                        staticmethod(lambda parent, caption, start, filt: (asked.append(start)
+                                                                           or ("", ""))))
+    first = gui_app.MainWindow(Config(certs={"alice": profile}, default="alice"))
+    first.open(pdf)
+    first.close()
+    second = gui_app.MainWindow(Config(certs={"alice": profile}, default="alice"))
+    second.open_dialog()
+    assert asked == [str(folder.resolve())]
+    second.close()
+
+    folder_gone = tmp_path / "gone"
+    folder_gone.mkdir()
+    state.remember_folder(folder_gone)
+    folder_gone.rmdir()
+    assert state.last_folder() == ""
+    state.state_path().write_text("not json")
+    assert state.last_folder() == ""

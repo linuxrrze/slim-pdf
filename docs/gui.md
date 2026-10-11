@@ -31,6 +31,11 @@ guide show the English version.
     panel.
   * *Help:* **Documentation** (`F1`, this guide online), **About Slim PDF**
     (version, and the libraries it is built on).
+
+  **Open…** starts in the folder of the last file you opened, also after
+  a restart (remembered in `gui.json` in the user state folder, e.g.
+  `~/.local/state/slim-pdf/` on Linux).
+
 * **Page:** the mouse wheel zooms in and out around the mouse pointer (out
   only until the whole page fits the view);
   press and hold the left mouse button and move to move the page. Prepared
