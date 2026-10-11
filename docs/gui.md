@@ -187,8 +187,10 @@ undone with **Undo** (and written with **Save**) like a page edit.
   field, `Space` toggles, the arrow keys choose.
 
 The field being edited is framed in blue on the page, which turns to its
-page if needed; a click on a field on the page switches to the *Edit* tab.
-Read-only fields and fields locked by a signature can't be changed.
+page if needed; a click on any form field on the page switches to the
+*Edit* tab, from whichever tab is shown. Read-only fields and fields locked
+by a signature are shown there too, but can't be changed (the status bar
+says why).
 
 Text must be in the Windows-1252 character set (Latin script, €); other
 characters are refused. Filling in a form after signing is an allowed

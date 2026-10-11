@@ -738,7 +738,7 @@ class PageView(QGraphicsView):
             if isinstance(top, FieldItem) and not top.field.locked:
                 name = top.field.name
                 self._field_press = (lambda: self.fieldActivated.emit(name), at)
-            elif isinstance(top, FormItem) and top.fillable:
+            elif isinstance(top, FormItem):  # also read-only ones: they are shown
                 name, state = top.name, top.state
                 self._field_press = (lambda: self.formFieldActivated.emit(name, state), at)
             else:

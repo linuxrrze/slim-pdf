@@ -951,10 +951,17 @@ class MainWindow(QMainWindow):
         is typed over the field, a check box toggles, a radio button is
         chosen, a choice is picked from a menu. The form panel follows."""
         f = next((f for f in self.form_fields if f.name == name), None)
-        if f is None or not f.fillable:
+        if f is None:
             return
         self.show_tab(EDIT_TAB)
         self.view.highlight_form_field(name)
+        if not f.fillable:  # read-only or locked: shown (and why, in the panel), not changed
+            self.form_panel.show_field(name)
+            self.statusBar().showMessage(
+                _("{field} is locked by a signature").format(field=printable(f.label or name))
+                if f.locked else _("{field} is read-only").format(
+                    field=printable(f.label or name)), 5000)
+            return
         if f.kind == forms.TEXT:
             self.view.edit_text(name, str(f.value), f.multiline, f.max_len)
         elif f.kind == forms.CHECKBOX:

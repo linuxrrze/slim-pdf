@@ -123,11 +123,29 @@ def test_click_on_the_page_fills_in(window, fill_pdf, qapp, monkeypatch):
     assert window.view.active_form_field == "country"  # still marked
 
 
-def test_read_only_fields_are_not_clicked(window, fill_pdf, qapp):
+def test_read_only_fields_are_shown_not_changed(window, fill_pdf, qapp):
     window.open(fill_pdf)
     qapp.processEvents()
+    assert window.ribbon.currentIndex() == gui_app.HOME_TAB
     click_field(window, "fixed")
+    assert window.ribbon.currentIndex() == gui_app.EDIT_TAB  # shown in the form
+    assert window.view.active_form_field == "fixed"
     assert window.view.inline_editor is None and not window.dirty
+    assert "read-only" in window.statusBar().currentMessage()
+
+
+@pytest.mark.parametrize("name", ["name", "agree", "size", "country", "colour"])
+def test_any_click_on_a_form_field_switches_to_edit(window, fill_pdf, qapp, monkeypatch,
+                                                    name):
+    monkeypatch.setattr(window, "_exec_choice_menu", lambda menu, pos: None)
+    window.open(fill_pdf)
+    qapp.processEvents()
+    for tab in (gui_app.HOME_TAB, 2, 3):  # Home, Pages, Help
+        window.show_tab(tab)
+        click_field(window, name)
+        assert window.ribbon.currentIndex() == gui_app.EDIT_TAB, (name, tab)
+        if window.view.inline_editor is not None:
+            window.view.finish_text_edit(False)
 
 
 def test_no_form(window, blank_pdf):

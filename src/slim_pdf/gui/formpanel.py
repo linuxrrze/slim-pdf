@@ -224,6 +224,12 @@ class FormPanel(QWidget):
             editor.setFocus()
             self.scroll.ensureWidgetVisible(editor)
 
+    def show_field(self, name: str) -> None:
+        """Scroll to a field's editor (also a disabled one)."""
+        editor = self.editors.get(name)
+        if editor is not None:
+            self.scroll.ensureWidgetVisible(editor)
+
     def commit(self, name: str) -> None:
         """Ask for the field's new value to be filled in, if it changed."""
         if self._quiet:
