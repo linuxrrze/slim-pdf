@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -60,12 +61,13 @@ from .certdialog import details_dialog
 from .screen import fit_to_screen, scrollable
 from .settings import SettingsDialog
 from .dialogs import ask_secret
-from .formdialog import FormDialog
+from .formpanel import FormPanel
 from .insertdialog import TextDialog
 from .document import PdfDocument, render_stamp
 from .pageview import PageView
 from .pagetools import PagesPanel
 
+HOME_TAB, EDIT_TAB = 0, 1  # ribbon tabs with their own side panel
 STATUS_COLORS = {validation.VALID: "#2e7d32", validation.UNTRUSTED: "#ef8c00",
                  validation.INVALID: "#c62828", validation.UNSUPPORTED: "#757575"}
 
@@ -141,7 +143,7 @@ class MainWindow(QMainWindow):
         self.view.insertSelected.connect(self._insert_selected)
         self.view.placeModeChanged.connect(self._place_mode_changed)
         self.view.fieldActivated.connect(self._field_activated)
-        self.view.formFieldActivated.connect(self.fill_form)
+        self.view.formFieldActivated.connect(self.show_form_field)
         self.setCentralWidget(self.view)
 
         self._build_actions()
@@ -234,9 +236,6 @@ class MainWindow(QMainWindow):
                                     _("Delete the pages selected in the Pages panel, or the "
                                       "current one"), True)
 
-        self.fill_form_act = act(_("Fill in form…"), lambda: self.fill_form(), None, "forms",
-                                 _("Fill in the document's form fields (or click one on "
-                                   "the page)"), True)
 
         self.insert_text_act = act(_("Text…"), self.insert_text, None, "text-plus",
                                    _("Add text to the page"), True)
@@ -283,8 +282,6 @@ class MainWindow(QMainWindow):
         g.add(self.settings_act)
 
         edit = rb.tab(_("Edit"))
-        g = edit.group(_("Form"))
-        g.add(self.fill_form_act)
         g = edit.group(_("Insert"))
         g.add(self.insert_text_act)
         g.add(self.insert_image_act)
@@ -324,6 +321,7 @@ class MainWindow(QMainWindow):
         g.add(self.about_act)
 
         rb.refit()
+        rb.currentChanged.connect(self._ribbon_tab_changed)
         self.setMenuWidget(rb)  # where the menu bar would be
 
     @staticmethod
@@ -426,11 +424,33 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.sigs_list, 1)
         self.reports: list[validation.SignatureReport] = []
 
+        # The right-hand panel shows the tools of the ribbon tab in use:
+        # signing on Home, the form on Edit, nothing (more room) elsewhere.
+        self.sign_panel = scrollable(panel)  # scrolls on small screens, below the ribbon
+        self.form_panel = FormPanel()
+        self.form_panel.applyRequested.connect(self.fill_form)
+        self.side_stack = QStackedWidget()
+        self.side_stack.addWidget(self.sign_panel)
+        self.side_stack.addWidget(self.form_panel)
         dock = QDockWidget(_("Sign"))
-        dock.setWidget(scrollable(panel))  # scrolls on small screens, below the ribbon
+        dock.setWidget(self.side_stack)
         dock.setFeatures(QDockWidget.DockWidgetMovable)
         dock.setMinimumWidth(280)
         self.addDockWidget(Qt.RightDockWidgetArea, dock)
+        self.side_dock = dock
+
+    SIDE_PANELS = {HOME_TAB: N_("Sign"), EDIT_TAB: N_("Form")}  # ribbon tab -> panel title
+
+    def _ribbon_tab_changed(self, index: int) -> None:
+        title = self.SIDE_PANELS.get(index)
+        self.side_dock.setVisible(title is not None)
+        if title is not None:
+            self.side_stack.setCurrentIndex(index)
+            self.side_dock.setWindowTitle(_(title))
+
+    def show_tab(self, index: int) -> None:
+        self.ribbon.setCurrentIndex(index)
+        self._ribbon_tab_changed(index)  # also when it was the current one already
 
     # certificates -------------------------------------------------------------
 
@@ -533,6 +553,7 @@ class MainWindow(QMainWindow):
             self.form_fields = []
         page = min(page, len(self.doc) - 1)
         self.view.set_document(self.doc, info.fields, page, self.form_fields)
+        self.form_panel.set_fields(self.form_fields)
         self.page_spin.blockSignals(True)
         self.page_spin.setMaximum(len(self.doc))
         self.page_spin.setValue(page + 1)
@@ -716,20 +737,14 @@ class MainWindow(QMainWindow):
 
     # forms ----------------------------------------------------------------------
 
-    def fill_form(self, focus: str | None = None) -> None:
-        """The form dialog (with the cursor in ``focus``, a field clicked on
-        the page); OK fills in the changed fields, as an edit."""
-        if self.data is None:
-            return
-        if not self.form_fields:
-            QMessageBox.information(self, _("Fill in form"),
-                                    _("This document has no form fields to fill in."))
-            return
-        dlg = FormDialog(self.form_fields, self, focus)
-        if not self._exec_form(dlg):
-            return
-        values = dlg.values()
-        if not values:
+    def show_form_field(self, name: str) -> None:
+        """A form field clicked on the page: the form panel, cursor in it."""
+        self.show_tab(EDIT_TAB)
+        self.form_panel.focus(name)
+
+    def fill_form(self, values: dict) -> None:
+        """Fill in ``values`` (from the form panel's Apply), as an edit."""
+        if self.data is None or not values:
             return
         try:
             new = forms.fill(self.data, values, self.pdf_password)
@@ -743,9 +758,6 @@ class MainWindow(QMainWindow):
         n = len(values)
         self.apply_edit(new, ngettext("Filled in {n} field", "Filled in {n} fields", n).format(
             n=n))
-
-    def _exec_form(self, dlg: FormDialog) -> int:
-        return dlg.exec()  # a hook for the tests
 
     def _confirm_signatures_survive(self, new: bytes, message: str) -> bool:
         """For edits that signatures may allow (filling in forms): check the
@@ -996,6 +1008,7 @@ class MainWindow(QMainWindow):
         f = self.info.field(name) if self.info else None
         if f is None or f.locked:
             return
+        self.show_tab(HOME_TAB)  # signatures are on the Sign panel
         if f.filled:
             for i in range(self.sigs_list.count()):
                 item = self.sigs_list.item(i)
@@ -1074,6 +1087,8 @@ class MainWindow(QMainWindow):
         profile = self.current_profile()
         if not (self.doc and profile):
             return
+        if self.ribbon.currentIndex() != HOME_TAB:  # the target and the Sign panel
+            self.show_tab(HOME_TAB)
         field_name, page, box = self.view.selected_field, None, None
         if field_name is None:
             pb = self.view.placement_box()

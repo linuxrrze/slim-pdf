@@ -1361,14 +1361,6 @@ msgid "Delete the pages selected in the Pages panel, or the current one"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Fill in form…"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-msgid "Fill in the document's form fields (or click one on the page)"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
 msgid "Text…"
 msgstr ""
 
@@ -1424,10 +1416,6 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Edit"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-msgid "Form"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1496,6 +1484,10 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Double-click for the full validation report"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Form"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1685,12 +1677,7 @@ msgid_plural "Moved {n} pages"
 msgstr[0] ""
 
 #: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/formdialog.py
 msgid "Fill in form"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-msgid "This document has no form fields to fill in."
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -2404,24 +2391,52 @@ msgstr ""
 msgid "coordinate conversion failed"
 msgstr ""
 
-#: src/slim_pdf/gui/formdialog.py
+#: src/slim_pdf/gui/formpanel.py
+msgid "Apply"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Fill in the changed fields (Undo takes it back)"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Discard"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Back to the values in the document"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Form fields"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
 #, python-brace-format
 msgid "{name} (p. {page})"
 msgstr ""
 
-#: src/slim_pdf/gui/formdialog.py
+#: src/slim_pdf/gui/formpanel.py
 msgid "Locked by a signature"
 msgstr ""
 
-#: src/slim_pdf/gui/formdialog.py
+#: src/slim_pdf/gui/formpanel.py
 msgid "Read-only"
 msgstr ""
 
-#: src/slim_pdf/gui/formdialog.py
-msgid "Changed fields are filled in when you press OK; Undo takes it back."
+#: src/slim_pdf/gui/formpanel.py
+msgid "Open a PDF with a form to fill it in here."
 msgstr ""
 
-#: src/slim_pdf/gui/formdialog.py
+#: src/slim_pdf/gui/formpanel.py
+msgid "This document has no form fields to fill in."
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Click a field on the page, or edit it here; Apply fills in what you changed."
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
 msgid "(none)"
 msgstr ""
 

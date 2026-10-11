@@ -238,32 +238,18 @@ def main() -> None:
     win.dirty = False
     win.ribbon.setCurrentIndex(0)
 
-    # filling in a form: the dialog over the window, cursor in the clicked field
+    # filling in a form: the form panel (Edit tab), cursor in a field
     from slim_pdf import forms
 
     form = registration_pdf(tmp / "registration-blank.pdf")
     win.open(form)
-    win.ribbon.setCurrentIndex(1)  # the Edit tab
     win.apply_edit(forms.fill(win.data, {"name": "Alice Example", "agree": True,
                                          "country": "de", "colour": "green"}),
                    "Filled in 4 fields")
-    shown = []
-    win._exec_form = lambda d: shown.append(d) or 0
-    win.fill_form("address")
-    [d] = shown
-    d.editors["address"].setPlainText("Martensstraße 3\n91058 Erlangen")
-    d.show()
-    d.editors["address"].setFocus()
-    QTest.qWaitForWindowExposed(d)
+    win.show_form_field("address")
+    win.form_panel.editors["address"].setPlainText("Martensstraße 3\n91058 Erlangen")
     QTest.qWait(60)
     shot = win.grab()
-    painter = QPainter(shot)
-    at = QPointF(shot.width() - d.width() - 12, 300).toPoint()
-    painter.drawPixmap(at, d.grab())
-    painter.setPen(QPen(Qt.gray, 1))
-    painter.drawRect(at.x(), at.y(), d.width() - 1, d.height() - 1)
-    painter.end()
-    d.close()
     shot.save(str(OUT / "gui-form.png"))
     print("wrote", OUT / "gui-form.png")
 

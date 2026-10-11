@@ -24,8 +24,9 @@ guide show the English version.
     (`Esc`); the signature's settings: **Sign with** (the certificate),
     **Stamp shows** *Image* and/or *Text*; **Settings…** (also for the
     certificates).
-  * *Edit:* **Fill in form…** (see [Filling in forms](#filling-in-forms));
-    **Text…** and **Image…** (see [Adding text and images](#adding-text-and-images)).
+  * *Edit:* **Text…** and **Image…** (see
+    [Adding text and images](#adding-text-and-images)); the form is in the
+    side panel (see [Filling in forms](#filling-in-forms)).
   * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
   * *View:* move between pages (`PgUp`/`PgDown`, or type the page number),
     zoom (`Ctrl +`/`Ctrl -`, *Fit* = fit width), show or hide the *Pages*
@@ -50,8 +51,15 @@ guide show the English version.
 * **Pages panel** (left): thumbnails. Click one to go there; Ctrl- or
   Shift-click to select several pages for the page tools; drag pages to
   reorder them.
-* **Sign panel** (right): the current target, the **Place signature…** /
-  **Sign…** button, and lists of the signature fields and of the signatures.
+* **Side panel** (right): the tools of the ribbon tab in use.
+  * *Home* tab: the **Sign** panel with the current target, the **Place
+    signature…** / **Sign…** button, and lists of the signature fields and
+    of the signatures.
+  * *Edit* tab: the **Form** panel (see [Filling in forms](#filling-in-forms)).
+  * Other tabs: no side panel, so the page gets the room.
+
+  Signing (`Ctrl+S`, or a click on a signature field) switches to *Home*, a
+  click on a form field to *Edit*.
 
 ## Placing a new signature
 
@@ -143,13 +151,14 @@ The tooltip shows what the signature covers. Extra trusted roots come from
 
 ![Filling in a form](images/gui-form.png)
 
-**Fill in form…** (ribbon, *Edit* tab), or a click on a form field on the
-page, opens the document's form fields in one list: text fields, check
-boxes, radio buttons (as a list of their choices), drop-downs and list
-boxes. A field clicked on the page has the cursor. Read-only fields and
-fields locked by a signature are greyed out. **OK** fills in the fields you
-changed; like page edits, this is undone with **Undo** and written with
-**Save**.
+On the *Edit* tab, the side panel lists the document's form fields with
+their values: text fields, check boxes, radio buttons (as a list of their
+choices), drop-downs and list boxes. A click on a form field on the page
+switches there and puts the cursor in that field. Read-only fields and
+fields locked by a signature are greyed out. **Apply** (or `Enter` in a
+one-line field) fills in the fields you changed, **Discard** goes back to
+the document's values; like page edits, filling in is undone with **Undo**
+and written with **Save**.
 
 Text must be in the Windows-1252 character set (Latin script, €); other
 characters are refused. Filling in a form after signing is an allowed

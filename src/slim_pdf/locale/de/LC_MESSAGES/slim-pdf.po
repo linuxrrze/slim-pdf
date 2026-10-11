@@ -1395,14 +1395,6 @@ msgid "Delete the pages selected in the Pages panel, or the current one"
 msgstr "Die in der Seitenleiste ausgewählten Seiten löschen, sonst die aktuelle"
 
 #: src/slim_pdf/gui/app.py
-msgid "Fill in form…"
-msgstr "Formular ausfüllen…"
-
-#: src/slim_pdf/gui/app.py
-msgid "Fill in the document's form fields (or click one on the page)"
-msgstr "Die Formularfelder des Dokuments ausfüllen (oder eines auf der Seite anklicken)"
-
-#: src/slim_pdf/gui/app.py
 msgid "Text…"
 msgstr "Text…"
 
@@ -1459,10 +1451,6 @@ msgstr "Optionen"
 #: src/slim_pdf/gui/app.py
 msgid "Edit"
 msgstr "Bearbeiten"
-
-#: src/slim_pdf/gui/app.py
-msgid "Form"
-msgstr "Formular"
 
 #: src/slim_pdf/gui/app.py
 #: src/slim_pdf/gui/certdialog.py
@@ -1532,6 +1520,10 @@ msgstr "Signaturen"
 #: src/slim_pdf/gui/app.py
 msgid "Double-click for the full validation report"
 msgstr "Doppelklick für den vollständigen Prüfbericht"
+
+#: src/slim_pdf/gui/app.py
+msgid "Form"
+msgstr "Formular"
 
 #: src/slim_pdf/gui/app.py
 #: src/slim_pdf/gui/settings.py
@@ -1742,13 +1734,8 @@ msgstr[0] "{n} Seite verschoben"
 msgstr[1] "{n} Seiten verschoben"
 
 #: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/formdialog.py
 msgid "Fill in form"
 msgstr "Formular ausfüllen"
-
-#: src/slim_pdf/gui/app.py
-msgid "This document has no form fields to fill in."
-msgstr "Dieses Dokument hat keine Formularfelder zum Ausfüllen."
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
@@ -2491,24 +2478,52 @@ msgstr "{prompt}:"
 msgid "coordinate conversion failed"
 msgstr "Koordinatenumrechnung fehlgeschlagen"
 
-#: src/slim_pdf/gui/formdialog.py
+#: src/slim_pdf/gui/formpanel.py
+msgid "Apply"
+msgstr "Übernehmen"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Fill in the changed fields (Undo takes it back)"
+msgstr "Die geänderten Felder ausfüllen (Rückgängig nimmt das zurück)"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Discard"
+msgstr "Verwerfen"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Back to the values in the document"
+msgstr "Zurück zu den Werten im Dokument"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Form fields"
+msgstr "Formularfelder"
+
+#: src/slim_pdf/gui/formpanel.py
 #, python-brace-format
 msgid "{name} (p. {page})"
 msgstr "{name} (S. {page})"
 
-#: src/slim_pdf/gui/formdialog.py
+#: src/slim_pdf/gui/formpanel.py
 msgid "Locked by a signature"
 msgstr "Durch eine Signatur gesperrt"
 
-#: src/slim_pdf/gui/formdialog.py
+#: src/slim_pdf/gui/formpanel.py
 msgid "Read-only"
 msgstr "Schreibgeschützt"
 
-#: src/slim_pdf/gui/formdialog.py
-msgid "Changed fields are filled in when you press OK; Undo takes it back."
-msgstr "Geänderte Felder werden mit OK ausgefüllt; Rückgängig nimmt das zurück."
+#: src/slim_pdf/gui/formpanel.py
+msgid "Open a PDF with a form to fill it in here."
+msgstr "Eine PDF mit Formular öffnen, um es hier auszufüllen."
 
-#: src/slim_pdf/gui/formdialog.py
+#: src/slim_pdf/gui/formpanel.py
+msgid "This document has no form fields to fill in."
+msgstr "Dieses Dokument hat keine Formularfelder zum Ausfüllen."
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Click a field on the page, or edit it here; Apply fills in what you changed."
+msgstr "Ein Feld auf der Seite anklicken oder hier bearbeiten; Übernehmen füllt aus, was geändert wurde."
+
+#: src/slim_pdf/gui/formpanel.py
 msgid "(none)"
 msgstr "(keine)"
 

@@ -1,4 +1,4 @@
-"""GUI: filling in form fields."""
+"""GUI: filling in form fields (the form panel, Edit tab)."""
 
 import pytest
 
@@ -16,84 +16,82 @@ def values(window):
     return {f.name: f.value for f in window.form_fields}
 
 
-def filling(window, monkeypatch, fill, accept=True):
-    """Let the next form dialog be filled in by ``fill(dialog)``; returns the
-    dialogs opened."""
-    opened = []
+def test_side_panel_follows_the_ribbon_tab(window, fill_pdf):
+    """Home: the Sign panel; Edit: the form; other tabs: no panel."""
+    window.open(fill_pdf)
+    dock, rb = window.side_dock, window.ribbon
+    assert rb.currentIndex() == gui_app.HOME_TAB and dock.isVisible()
+    assert window.side_stack.currentWidget() is window.sign_panel
+    rb.setCurrentIndex(gui_app.EDIT_TAB)
+    assert dock.isVisible() and window.side_stack.currentWidget() is window.form_panel
+    assert dock.windowTitle() == "Form"
+    for tab in range(2, rb.count()):  # Pages, View, Help
+        rb.setCurrentIndex(tab)
+        assert not dock.isVisible()
+    rb.setCurrentIndex(gui_app.HOME_TAB)
+    assert dock.isVisible() and dock.windowTitle() == "Sign"
 
-    def exec_form(dlg):
-        opened.append(dlg)
-        fill(dlg)
-        return accept
 
-    monkeypatch.setattr(window, "_exec_form", exec_form)
-    return opened
-
-
-def test_fill_in_and_undo(window, fill_pdf, monkeypatch):
+def test_fill_in_and_undo(window, fill_pdf):
     window.open(fill_pdf)
     assert len(window.form_fields) == 8
-    edit = window.ribbon.tab_page(1)
-    assert window.ribbon.tabText(1) == "Edit"
-    assert window.fill_form_act in [b.defaultAction()
-                                    for b in edit.findChildren(QtWidgets.QToolButton)]
-
-    def fill(dlg):
-        e = dlg.editors
-        assert not e["fixed"].isEnabled()  # read-only
-        e["name"].setText("Ann Example")
-        e["address"].setPlainText("Street 1\nTown")
-        e["agree"].setChecked(True)
-        e["size"].setCurrentIndex(e["size"].findData("L"))
-        e["country"].setCurrentIndex(e["country"].findText("France"))
-
-    filling(window, monkeypatch, fill)
-    window.fill_form_act.trigger()
+    panel = window.form_panel
+    e = panel.editors
+    assert not e["fixed"].isEnabled()  # read-only
+    assert not panel.apply_btn.isEnabled()  # nothing changed yet
+    e["name"].setText("Ann Example")
+    e["address"].setPlainText("Street 1\nTown")
+    e["agree"].setChecked(True)
+    e["size"].setCurrentIndex(e["size"].findData("L"))
+    e["country"].setCurrentIndex(e["country"].findText("France"))
+    assert panel.apply_btn.isEnabled()
+    panel.apply_btn.click()
     assert values(window) == {
         "name": "Ann Example", "address": "Street 1\nTown", "agree": True, "size": "L",
         "country": "fr", "colour": "", "fixed": "constant", "person.first": ""}
     assert window.dirty and "Filled in 5 fields" in window.statusBar().currentMessage()
+    assert panel.editors["name"].text() == "Ann Example"  # the panel shows the document
+    assert not panel.apply_btn.isEnabled()
     window.undo()
-    assert values(window)["name"] == ""
+    assert values(window)["name"] == "" and panel.editors["name"].text() == ""
 
 
-def test_unchanged_dialog_changes_nothing(window, fill_pdf, monkeypatch):
+def test_discard(window, fill_pdf):
     window.open(fill_pdf)
-    filling(window, monkeypatch, lambda dlg: None)
-    window.fill_form()
+    panel = window.form_panel
+    panel.editors["name"].setText("x")
+    panel.discard_btn.click()
+    assert panel.editors["name"].text() == "" and not panel.apply_btn.isEnabled()
     assert not window.dirty and not window.undo_stack
-    filling(window, monkeypatch, lambda dlg: dlg.editors["name"].setText("x"), accept=False)
-    window.fill_form()
-    assert not window.dirty
 
 
-def test_click_on_a_field_opens_it(window, fill_pdf, monkeypatch, qapp):
+def test_click_on_a_field_opens_it(window, fill_pdf, qapp):
     window.open(fill_pdf)
     items = [i for i in window.view.scene().items() if isinstance(i, FormItem)]
     assert {i.name for i in items} == {f.name for f in window.form_fields}
     assert not next(i for i in items if i.name == "fixed").fillable
-    opened = filling(window, monkeypatch, lambda dlg: None)
     qapp.processEvents()
-    name = next(i for i in items if i.name == "address").rect().center()
-    click_scene(window.view, name.x(), name.y())
-    [dlg] = opened
-    assert dlg.editors["address"].hasFocus() or dlg.focusWidget() is dlg.editors["address"]
+    centre = next(i for i in items if i.name == "address").rect().center()
+    click_scene(window.view, centre.x(), centre.y())
+    assert window.ribbon.currentIndex() == gui_app.EDIT_TAB
+    assert window.focusWidget() is window.form_panel.editors["address"]
 
 
-def test_no_form(window, blank_pdf, monkeypatch):
+def test_no_form(window, blank_pdf):
+    assert "Open a PDF" in window.form_panel.hint.text()
     window.open(blank_pdf)
-    boxes = Boxes(monkeypatch, gui_app)
-    window.fill_form()
-    assert boxes.kinds() == ["information"] and "no form fields" in boxes.text()
+    assert "no form fields" in window.form_panel.hint.text()
+    assert not window.form_panel.scroll.isVisibleTo(window.form_panel)
 
 
 def test_errors_are_shown(window, fill_pdf, monkeypatch):
     window.open(fill_pdf)
     boxes = Boxes(monkeypatch, gui_app)
-    filling(window, monkeypatch, lambda dlg: dlg.editors["name"].setText("漢字"))
-    window.fill_form()
+    window.form_panel.editors["name"].setText("漢字")
+    window.form_panel.apply_btn.click()
     assert boxes.kinds() == ["critical"] and "can't show" in boxes.text()
     assert not window.dirty
+    assert window.form_panel.editors["name"].text() == "漢字"  # kept for correcting
 
 
 def test_signatures_are_checked_first(window, fill_pdf, profile, tmp_path, monkeypatch):
@@ -105,16 +103,22 @@ def test_signatures_are_checked_first(window, fill_pdf, profile, tmp_path, monke
     sign_with(profile, with_sig, signed, field_name="Signer")
     window.open(signed)
     boxes = Boxes(monkeypatch, gui_app, answer=QtWidgets.QMessageBox.No)
+    panel = window.form_panel
 
-    filling(window, monkeypatch, lambda dlg: dlg.editors["name"].setText("Ann"))
-    window.fill_form()
+    panel.editors["name"].setText("Ann")
+    panel.apply_btn.click()
     assert boxes.kinds() == [] and values(window)["name"] == "Ann"
     assert "then changed" in window.sigs_list.item(0).text()
 
-    def radio(dlg):
-        dlg.editors["size"].setCurrentIndex(dlg.editors["size"].findData("S"))
-
-    filling(window, monkeypatch, radio)
-    window.fill_form()
+    panel.editors["size"].setCurrentIndex(panel.editors["size"].findData("S"))
+    panel.apply_btn.click()
     assert boxes.kinds() == ["warning"] and "Signer" in boxes.text()
     assert values(window)["size"] == ""  # not filled in
+
+
+def test_signing_shows_the_sign_panel(window, blank_pdf):
+    window.open(blank_pdf)
+    window.ribbon.setCurrentIndex(gui_app.EDIT_TAB)
+    window.sign_act.trigger()  # Ctrl+S from another tab: placing starts on Home
+    assert window.ribbon.currentIndex() == gui_app.HOME_TAB and window.view.place_mode
+    assert window.side_stack.currentWidget() is window.sign_panel
