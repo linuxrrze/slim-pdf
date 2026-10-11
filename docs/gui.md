@@ -30,7 +30,7 @@ guide show the English version.
     zoom (`Ctrl +`/`Ctrl -`, *Fit* = fit width), show or hide the *Pages*
     panel.
   * *Help:* **Documentation** (`F1`, this guide online), **About Slim PDF**
-    (version, and the libraries it is built on), **About Qt**.
+    (version, and the libraries it is built on).
 * **Page:** the mouse wheel zooms in and out around the mouse pointer (out
   only until the whole page fits the view);
   press and hold the left mouse button and move to move the page. Prepared

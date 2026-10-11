@@ -240,8 +240,6 @@ class MainWindow(QMainWindow):
 
         self.about_act = act(_("About Slim PDF"), self.about, None, "info-circle")
         self.about_act.setMenuRole(QAction.AboutRole)
-        self.about_qt_act = act(_("About Qt"), QApplication.aboutQt, None, "info-square")
-        self.about_qt_act.setMenuRole(QAction.AboutQtRole)
         self.docs_act = act(_("Documentation"), self.open_docs, QKeySequence.HelpContents,
                             "book")
 
@@ -308,7 +306,6 @@ class MainWindow(QMainWindow):
         g = help_tab.group(_("Help"))
         g.add(self.docs_act)
         g.add(self.about_act)
-        g.add(self.about_qt_act, large=False)
 
         rb.refit()
         self.setMenuWidget(rb)  # where the menu bar would be

@@ -1390,10 +1390,6 @@ msgid "About Slim PDF"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "About Qt"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
 msgid "Documentation"
 msgstr ""
 
