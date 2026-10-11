@@ -167,7 +167,11 @@ undone with **Undo** (and written with **Save**) like a page edit.
   boxes, radio buttons (labelled with the text printed next to them on the
   page), drop-downs and list boxes. Text is filled in when you leave the
   field (`Enter`, `Tab` or a click elsewhere), the others when you pick a
-  value. Everything works with the keyboard alone: `Tab` moves from field to
+  value. Hovering over a field's name shows what it takes: its internal
+  name, the kind of input (one or several lines of text, maximum length,
+  check box, the radio buttons' choices, a drop-down's number of choices),
+  whether it is required, read-only or locked, and its page and size.
+  Everything works with the keyboard alone: `Tab` moves from field to
   field, `Space` toggles, the arrow keys choose.
 
 The field being edited is framed in blue on the page, which turns to its

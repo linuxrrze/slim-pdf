@@ -255,3 +255,21 @@ def test_tab_moves_on_while_typing_on_the_page(window, fill_pdf, qapp):
     QTest.keyClick(window.view.inline_editor, Qt.Key_Backtab, Qt.ShiftModifier)
     qapp.processEvents()
     assert window.focusWidget() is window.form_panel.editors["colour"]  # "fixed" is skipped
+
+
+def test_field_labels_describe_the_input(window, fill_pdf):
+    """Hovering over a field's name tells what it takes."""
+    window.open(fill_pdf)
+    panel = window.form_panel
+
+    def tip(name):
+        return panel.form_layout.labelForField(panel.editors[name]).toolTip()
+
+    assert tip("name").splitlines() == ["Field: name", "Label: Your name",
+                                        "Input: text, one line", "Page 1, 250 × 20 pt"]
+    assert "Input: text, several lines" in tip("address")
+    assert "Input: check box" in tip("agree")
+    assert "Input: radio buttons (S, L)" in tip("size")
+    assert "Input: drop-down with 2 choices" in tip("country")
+    assert "Input: list with 3 choices" in tip("colour")
+    assert "Read-only" in tip("fixed")

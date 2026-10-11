@@ -133,7 +133,9 @@ class FormPanel(QWidget):
                 if f.label:
                     editor.setToolTip("\n".join(filter(None, [editor.toolTip(),
                                                               printable(f.name)])))
-                self.form_layout.addRow(label, editor)
+                caption = QLabel(label)
+                caption.setToolTip(self.describe(f))
+                self.form_layout.addRow(caption, editor)
         finally:
             self._quiet = False
         if not has_document:
@@ -144,6 +146,44 @@ class FormPanel(QWidget):
             self.hint.setText(_("Click a field on the page, or edit it here. Changes are "
                                 "filled in right away; Undo takes them back."))
         self.scroll.setVisible(bool(self.fields))
+
+    def describe(self, f: forms.FormField) -> str:
+        """What kind of input a field takes, for its label's tooltip."""
+        lines = [_("Field: {name}").format(name=printable(f.name))]
+        if f.label:
+            lines.append(_("Label: {label}").format(label=printable(f.label)))
+        if f.kind == forms.TEXT:
+            kind = _("text, several lines") if f.multiline else _("text, one line")
+            if f.flags & forms.PASSWORD:
+                kind = _("password (shown as *)")
+            lines.append(_("Input: {kind}").format(kind=kind))
+            if f.max_len and f.flags & forms.COMB and not f.multiline:
+                lines.append(_("{n} character boxes").format(n=f.max_len))
+            elif f.max_len:
+                lines.append(_("At most {n} characters").format(n=f.max_len))
+        elif f.kind == forms.CHECKBOX:
+            lines.append(_("Input: check box"))
+        elif f.kind == forms.RADIO:
+            choices = [self.labels.get((f.name, state), state) for state, _l in f.options]
+            lines.append(_("Input: radio buttons ({choices})").format(
+                choices=", ".join(map(printable, choices))))
+        else:
+            kind = (_("drop-down, other text allowed") if f.combo and f.editable
+                    else _("drop-down") if f.combo else _("list"))
+            lines.append(_("Input: {kind} with {n} choices").format(kind=kind,
+                                                                   n=len(f.options)))
+        if f.flags & forms.REQUIRED:
+            lines.append(_("Required"))
+        if f.locked:
+            lines.append(_("Locked by a signature"))
+        elif f.read_only:
+            lines.append(_("Read-only"))
+        for w in f.widgets[:1]:
+            if w.page is not None:
+                width, height = w.rect[2] - w.rect[0], w.rect[3] - w.rect[1]
+                lines.append(_("Page {page}, {width:.0f} × {height:.0f} pt").format(
+                    page=w.page + 1, width=width, height=height))
+        return "\n".join(lines)
 
     def refresh(self) -> None:
         """Show the fields' values (e.g. after a change was refused)."""

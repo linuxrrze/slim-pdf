@@ -42,6 +42,7 @@ TEXT, CHECKBOX, RADIO, CHOICE = "text", "checkbox", "radio", "choice"
 
 # field flags (/Ff), PDF 32000-1 tables 221, 226, 228, 230
 READ_ONLY = 1 << 0
+REQUIRED = 1 << 1
 MULTILINE = 1 << 12
 PASSWORD = 1 << 13
 RADIO_FLAG = 1 << 15
@@ -78,6 +79,7 @@ class FormField:
     combo: bool = False  # a choice field: drop-down (else a list box)
     editable: bool = False  # a drop-down that accepts other text too
     max_len: int | None = None
+    flags: int = 0  # /Ff as the document has it (REQUIRED, PASSWORD, COMB, ...)
     widgets: list[Widget] = field(default_factory=list)
 
     @property
@@ -197,7 +199,7 @@ def _read(root, locked=(set(), False)) -> list[tuple[FormField, object, dict, li
             continue
         ff = int(_get(attrs, "/Ff", 0))
         v = _get(attrs, "/V")
-        f = FormField(name=name, kind=kind, value="", label=_text(_get(node, "/TU")),
+        f = FormField(name=name, kind=kind, value="", label=_text(_get(node, "/TU")), flags=ff,
                       read_only=bool(ff & READ_ONLY),
                       locked=_is_locked(name, *locked), multiline=bool(ff & MULTILINE),
                       combo=bool(ff & COMBO), editable=bool(ff & EDIT))

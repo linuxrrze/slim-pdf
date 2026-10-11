@@ -2508,6 +2508,78 @@ msgstr "Dieses Dokument hat keine Formularfelder zum Ausfüllen."
 msgid "Click a field on the page, or edit it here. Changes are filled in right away; Undo takes them back."
 msgstr "Ein Feld auf der Seite anklicken oder hier bearbeiten. Änderungen werden sofort ausgefüllt; Rückgängig nimmt sie zurück."
 
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Field: {name}"
+msgstr "Feld: {name}"
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Label: {label}"
+msgstr "Bezeichnung: {label}"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "text, several lines"
+msgstr "Text, mehrzeilig"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "text, one line"
+msgstr "Text, einzeilig"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "password (shown as *)"
+msgstr "Passwort (als * angezeigt)"
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Input: {kind}"
+msgstr "Eingabe: {kind}"
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "{n} character boxes"
+msgstr "{n} Zeichenkästchen"
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "At most {n} characters"
+msgstr "Höchstens {n} Zeichen"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Input: check box"
+msgstr "Eingabe: Kontrollkästchen"
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Input: radio buttons ({choices})"
+msgstr "Eingabe: Optionsfelder ({choices})"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "drop-down, other text allowed"
+msgstr "Auswahlliste, eigener Text erlaubt"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "drop-down"
+msgstr "Auswahlliste"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "list"
+msgstr "Liste"
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Input: {kind} with {n} choices"
+msgstr "Eingabe: {kind} mit {n} Einträgen"
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Required"
+msgstr "Pflichtfeld"
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Page {page}, {width:.0f} × {height:.0f} pt"
+msgstr "Seite {page}, {width:.0f} × {height:.0f} pt"
+
 #: src/slim_pdf/gui/insertdialog.py
 msgid "Black"
 msgstr "Schwarz"

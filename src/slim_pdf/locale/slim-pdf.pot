@@ -2421,6 +2421,78 @@ msgstr ""
 msgid "Click a field on the page, or edit it here. Changes are filled in right away; Undo takes them back."
 msgstr ""
 
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Field: {name}"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Label: {label}"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "text, several lines"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "text, one line"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "password (shown as *)"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Input: {kind}"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "{n} character boxes"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "At most {n} characters"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Input: check box"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Input: radio buttons ({choices})"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "drop-down, other text allowed"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "drop-down"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "list"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Input: {kind} with {n} choices"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+msgid "Required"
+msgstr ""
+
+#: src/slim_pdf/gui/formpanel.py
+#, python-brace-format
+msgid "Page {page}, {width:.0f} × {height:.0f} pt"
+msgstr ""
+
 #: src/slim_pdf/gui/insertdialog.py
 msgid "Black"
 msgstr ""
