@@ -1288,14 +1288,6 @@ msgid "Settings…"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Manage certificates…"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-msgid "Add, edit or remove certificates (in the settings)"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
 msgid "The certificate to sign with"
 msgstr ""
 

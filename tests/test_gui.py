@@ -882,14 +882,16 @@ def test_dialog_store_keyring(open_editor, monkeypatch, mem_keyring):
 
 
 def test_manage_updates_main_window(window, monkeypatch, tmp_path):
-    """Certificates… opens the settings on their Certificates tab; profiles
-    are saved as they change, so they stay even when the dialog is cancelled."""
+    """Certificates are managed on the Certificates tab of the settings;
+    profiles are saved as they change, so they stay even when the dialog is
+    cancelled."""
     from slim_pdf.gui import settings as gui_settings
 
     window.config.path = tmp_path / "config.toml"
     seen = []
 
     def fake_exec(self):
+        self.tabs.setCurrentWidget(self.certs)
         seen.append(self.tabs.currentWidget())
         self.config.certs["new"] = CertProfile(name="new", path="x.p12")
         self.certs._write()
@@ -897,7 +899,7 @@ def test_manage_updates_main_window(window, monkeypatch, tmp_path):
         return 0  # cancelled
 
     monkeypatch.setattr(gui_settings.SettingsDialog, "exec", fake_exec)
-    window.manage_act.trigger()
+    window.settings_act.trigger()
     assert [type(w) for w in seen] == [CertManager]
     names = [window.cert_combo.itemData(i) for i in range(window.cert_combo.count())]
     assert names == ["alice", "bob", "new"]
@@ -1524,6 +1526,11 @@ def test_signing_keeps_the_stored_certificate_current(window, form_pdf, save_to,
     assert stored is not None and certinfo.signer_name(stored) == "Alice Example"
 
 
+def page_buttons(rb):
+    return [b for i in range(rb.count())
+            for b in rb.tab_page(i).findChildren(QtWidgets.QToolButton)]
+
+
 def test_ribbon_tabs_and_about(window, monkeypatch):
     """The ribbon replaces the toolbars; Help → About names the version."""
     rb = window.ribbon
@@ -1533,7 +1540,9 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     home = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
     assert window.open_act in home and window.sign_act in home
     # everything the sign panel had as controls is in the ribbon now
-    assert window.manage_act in home and window.clear_act in home
+    assert window.settings_act in home and window.clear_act in home
+    texts = [b.text() for b in page_buttons(rb)]
+    assert not any("ertificate" in t for t in texts)  # managed in Settings only
     page = rb.tab_page(0)
     labels = [lbl.text() for lbl in page.findChildren(QtWidgets.QLabel)]
     assert "Sign with:" in labels and "Stamp shows:" in labels

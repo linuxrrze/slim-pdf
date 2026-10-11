@@ -8,7 +8,7 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
-from PySide6.QtCore import QLibraryInfo, QLocale, QSize, Qt, QTranslator, QUrl, qVersion
+from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTranslator, QUrl, qVersion
 from PySide6.QtGui import (
     QAction,
     QColor,
@@ -36,7 +36,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -189,9 +188,6 @@ class MainWindow(QMainWindow):
                                "the chosen field (Esc)"))
         self.settings_act = act(_("Settings…"), self.settings_dialog, QKeySequence.Preferences,
                                 "settings")
-        self.manage_act = act(_("Manage certificates…"), self.manage_certs, None,
-                              "certificate", _("Add, edit or remove certificates (in the "
-                                               "settings)"))
         # what the stamp shows; the certificate is picked in the ribbon's combo box
         self.cert_combo = QComboBox()
         self.cert_combo.setToolTip(_("The certificate to sign with"))
@@ -282,12 +278,6 @@ class MainWindow(QMainWindow):
         row.addWidget(self.text_box)
         row.addStretch()
         fl.addRow(_("Stamp shows:"), stamp)
-        manage = QToolButton()
-        manage.setDefaultAction(self.manage_act)
-        manage.setAutoRaise(True)
-        manage.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        manage.setIconSize(QSize(ribbon.SMALL_ICON, ribbon.SMALL_ICON))
-        fl.addRow("", manage)
         g.add_widget(form)
         g = home.group(_("Options"))
         g.add(self.settings_act)
@@ -481,8 +471,9 @@ class MainWindow(QMainWindow):
     def open_docs(self) -> None:
         QDesktopServices.openUrl(QUrl(DOCS_URL))
 
-    def settings_dialog(self, tab: int = SettingsDialog.GENERAL) -> None:
-        dlg = SettingsDialog(self.config, self, tab)
+    def settings_dialog(self) -> None:
+        """Settings…, also for the certificates (their own tab)."""
+        dlg = SettingsDialog(self.config, self)
         accepted = dlg.exec()
         if not (accepted or dlg.certs.changed):
             return
@@ -496,9 +487,6 @@ class MainWindow(QMainWindow):
         if dlg.language_changed:
             QMessageBox.information(self, _("Settings"),
                                     _("The new language is used after restarting Slim PDF."))
-
-    def manage_certs(self) -> None:
-        self.settings_dialog(SettingsDialog.CERTIFICATES)
 
     # documents ----------------------------------------------------------------
 

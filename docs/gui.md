@@ -22,8 +22,8 @@ guide show the English version.
   * *Home:* **Open…** (`Ctrl+O`), **Save**, **Save as…**, **Undo**;
     **Place signature… / Sign…** (`Ctrl+S`) and **Remove signature box**
     (`Esc`); the signature's settings: **Sign with** (the certificate),
-    **Stamp shows** *Image* and/or *Text*, **Manage certificates…**;
-    **Settings…**.
+    **Stamp shows** *Image* and/or *Text*; **Settings…** (also for the
+    certificates).
   * *Edit:* **Fill in form…** (see [Filling in forms](#filling-in-forms));
     **Text…** and **Image…** (see [Adding text and images](#adding-text-and-images)).
   * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
@@ -134,7 +134,7 @@ see now is not exactly what was signed. The tooltip says which changes.
 Click a signature to jump to its page. Double-click it (or click the signed
 field on the page) for its details: the verdict, time, what it covers and
 any problems, then the signer's certificate in the same form as
-*Manage certificates…* → *Details…* shows your own, and pyHanko's full report behind *Full report…*.
+*Settings…* → *Certificates* → *Details…* shows your own, and pyHanko's full report behind *Full report…*.
 The tooltip shows what the signature covers. Extra trusted roots come from
 *Settings…* (or `trust = [...]` in the config file, see
 [cli.md](cli.md#check-signatures-slim-pdf-verify)).
@@ -233,8 +233,8 @@ profiles; **OK** saves them, **Cancel** discards them.
 
 ## Managing certificates
 
-**Manage certificates…** (ribbon, *Home* tab) opens the settings on their
-*Certificates* tab. It edits the same config file as `slim-pdf certs`. It
+Certificates are managed on the *Certificates* tab of **Settings…** (ribbon,
+*Home* tab). It edits the same config file as `slim-pdf certs`. It
 lists the profiles with their type, the certificate's expiry date (red when
 less than 30 days are left) and where the key is:
 
