@@ -112,7 +112,7 @@ class RibbonGroup(QFrame):
         return widget
 
     def _small(self, widget: QWidget) -> None:
-        if self._column is None or self._column.count() >= 3:
+        if self._column is None or self._column.count() > 3:  # 3 and the stretch
             self._column = QVBoxLayout()
             self._column.setSpacing(0)
             self._column.addStretch()

@@ -1504,6 +1504,10 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     assert [rb.tabText(i) for i in range(rb.count())] == ["Home", "Pages", "View", "Help"]
     home = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
     assert window.open_act in home and window.sign_act in home
+    # everything the sign panel had as controls is in the ribbon now
+    assert window.image_check in home and window.text_check in home
+    assert window.manage_act in home
+    assert rb.tab_page(0).isAncestorOf(window.cert_combo)
     assert not window.save_act.isEnabled()  # no document yet
 
     shown = []

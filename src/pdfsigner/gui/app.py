@@ -21,7 +21,6 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication,
-    QCheckBox,
     QComboBox,
     QDockWidget,
     QFileDialog,
@@ -150,7 +149,9 @@ class MainWindow(QMainWindow):
         """Every command the ribbon offers, as actions of the window, so their
         shortcuts work wherever the focus is."""
         def act(text, slot, shortcut=None, icon="", tip="", page=False):
-            a = QAction(text, self, triggered=slot)
+            a = QAction(text, self)
+            if slot is not None:
+                a.triggered.connect(slot)
             if shortcut:
                 a.setShortcut(QKeySequence(shortcut))
             if icon:
@@ -173,7 +174,21 @@ class MainWindow(QMainWindow):
         self.settings_act = act(_("Settings…"), self.settings_dialog, QKeySequence.Preferences,
                                 "settings")
         self.manage_act = act(_("Certificates…"), self.manage_certs, None, "certificate",
-                              _("Manage your certificates"))
+                              _("Manage your certificates (in the settings)"))
+        # what the stamp shows; the certificate is picked in the ribbon's combo box
+        self.cert_combo = QComboBox()
+        self.cert_combo.setToolTip(_("The certificate to sign with"))
+        self.cert_combo.setMinimumContentsLength(14)
+        self.cert_combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.cert_combo.currentIndexChanged.connect(self._cert_changed)
+        self.image_check = act(_("Signature image"), None, None, "photo",
+                               _("Show the certificate's signature image in the stamp"))
+        self.text_check = act(_("Text"), None, None, "typography",
+                              _("Show the signer's name and the date in the stamp"))
+        for a in (self.image_check, self.text_check):
+            a.setCheckable(True)
+            a.setChecked(True)
+            a.toggled.connect(self._cert_changed)
 
         self.prev_act = act(_("Previous"), lambda: self.view.go_to(self.view.page - 1),
                             QKeySequence.MoveToPreviousPage, "chevron-left")
@@ -227,7 +242,12 @@ class MainWindow(QMainWindow):
         g = home.group(_("Sign"))
         g.add(self.sign_act)
         g.add(self.clear_act, large=False)
+        g = home.group(_("Certificate"))
+        g.add_widget(self.cert_combo)
         g.add(self.manage_act, large=False)
+        g = home.group(_("Stamp"))
+        g.add(self.image_check, large=False)
+        g.add(self.text_check, large=False)
         g = home.group(_("Options"))
         g.add(self.settings_act)
 
@@ -319,29 +339,6 @@ class MainWindow(QMainWindow):
         panel = QWidget()
         lay = QVBoxLayout(panel)
 
-        lay.addWidget(QLabel("<b>{}</b>".format(_("Certificate"))))
-        row = QHBoxLayout()
-        self.cert_combo = QComboBox()
-        self.cert_combo.currentIndexChanged.connect(self._cert_changed)
-        row.addWidget(self.cert_combo, 1)
-        manage = QPushButton(_("Manage…"))
-        manage.clicked.connect(self.manage_certs)
-        row.addWidget(manage)
-        lay.addLayout(row)
-
-        row = QHBoxLayout()
-        self.image_check = QCheckBox(_("Signature image"))
-        self.image_check.setChecked(True)
-        self.image_check.toggled.connect(self._cert_changed)
-        self.text_check = QCheckBox(_("Text"))
-        self.text_check.setChecked(True)
-        self.text_check.toggled.connect(self._cert_changed)
-        row.addWidget(self.image_check)
-        row.addWidget(self.text_check)
-        row.addStretch()
-        lay.addLayout(row)
-
-        lay.addSpacing(8)
         lay.addWidget(QLabel("<b>{}</b>".format(_("Target"))))
         self.target_label = QLabel()
         self.target_label.setWordWrap(True)

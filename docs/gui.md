@@ -20,8 +20,9 @@ guide show the English version.
 
 * **Ribbon** (top), in four tabs:
   * *Home:* **Open…** (`Ctrl+O`), **Save**, **Save as…**, **Undo**; **Place
-    signature… / Sign…** (`Ctrl+S`), **Clear placement** (`Esc`),
-    **Certificates…**; **Settings…**.
+    signature… / Sign…** (`Ctrl+S`), the certificate to sign with, the
+    stamp options **Signature image** and **Text**, **Clear placement**
+    (`Esc`), **Certificates…**; **Settings…**.
   * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
   * *View:* move between pages (`PgUp`/`PgDown`, or type the page number),
     zoom (`Ctrl +`/`Ctrl -`, *Fit* = fit width), show or hide the *Pages*
@@ -38,15 +39,14 @@ guide show the English version.
 * **Pages panel** (left): thumbnails. Click one to go there; Ctrl- or
   Shift-click to select several pages for the page tools; drag pages to
   reorder them.
-* **Sign panel** (right): certificate, appearance options, the current
-  target, the **Place signature…** / **Sign…** button, and a list of all
-  signature fields.
+* **Sign panel** (right): the current target, the **Place signature…** /
+  **Sign…** button, and lists of the signature fields and of the signatures.
 
 ## Placing a new signature
 
 ![Placing a signature freely](images/gui-place.png)
 
-1. Pick a certificate.
+1. Pick a certificate in the ribbon (*Home* tab, *Sign* group).
 2. Press **Place signature…** (`Ctrl+S`), then **click** where the signature
    should go. A preview of the signature image appears centred on the click,
    and the page is back to zooming and moving. `Esc` cancels instead.
@@ -65,7 +65,7 @@ page while you browse other pages.
 
 Click an empty field on the page: it turns solid blue and becomes the
 target. With several certificates configured, pdfsigner asks which one to
-sign with (the one selected in the panel is preselected; with only one,
+sign with (the one selected in the ribbon is preselected; with only one,
 that is used without asking), then signing starts (see
 [Signing](#signing)). Cancelling the question keeps the field selected.
 To change the appearance options first, pick the field in the list on the
@@ -98,8 +98,8 @@ fields doesn't.
 Documents certified as "no changes allowed" can't be signed again; the status
 bar points this out when you open one.
 
-The *Signature image* and *Text* checkboxes switch the stamp to image only or
-text only for the next signature.
+The *Signature image* and *Text* buttons in the ribbon switch the stamp to
+image only or text only for the next signature.
 
 ## Checking signatures
 

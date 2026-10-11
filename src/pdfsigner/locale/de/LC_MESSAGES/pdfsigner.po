@@ -1219,8 +1219,29 @@ msgid "Certificates…"
 msgstr "Zertifikate…"
 
 #: src/pdfsigner/gui/app.py
-msgid "Manage your certificates"
-msgstr "Ihre Zertifikate verwalten"
+msgid "Manage your certificates (in the settings)"
+msgstr "Zertifikate verwalten (in den Einstellungen)"
+
+#: src/pdfsigner/gui/app.py
+msgid "The certificate to sign with"
+msgstr "Das Zertifikat zum Signieren"
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Signature image"
+msgstr "Signaturbild"
+
+#: src/pdfsigner/gui/app.py
+msgid "Show the certificate's signature image in the stamp"
+msgstr "Das Unterschriftsbild des Zertifikats im Stempel zeigen"
+
+#: src/pdfsigner/gui/app.py
+msgid "Text"
+msgstr "Text"
+
+#: src/pdfsigner/gui/app.py
+msgid "Show the signer's name and the date in the stamp"
+msgstr "Name des Unterzeichners und Datum im Stempel zeigen"
 
 #: src/pdfsigner/gui/app.py
 msgid "Previous"
@@ -1300,6 +1321,15 @@ msgid "Sign"
 msgstr "Signieren"
 
 #: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Certificate"
+msgstr "Zertifikat"
+
+#: src/pdfsigner/gui/app.py
+msgid "Stamp"
+msgstr "Stempel"
+
+#: src/pdfsigner/gui/app.py
 msgid "Options"
 msgstr "Optionen"
 
@@ -1346,24 +1376,6 @@ msgid "Delete {n} page"
 msgid_plural "Delete {n} pages"
 msgstr[0] "{n} Seite löschen"
 msgstr[1] "{n} Seiten löschen"
-
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
-msgid "Certificate"
-msgstr "Zertifikat"
-
-#: src/pdfsigner/gui/app.py
-msgid "Manage…"
-msgstr "Verwalten…"
-
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
-msgid "Signature image"
-msgstr "Signaturbild"
-
-#: src/pdfsigner/gui/app.py
-msgid "Text"
-msgstr "Text"
 
 #: src/pdfsigner/gui/app.py
 msgid "Target"
