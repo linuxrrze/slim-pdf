@@ -140,6 +140,30 @@ class RibbonTab(QWidget):
         return g
 
 
+class _SideScroll(QScrollArea):
+    """Holds a group at its full width when there is room, and scrolls it
+    sideways when the window is too narrow, so it doesn't set the ribbon's
+    minimum width (which depends on the fonts: wide on Windows)."""
+
+    MIN_WIDTH = 120
+
+    def __init__(self, widget: QWidget):
+        super().__init__()
+        self.setWidget(widget)
+        self.setWidgetResizable(True)
+        self.setFrameShape(QFrame.NoFrame)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 - Qt's name
+        return self.widget().sizeHint()
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt's name
+        return QSize(min(self.MIN_WIDTH, self.widget().sizeHint().width()),
+                     self.widget().minimumSizeHint().height())
+
+
 class Ribbon(QWidget):
     """Tabs of groups, with one group that stays whatever the tab (see
     :meth:`set_view_controls`) at the right. A narrow window scrolls a tab
@@ -202,7 +226,7 @@ class Ribbon(QWidget):
         line.setFrameShape(QFrame.VLine)
         line.setFrameShadow(QFrame.Sunken)
         self.body.addWidget(line)
-        self.body.addWidget(group)
+        self.body.addWidget(_SideScroll(group))  # narrow windows: scrolls, like a tab
         self.view_controls = group
         return group
 
