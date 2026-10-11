@@ -1,5 +1,5 @@
-"""What the GUI remembers between runs that isn't a setting: for now, the
-folder of the last opened file. A small JSON file in the user state folder
+"""What the GUI remembers between runs that isn't a setting: the folder of
+the last opened file, and whether the side panels are shown. A small JSON file in the user state folder
 (``$SLIM_PDF_STATE_DIR`` overrides it); unreadable or missing means "nothing
 remembered", and failing to write it is ignored."""
 
@@ -43,4 +43,17 @@ def last_folder() -> str:
 def remember_folder(folder: Path) -> None:
     data = _load()
     data["last_folder"] = str(Path(folder).resolve())
+    _save(data)
+
+
+def flag(name: str, default: bool = True) -> bool:
+    """A remembered on/off choice (e.g. whether a panel is shown)."""
+    value = _load().get("flags", {}).get(name, default)
+    return value if isinstance(value, bool) else default
+
+
+def set_flag(name: str, value: bool) -> None:
+    data = _load()
+    flags = data.get("flags")
+    data["flags"] = {**(flags if isinstance(flags, dict) else {}), name: bool(value)}
     _save(data)

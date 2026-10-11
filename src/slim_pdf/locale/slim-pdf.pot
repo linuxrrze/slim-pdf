@@ -1524,6 +1524,14 @@ msgid "Show or hide the page thumbnails on the left"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
+msgid "Tools panel"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Show or hide the panel on the right (the form on Edit, signing on Signing)"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
 msgid "View"
 msgstr ""
 

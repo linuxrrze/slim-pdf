@@ -36,7 +36,9 @@ guide show the English version.
   * *Help:* **Documentation** (`F1`, this guide online), **About Slim PDF**
     (version, and the libraries it is built on).
   * *View*, a group at the ribbon's right end, the same on every tab:
-    **Pages panel** (show or hide the thumbnails); **Previous**, the page
+    **Pages panel** (show or hide the thumbnails on the left), **Tools
+    panel** (show or hide the panel on the right: the form, signing), each on
+    its own and remembered for the next start; **Previous**, the page
     number, **Next** (`PgUp`/`PgDown`, or type the number); **Zoom in**,
     **Fit** (fit width), **Zoom out** (`Ctrl +`/`Ctrl -`).
 

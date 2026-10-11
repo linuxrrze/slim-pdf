@@ -460,17 +460,27 @@ class MainWindow(QMainWindow):
         panel.setIcon(ribbon.icon("layout-sidebar"))
         panel.setText(_("Pages panel"))
         panel.setToolTip(_("Show or hide the page thumbnails on the left"))
+        self.pages_dock.setVisible(state.flag("pages_panel"))
+        panel.toggled.connect(lambda on: state.set_flag("pages_panel", on))
+        # the right-hand panel (form, signing) on the tabs that have one
+        self.tools_panel_act = QAction(ribbon.icon("layout-sidebar-right"), _("Tools panel"),
+                                       self, checkable=True)
+        self.tools_panel_act.setToolTip(_("Show or hide the panel on the right (the form "
+                                          "on Edit, signing on Signing)"))
+        self.tools_panel_act.setChecked(state.flag("tools_panel"))
+        self.tools_panel_act.toggled.connect(self._tools_panel_toggled)
         spin = QWidget()  # the page number box with " / count"
         row = QHBoxLayout(spin)
         row.setContentsMargins(4, 0, 4, 0)
         row.addWidget(self.page_spin)
         row.addWidget(self.page_count)
-        rb.set_view_controls(_("View"), [panel], [
+        rb.set_view_controls(_("View"), [panel, self.tools_panel_act], [
             [self.prev_act, spin, self.next_act],
             [self.zoom_in_act, self.fit_act, self.zoom_out_act],
         ])
         rb.refit()
         rb.currentChanged.connect(self._ribbon_tab_changed)
+        self._ribbon_tab_changed(rb.currentIndex())  # the remembered panel choice
         self.setMenuWidget(rb)  # where the menu bar would be
 
     @staticmethod
@@ -592,9 +602,13 @@ class MainWindow(QMainWindow):
 
     SIDE_PANELS = {EDIT_TAB: N_("Form"), SIGN_TAB: N_("Sign")}  # ribbon tab -> panel title
 
+    def _tools_panel_toggled(self, on: bool) -> None:
+        state.set_flag("tools_panel", on)
+        self._ribbon_tab_changed(self.ribbon.currentIndex())
+
     def _ribbon_tab_changed(self, index: int) -> None:
         title = self.SIDE_PANELS.get(index)
-        self.side_dock.setVisible(title is not None)
+        self.side_dock.setVisible(title is not None and self.tools_panel_act.isChecked())
         if index != EDIT_TAB:  # a form field is marked only while the form is edited
             self.view.highlight_form_field(None)
         if title is not None:

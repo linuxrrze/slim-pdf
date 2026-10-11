@@ -143,3 +143,31 @@ def test_drop_pdf_files_onto_the_window(window, tmp_path, qapp):
                             Qt.LeftButton, Qt.NoModifier)
     window.dragEnterEvent(enter)
     assert not enter.isAccepted()
+
+
+def test_side_panels_can_be_hidden_independently(window, fill_pdf, qapp, profile):
+    """View: Pages panel (left) and Tools panel (right) are shown or hidden
+    on their own; the choice is remembered for the next start."""
+    from slim_pdf.config import Config
+
+    window.open(fill_pdf)
+    left, right = window.pages_dock, window.side_dock
+    assert left.isVisible() and right.isVisible()  # Edit: the form panel
+    window.tools_panel_act.trigger()
+    assert left.isVisible() and not right.isVisible()
+    window.show_tab(gui_app.SIGN_TAB)  # hidden on Signing too
+    assert not right.isVisible()
+    window.pages_dock.toggleViewAction().trigger()
+    assert not left.isVisible() and not right.isVisible()
+    window.tools_panel_act.trigger()
+    assert not left.isVisible() and right.isVisible()
+    window.show_tab(2)  # Pages: no tools panel there anyway
+    assert not right.isVisible()
+    window.show_tab(gui_app.EDIT_TAB)
+    window.tools_panel_act.trigger()  # off again, then a new window remembers
+    other = gui_app.MainWindow(Config(certs={"alice": profile}, default="alice"))
+    other.show()
+    qapp.processEvents()
+    assert not other.tools_panel_act.isChecked() and not other.side_dock.isVisible()
+    assert not other.pages_dock.isVisible()
+    other.close()

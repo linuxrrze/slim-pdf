@@ -1543,7 +1543,8 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     signing = [b.defaultAction() for b in rb.tab_page(1).findChildren(QtWidgets.QToolButton)]
     # viewing controls are a group at the ribbon's right end, the same on every tab
     view = [b.defaultAction() for b in rb.view_controls.findChildren(QtWidgets.QToolButton)]
-    assert view == [window.pages_dock.toggleViewAction(), window.prev_act, window.next_act,
+    assert view == [window.pages_dock.toggleViewAction(), window.tools_panel_act,
+                    window.prev_act, window.next_act,
                     window.zoom_in_act, window.fit_act, window.zoom_out_act]
     assert rb.view_controls.title.text() == "View"
     assert rb.view_controls.isAncestorOf(window.page_spin)

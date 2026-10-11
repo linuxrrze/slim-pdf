@@ -1558,6 +1558,14 @@ msgid "Show or hide the page thumbnails on the left"
 msgstr "Die Seitenvorschau links zeigen oder ausblenden"
 
 #: src/slim_pdf/gui/app.py
+msgid "Tools panel"
+msgstr "Werkzeugleiste"
+
+#: src/slim_pdf/gui/app.py
+msgid "Show or hide the panel on the right (the form on Edit, signing on Signing)"
+msgstr "Die Leiste rechts zeigen oder ausblenden (das Formular unter Bearbeiten, das Signieren unter Signieren)"
+
+#: src/slim_pdf/gui/app.py
 msgid "View"
 msgstr "Ansicht"
 
