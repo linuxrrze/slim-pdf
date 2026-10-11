@@ -129,10 +129,10 @@ def profile(p12, sig_image) -> CertProfile:
                        secret="none", reason="Test")
 
 
-def make_pdf(path: Path, pages: int = 2, rotate: int = 0) -> Path:
+def make_pdf(path: Path, pages: int = 2, rotate: int = 0, size=(595, 842)) -> Path:
     doc = pdfium.PdfDocument.new()
     for _ in range(pages):
-        page = doc.new_page(595, 842)
+        page = doc.new_page(*size)
         if rotate:
             page.set_rotation(rotate)
     buf = io.BytesIO()

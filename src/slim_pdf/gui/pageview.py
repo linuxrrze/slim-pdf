@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QGraphicsRectItem,
     QGraphicsScene,
     QGraphicsView,
+    QStyle,
 )
 
 from ..i18n import _
@@ -404,14 +405,26 @@ class PageView(QGraphicsView):
         avail = self.maximumViewportSize()  # without scroll bars
         return max(0.01, min((avail.width() - 2) / (w + 40), (avail.height() - 2) / (h + 40)))
 
+    def fit_width_zoom(self) -> float:
+        """The zoom that fits the page's width into the view. Worked out from
+        the view's size without scroll bars, plus the vertical one if the
+        page will need it, never from the bars currently shown: otherwise a
+        page that fits exactly with the bars shown but not without them
+        makes the bars, the viewport and the zoom flip back and forth
+        endlessly, freezing the window."""
+        w, h = self.doc.display_size(self.page)  # plus a 20pt margin on each side
+        avail = self.maximumViewportSize()
+        zoom = (avail.width() - 2) / (w + 40)
+        if (h + 40) * zoom > avail.height() - 2:  # too tall: there will be a vertical bar
+            bar = self.style().pixelMetric(QStyle.PM_ScrollBarExtent, None, self)
+            zoom = (avail.width() - bar - 2) / (w + 40)
+        return max(zoom, 0.01)
+
     def _apply_zoom(self) -> None:
         if self.doc is None:
             return
         if self._fit_width:
-            # scene rect has a 20pt margin on each side
-            w, _h = self.doc.display_size(self.page)
-            avail = self.viewport().width() - 2
-            self.zoom = avail / (w + 40)
+            self.zoom = self.fit_width_zoom()
         self.zoom = max(self.zoom, self.min_zoom())
         self.resetTransform()
         self.scale(self.zoom, self.zoom)

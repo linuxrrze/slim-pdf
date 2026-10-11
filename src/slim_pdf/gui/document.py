@@ -101,8 +101,20 @@ class PdfDocument:
                 data = f.read()
         self._pdf = pdfium.PdfDocument(data, password=password)
         self._pdf.init_forms()  # needed to render signature widget appearances
+        # Each page is loaded once: with forms, pdfium keeps every loaded
+        # page in its form environment until it is closed, so loading a page
+        # per call (sizes are asked for on every resize) piles them up.
+        self._pages: dict[int, pdfium.PdfPage] = {}
+
+    def page(self, index: int) -> pdfium.PdfPage:
+        if index not in self._pages:
+            self._pages[index] = self._pdf[index]
+        return self._pages[index]
 
     def close(self) -> None:
+        for page in self._pages.values():
+            page.close()
+        self._pages.clear()
         self._pdf.close()
 
     def __len__(self) -> int:
@@ -110,16 +122,16 @@ class PdfDocument:
 
     def display_size(self, index: int) -> tuple[float, float]:
         """(width, height) in points as displayed, i.e. after /Rotate."""
-        return self._pdf[index].get_size()
+        return self.page(index).get_size()
 
     def render(self, index: int, scale: float, crop=(0, 0, 0, 0)):
         """PIL image of the page at ``scale`` pixels per point; ``crop`` cuts
         (left, bottom, right, top) points off the page as displayed."""
-        return self._pdf[index].render(scale=scale, crop=crop, may_draw_forms=True).to_pil()
+        return self.page(index).render(scale=scale, crop=crop, may_draw_forms=True).to_pil()
 
     def to_pdf(self, index: int, x: float, y: float) -> tuple[float, float]:
         """Display point -> PDF user space point."""
-        page = self._pdf[index]
+        page = self.page(index)
         w, h = page.get_size()
         px, py = ctypes.c_double(), ctypes.c_double()
         ok = raw.FPDF_DeviceToPage(
@@ -133,7 +145,7 @@ class PdfDocument:
 
     def to_display(self, index: int, x: float, y: float) -> tuple[float, float]:
         """PDF user space point -> display point."""
-        page = self._pdf[index]
+        page = self.page(index)
         w, h = page.get_size()
         dx, dy = ctypes.c_int(), ctypes.c_int()
         ok = raw.FPDF_PageToDevice(

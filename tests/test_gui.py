@@ -1604,3 +1604,42 @@ def test_watchdog_notes_short_stalls(qapp, tmp_path):
     lines = (tmp_path / "freezes.log").read_text().splitlines()
     assert len(lines) == 2 and "started" in lines[0]
     assert "the GUI was busy for 1.5 s" in lines[1]
+
+
+def test_fit_width_settles_at_every_view_size(qapp, tmp_path):
+    """Regression: at some sizes, fit-width zoom with the scroll bars shown
+    made the page fit without them, and without them it needed them again:
+    an endless resize loop that froze the window (seen with US Letter pages
+    when the Sign panel's text changed)."""
+    from slim_pdf.gui.document import PdfDocument
+    from slim_pdf.gui.pageview import PageView
+
+    from conftest import make_pdf
+
+    doc = PdfDocument(str(make_pdf(tmp_path / "letter.pdf", pages=1, size=(612, 792))))
+    view = PageView()
+    view.show()
+    calls = {"n": 0}
+    size = doc.display_size
+
+    def counted(index):
+        calls["n"] += 1
+        if calls["n"] > 200:  # looping: stop it, so the test fails instead of hanging
+            raise RuntimeError("resize loop")
+        return size(index)
+
+    doc.display_size = counted
+    try:
+        view.set_document(doc, [], 0)
+        # coarse, plus finely around the size where the loop was seen
+        sizes = [(w, h) for w in range(400, 900, 50) for h in range(500, 1000, 50)]
+        sizes += [(w, h) for w in range(630, 650) for h in range(795, 820)]
+        for width, height in sizes:
+            calls["n"] = 0
+            view.resize(width, height)
+            qapp.processEvents()
+            assert calls["n"] <= 50, (width, height)
+            assert view.zoom == pytest.approx(max(view.fit_width_zoom(), view.min_zoom()))
+    finally:
+        view.close()
+        doc.close()
