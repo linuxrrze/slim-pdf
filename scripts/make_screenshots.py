@@ -190,6 +190,7 @@ def main() -> None:
     QTest.qWaitForWindowExposed(win)
     win.open(doc)
     view = win.view
+    win.show_tab(gui_app.SIGN_TAB)  # a document with signature fields: signing
     grab(win, "gui-overview.png")
 
     # free placement next to the closing sentence: Place signature…, then a click
@@ -237,7 +238,7 @@ def main() -> None:
     grab(win, "gui-pages.png")
     win._escape()
     win.dirty = False
-    win.ribbon.setCurrentIndex(0)
+    win.show_tab(gui_app.SIGN_TAB)
 
     # filling in a form: the form panel (Edit tab), cursor in a field
     from slim_pdf import forms
@@ -275,7 +276,7 @@ def main() -> None:
     grab(win, "gui-insert.png")
     QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, view.mapFromScene(QPointF(560, 600)))
     win.dirty = False
-    win.ribbon.setCurrentIndex(0)
+    win.show_tab(gui_app.SIGN_TAB)
 
     # password prompt (shown non-modally just for the picture)
     dlg = QInputDialog(win)

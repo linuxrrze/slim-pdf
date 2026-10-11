@@ -1214,11 +1214,13 @@ msgid "the document is certified: no changes are allowed"
 msgstr "das Dokument ist zertifiziert: keine Änderungen erlaubt"
 
 #: src/slim_pdf/forms.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{field} is read-only"
 msgstr "{field} ist schreibgeschützt"
 
 #: src/slim_pdf/forms.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{field} is locked by a signature"
 msgstr "{field} ist durch eine Signatur gesperrt"
@@ -1460,6 +1462,23 @@ msgid "Insert the copied pages after the selected (or the current) page"
 msgstr "Die kopierten Seiten nach der ausgewählten (oder der aktuellen) Seite einfügen"
 
 #: src/slim_pdf/gui/app.py
+msgid "Check again"
+msgstr "Erneut prüfen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Validate the document's signatures again (e.g. after changing the trusted certificates)"
+msgstr "Die Signaturen des Dokuments erneut prüfen (z. B. nach Änderung der vertrauenswürdigen Zertifikate)"
+
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
+msgid "Details…"
+msgstr "Details…"
+
+#: src/slim_pdf/gui/app.py
+msgid "The validation report of the signature chosen in the Signatures list (or the only one)"
+msgstr "Der Prüfbericht der in der Signaturliste gewählten Signatur (oder der einzigen)"
+
+#: src/slim_pdf/gui/app.py
 msgid "About Slim PDF"
 msgstr "Über Slim PDF"
 
@@ -1468,13 +1487,26 @@ msgid "Documentation"
 msgstr "Dokumentation"
 
 #: src/slim_pdf/gui/app.py
-msgid "Home"
-msgstr "Start"
+msgid "Edit"
+msgstr "Bearbeiten"
 
 #: src/slim_pdf/gui/app.py
 #: src/slim_pdf/gui/certdialog.py
 msgid "File"
 msgstr "Datei"
+
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
+msgid "Insert"
+msgstr "Einfügen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Options"
+msgstr "Optionen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Signing"
+msgstr "Signieren"
 
 #: src/slim_pdf/gui/app.py
 msgid "Sign"
@@ -1494,17 +1526,8 @@ msgid "Stamp shows:"
 msgstr "Stempel zeigt:"
 
 #: src/slim_pdf/gui/app.py
-msgid "Options"
-msgstr "Optionen"
-
-#: src/slim_pdf/gui/app.py
-msgid "Edit"
-msgstr "Bearbeiten"
-
-#: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/certdialog.py
-msgid "Insert"
-msgstr "Einfügen"
+msgid "Signatures"
+msgstr "Signaturen"
 
 #: src/slim_pdf/gui/app.py
 msgid "Pages"
@@ -1561,10 +1584,6 @@ msgstr "Signieren…"
 #: src/slim_pdf/gui/app.py
 msgid "Signature fields"
 msgstr "Signaturfelder"
-
-#: src/slim_pdf/gui/app.py
-msgid "Signatures"
-msgstr "Signaturen"
 
 #: src/slim_pdf/gui/app.py
 msgid "Double-click for the full validation report"
@@ -1904,6 +1923,10 @@ msgstr[0] "{n} Signatur: {counts}"
 msgstr[1] "{n} Signaturen: {counts}"
 
 #: src/slim_pdf/gui/app.py
+msgid "No signatures"
+msgstr "Keine Signaturen"
+
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Validation failed: {error}"
 msgstr "Prüfung fehlgeschlagen: {error}"
@@ -2200,10 +2223,6 @@ msgstr "Entfernen"
 #: src/slim_pdf/gui/certdialog.py
 msgid "Make default"
 msgstr "Als Standard festlegen"
-
-#: src/slim_pdf/gui/certdialog.py
-msgid "Details…"
-msgstr "Details…"
 
 #: src/slim_pdf/gui/certdialog.py
 msgid "The certificate's details, without a PIN"

@@ -17,18 +17,20 @@ def values(window):
 
 
 def test_side_panel_follows_the_ribbon_tab(window, fill_pdf):
-    """Home: the Sign panel; Edit: the form; other tabs: no panel."""
+    """Edit: the form; Signing: the Sign panel; other tabs: no panel. A
+    document opens on the Edit tab."""
+    window.show_tab(gui_app.SIGN_TAB)
     window.open(fill_pdf)
     dock, rb = window.side_dock, window.ribbon
-    assert rb.currentIndex() == gui_app.HOME_TAB and dock.isVisible()
-    assert window.side_stack.currentWidget() is window.sign_panel
-    rb.setCurrentIndex(gui_app.EDIT_TAB)
-    assert dock.isVisible() and window.side_stack.currentWidget() is window.form_panel
+    assert rb.currentIndex() == gui_app.EDIT_TAB and dock.isVisible()
+    assert window.side_stack.currentWidget() is window.form_panel
     assert dock.windowTitle() == "Form"
+    rb.setCurrentIndex(gui_app.SIGN_TAB)
+    assert dock.isVisible() and window.side_stack.currentWidget() is window.sign_panel
     for tab in range(2, rb.count()):  # Pages, Help
         rb.setCurrentIndex(tab)
         assert not dock.isVisible()
-    rb.setCurrentIndex(gui_app.HOME_TAB)
+    rb.setCurrentIndex(gui_app.SIGN_TAB)
     assert dock.isVisible() and dock.windowTitle() == "Sign"
 
 
@@ -126,7 +128,7 @@ def test_click_on_the_page_fills_in(window, fill_pdf, qapp, monkeypatch):
 def test_read_only_fields_are_shown_not_changed(window, fill_pdf, qapp):
     window.open(fill_pdf)
     qapp.processEvents()
-    assert window.ribbon.currentIndex() == gui_app.HOME_TAB
+    window.show_tab(gui_app.SIGN_TAB)
     click_field(window, "fixed")
     assert window.ribbon.currentIndex() == gui_app.EDIT_TAB  # shown in the form
     assert window.view.active_form_field == "fixed"
@@ -140,7 +142,7 @@ def test_any_click_on_a_form_field_switches_to_edit(window, fill_pdf, qapp, monk
     monkeypatch.setattr(window, "_exec_choice_menu", lambda menu, pos: None)
     window.open(fill_pdf)
     qapp.processEvents()
-    for tab in (gui_app.HOME_TAB, 2, 3):  # Home, Pages, Help
+    for tab in (gui_app.SIGN_TAB, 2, 3):  # Signing, Pages, Help
         window.show_tab(tab)
         click_field(window, name)
         assert window.ribbon.currentIndex() == gui_app.EDIT_TAB, (name, tab)
@@ -191,7 +193,7 @@ def test_signing_shows_the_sign_panel(window, blank_pdf):
     window.open(blank_pdf)
     window.ribbon.setCurrentIndex(gui_app.EDIT_TAB)
     window.sign_act.trigger()  # Ctrl+S from another tab: placing starts on Home
-    assert window.ribbon.currentIndex() == gui_app.HOME_TAB and window.view.place_mode
+    assert window.ribbon.currentIndex() == gui_app.SIGN_TAB and window.view.place_mode
     assert window.side_stack.currentWidget() is window.sign_panel
 
 
@@ -233,7 +235,7 @@ def test_editing_in_the_panel_shows_the_field_on_the_page(window, tmp_path, qapp
     window.form_panel.editors["size"].buttons["L"].setFocus()  # a radio button, too
     qapp.processEvents()
     assert window.view.active_form_field == "size"
-    window.show_tab(gui_app.HOME_TAB)
+    window.show_tab(gui_app.SIGN_TAB)
     assert not any(i.active for i in window.view.scene().items() if isinstance(i, FormItem))
 
 

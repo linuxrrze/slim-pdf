@@ -68,7 +68,7 @@ from .document import PdfDocument, render_stamp
 from .pageview import FormItem, PageView
 from .pagetools import PagesPanel
 
-HOME_TAB, EDIT_TAB = 0, 1  # ribbon tabs with their own side panel
+EDIT_TAB, SIGN_TAB = 0, 1  # ribbon tabs with their own side panel; Edit comes first
 STATUS_COLORS = {validation.VALID: "#2e7d32", validation.UNTRUSTED: "#ef8c00",
                  validation.INVALID: "#c62828", validation.UNSUPPORTED: "#757575"}
 
@@ -377,6 +377,14 @@ class MainWindow(QMainWindow):
                                                   "selected (or the current) page"))
         self.paste_pages_act.setEnabled(False)
 
+        self.recheck_act = act(_("Check again"), self.check_signatures, None, "shield-check",
+                               _("Validate the document's signatures again (e.g. after "
+                                 "changing the trusted certificates)"), True)
+        self.details_act = act(_("Details…"), self.signature_details, None, "list-details",
+                               _("The validation report of the signature chosen in the "
+                                 "Signatures list (or the only one)"))
+        self.details_act.setEnabled(False)
+
         self.about_act = act(_("About Slim PDF"), self.about, None, "info-circle")
         self.about_act.setMenuRole(QAction.AboutRole)
         self.docs_act = act(_("Documentation"), self.open_docs, QKeySequence.HelpContents,
@@ -387,18 +395,27 @@ class MainWindow(QMainWindow):
         self.ribbon = rb
 
         self.sign_act.setIcon(ribbon.icon("signature"))
-        home = rb.tab(_("Home"))
-        g = home.group(_("File"))
+        # Edit first: what a document is opened to
+        edit = rb.tab(_("Edit"))
+        g = edit.group(_("File"))
         g.add(self.open_act)
         g.add(self.save_act)
         g.add(self.save_as_act, large=False)
         g.add(self.undo_act, large=False)
         g.add(self.close_act, large=False)
-        g = home.group(_("Sign"))
+        g = edit.group(_("Insert"))
+        g.add(self.insert_text_act)
+        g.add(self.insert_image_act)
+        g = edit.group(_("Options"))
+        g.add(self.settings_act)
+
+        # Signing: adding signatures, and checking the ones there are
+        signing = rb.tab(_("Signing"))
+        g = signing.group(_("Sign"))
         g.add(self.sign_act)
         g.add(self.clear_act, large=False)
         # the signature's settings as a little form, so each says what it is
-        g = home.group(_("Signature"))
+        g = signing.group(_("Signature"))
         form = QWidget()
         fl = QFormLayout(form)
         fl.setContentsMargins(4, 0, 4, 0)
@@ -414,13 +431,9 @@ class MainWindow(QMainWindow):
         row.addStretch()
         fl.addRow(_("Stamp shows:"), stamp)
         g.add_widget(form)
-        g = home.group(_("Options"))
-        g.add(self.settings_act)
-
-        edit = rb.tab(_("Edit"))
-        g = edit.group(_("Insert"))
-        g.add(self.insert_text_act)
-        g.add(self.insert_image_act)
+        g = signing.group(_("Signatures"))
+        g.add(self.recheck_act)
+        g.add(self.details_act, large=False)
 
         pages_tab = rb.tab(_("Pages"))
         g = pages_tab.group(_("Rotate"))
@@ -577,7 +590,7 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, dock)
         self.side_dock = dock
 
-    SIDE_PANELS = {HOME_TAB: N_("Sign"), EDIT_TAB: N_("Form")}  # ribbon tab -> panel title
+    SIDE_PANELS = {EDIT_TAB: N_("Form"), SIGN_TAB: N_("Sign")}  # ribbon tab -> panel title
 
     def _ribbon_tab_changed(self, index: int) -> None:
         title = self.SIDE_PANELS.get(index)
@@ -585,7 +598,8 @@ class MainWindow(QMainWindow):
         if index != EDIT_TAB:  # a form field is marked only while the form is edited
             self.view.highlight_form_field(None)
         if title is not None:
-            self.side_stack.setCurrentIndex(index)
+            self.side_stack.setCurrentWidget(self.form_panel if index == EDIT_TAB
+                                             else self.sign_panel)
             self.side_dock.setWindowTitle(_(title))
 
     def show_tab(self, index: int) -> None:
@@ -689,8 +703,10 @@ class MainWindow(QMainWindow):
         """Show the PDF at ``path``: in a new tab (the empty one, if the
         current tab is), or with ``new_tab=False`` in place of the current
         tab's document. A file that is open already gets its tab shown, and
-        read again unless it has unsaved edits."""
+        read again unless it has unsaved edits. Opening shows the Edit tab
+        (replacing the document, as signing does, keeps the tab)."""
         path = Path(path)
+        opening = new_tab
         if new_tab:
             for i in range(self.tabs.count()):
                 other = self.tabs.widget(i)
@@ -698,6 +714,7 @@ class MainWindow(QMainWindow):
                         and other.path.resolve() == path.resolve():
                     self.tabs.setCurrentIndex(i)
                     if other.dirty:
+                        self.show_tab(EDIT_TAB)
                         return True
                     new_tab = False  # read again, in its tab
                     break
@@ -721,6 +738,8 @@ class MainWindow(QMainWindow):
         state.remember_folder(self.path.parent)
         self.undo_stack = []
         self._show(data, info, page, dirty=False)
+        if opening:
+            self.show_tab(EDIT_TAB)
         return True
 
     def _show(self, data: bytes, info, page: int, *, dirty: bool) -> None:
@@ -1287,9 +1306,25 @@ class MainWindow(QMainWindow):
         return ngettext("{n} signature: {counts}", "{n} signatures: {counts}", n).format(
             n=n, counts=", ".join(parts))
 
+    def check_signatures(self) -> None:
+        """Check again: validate the current document's signatures anew."""
+        if self.data is None:
+            return
+        self.tab.status = self._verify() or _("No signatures")
+        self.statusBar().showMessage(self.tab.status)
+
+    def signature_details(self) -> None:
+        """Details…: the chosen signature's report (or the only one's)."""
+        item = self.sigs_list.currentItem()
+        if item is None and len(self.reports) == 1:
+            item = self.sigs_list.item(0)
+        if item is not None and item.data(Qt.UserRole) is not None:
+            self.show_signature_details(item)
+
     def _fill_signatures(self) -> None:
         """The Signatures list for the current document."""
         self.sigs_list.clear()
+        self.details_act.setEnabled(bool(self.reports))
         if self.tab.verify_error:
             self.sigs_list.addItem(_("Validation failed: {error}").format(
                 error=self.tab.verify_error))
@@ -1368,7 +1403,7 @@ class MainWindow(QMainWindow):
         f = self.info.field(name) if self.info else None
         if f is None or f.locked:
             return
-        self.show_tab(HOME_TAB)  # signatures are on the Sign panel
+        self.show_tab(SIGN_TAB)  # signatures are on the Sign panel
         if f.filled:
             for i in range(self.sigs_list.count()):
                 item = self.sigs_list.item(i)
@@ -1447,8 +1482,8 @@ class MainWindow(QMainWindow):
         profile = self.current_profile()
         if not (self.doc and profile):
             return
-        if self.ribbon.currentIndex() != HOME_TAB:  # the target and the Sign panel
-            self.show_tab(HOME_TAB)
+        if self.ribbon.currentIndex() != SIGN_TAB:  # the target and the Sign panel
+            self.show_tab(SIGN_TAB)
         field_name, page, box = self.view.selected_field, None, None
         if field_name is None:
             pb = self.view.placement_box()

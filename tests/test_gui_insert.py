@@ -39,7 +39,7 @@ def typing(window, monkeypatch, text, size=20.0, accept=True):
 
 def test_buttons_are_in_the_edit_tab(window):
     buttons = [b.defaultAction() for b in
-               window.ribbon.tab_page(1).findChildren(QtWidgets.QToolButton)]
+               window.ribbon.tab_page(0).findChildren(QtWidgets.QToolButton)]
     assert window.insert_text_act in buttons and window.insert_image_act in buttons
     assert not window.insert_text_act.isEnabled()  # no document
 

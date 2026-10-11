@@ -19,15 +19,18 @@ guide show the English version.
 ![Main window with a document open](images/gui-overview.png)
 
 * **Ribbon** (top), in four tabs:
-  * *Home:* **Open…** (`Ctrl+O`), **Save**, **Save as…**, **Undo**,
-    **Close** (`Ctrl+W`);
-    **Place signature… / Sign…** (`Ctrl+S`) and **Remove signature box**
-    (`Esc`); the signature's settings: **Sign with** (the certificate),
-    **Stamp shows** *Image* and/or *Text*; **Settings…** (also for the
-    certificates).
-  * *Edit:* **Text…** and **Image…** (see
-    [Adding text and images](#adding-text-and-images)); the form is in the
-    side panel (see [Filling in forms](#filling-in-forms)).
+  * *Edit* (the first tab, shown when a document is opened): **Open…**
+    (`Ctrl+O`), **Save**, **Save as…**, **Undo**, **Close** (`Ctrl+W`);
+    **Text…** and **Image…** (see
+    [Adding text and images](#adding-text-and-images)); **Settings…** (also
+    for the certificates). The form is in the side panel (see
+    [Filling in forms](#filling-in-forms)).
+  * *Signing:* **Place signature… / Sign…** (`Ctrl+S`) and **Remove
+    signature box** (`Esc`); the signature's settings: **Sign with** (the
+    certificate), **Stamp shows** *Image* and/or *Text*; the document's
+    signatures: **Check again** (validate anew, e.g. after changing the
+    trusted certificates) and **Details…** (the report of the signature
+    chosen in the *Signatures* list).
   * *Pages:* rotate, crop and delete pages; copy, cut and paste them (see
     [Page tools](#page-tools)).
   * *Help:* **Documentation** (`F1`, this guide online), **About Slim PDF**
@@ -65,20 +68,21 @@ guide show the English version.
   Shift-click to select several pages for the page tools; drag pages to
   reorder them.
 * **Side panel** (right): the tools of the ribbon tab in use.
-  * *Home* tab: the **Sign** panel with the current target, the **Place
+  * *Edit* tab: the **Form** panel (see [Filling in forms](#filling-in-forms)).
+  * *Signing* tab: the **Sign** panel with the current target, the **Place
     signature…** / **Sign…** button, and lists of the signature fields and
     of the signatures.
-  * *Edit* tab: the **Form** panel (see [Filling in forms](#filling-in-forms)).
   * Other tabs: no side panel, so the page gets the room.
 
-  Signing (`Ctrl+S`, or a click on a signature field) switches to *Home*, a
-  click on a form field to *Edit*.
+  Signing (`Ctrl+S`, or a click on a signature field) switches to
+  *Signing*, and it stays there after signing for further signatures; a
+  click on a form field switches to *Edit*.
 
 ## Placing a new signature
 
 ![Placing a signature freely](images/gui-place.png)
 
-1. Pick a certificate under *Sign with* in the ribbon (*Home* tab).
+1. Pick a certificate under *Sign with* in the ribbon (*Signing* tab).
 2. Press **Place signature…** (`Ctrl+S`), then **click** where the signature
    should go. A preview of the signature image appears centred on the click,
    and the page is back to zooming and moving. `Esc` cancels instead.
@@ -251,7 +255,7 @@ just that one:
   `Delete` key in the *Pages* panel) removes them; at least one page stays.
   Form fields on deleted pages go with them.
 
-The *Home* tab has:
+The *Edit* tab has:
 
 * **Undo** (`Ctrl+Z`), which goes back one edit, also a deletion.
 * **Save** and **Save as…** (`Ctrl+Shift+S`; Save has no shortcut because
@@ -266,7 +270,7 @@ command line (see [cli.md](cli.md#page-tools-rotate-crop-delete-split-merge)).
 
 ## Settings
 
-**Settings…** on the ribbon's *Home* tab has two tabs. *General* is what
+**Settings…** on the ribbon's *Edit* tab has two tabs. *General* is what
 applies to all profiles:
 
 * **Language:** system default, English or Deutsch.
@@ -284,7 +288,7 @@ profiles; **OK** saves them, **Cancel** discards them.
 ## Managing certificates
 
 Certificates are managed on the *Certificates* tab of **Settings…** (ribbon,
-*Home* tab). It edits the same config file as `slim-pdf certs`. It
+*Edit* tab). It edits the same config file as `slim-pdf certs`. It
 lists the profiles with their type, the certificate's expiry date (red when
 less than 30 days are left) and where the key is:
 

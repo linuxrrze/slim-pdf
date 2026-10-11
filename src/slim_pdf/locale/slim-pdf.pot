@@ -1184,11 +1184,13 @@ msgid "the document is certified: no changes are allowed"
 msgstr ""
 
 #: src/slim_pdf/forms.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{field} is read-only"
 msgstr ""
 
 #: src/slim_pdf/forms.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{field} is locked by a signature"
 msgstr ""
@@ -1426,6 +1428,23 @@ msgid "Insert the copied pages after the selected (or the current) page"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
+msgid "Check again"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Validate the document's signatures again (e.g. after changing the trusted certificates)"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
+msgid "Details…"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "The validation report of the signature chosen in the Signatures list (or the only one)"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
 msgid "About Slim PDF"
 msgstr ""
 
@@ -1434,12 +1453,25 @@ msgid "Documentation"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Home"
+msgid "Edit"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
 #: src/slim_pdf/gui/certdialog.py
 msgid "File"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
+msgid "Insert"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Options"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Signing"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1460,16 +1492,7 @@ msgid "Stamp shows:"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Options"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-msgid "Edit"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/certdialog.py
-msgid "Insert"
+msgid "Signatures"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1525,10 +1548,6 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Signature fields"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-msgid "Signatures"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1834,6 +1853,10 @@ msgid_plural "{n} signatures: {counts}"
 msgstr[0] ""
 
 #: src/slim_pdf/gui/app.py
+msgid "No signatures"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Validation failed: {error}"
 msgstr ""
@@ -2115,10 +2138,6 @@ msgstr ""
 
 #: src/slim_pdf/gui/certdialog.py
 msgid "Make default"
-msgstr ""
-
-#: src/slim_pdf/gui/certdialog.py
-msgid "Details…"
 msgstr ""
 
 #: src/slim_pdf/gui/certdialog.py

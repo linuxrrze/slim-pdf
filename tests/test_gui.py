@@ -400,6 +400,7 @@ def test_click_on_field_signs_it_then_shows_the_signature(window, form_pdf, save
     assert save_to["path"].exists()
     assert window.path == save_to["path"]
     assert window.cert_combo.currentData() == "bob"
+    assert window.ribbon.currentIndex() == gui_app.SIGN_TAB  # stays, for further signatures
 
     shown = []
     monkeypatch.setattr(window, "_exec_details", shown.append, raising=False)
@@ -1536,8 +1537,10 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     """The ribbon replaces the toolbars; Help → About names the version."""
     rb = window.ribbon
     assert window.menuWidget() is rb
-    assert [rb.tabText(i) for i in range(rb.count())] == ["Home", "Edit", "Pages", "Help"]
-    home = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
+    assert [rb.tabText(i) for i in range(rb.count())] == ["Edit", "Signing", "Pages", "Help"]
+    assert rb.currentIndex() == gui_app.EDIT_TAB  # the first, shown at the start
+    edit = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
+    signing = [b.defaultAction() for b in rb.tab_page(1).findChildren(QtWidgets.QToolButton)]
     # viewing controls are a group at the ribbon's right end, the same on every tab
     view = [b.defaultAction() for b in rb.view_controls.findChildren(QtWidgets.QToolButton)]
     assert view == [window.pages_dock.toggleViewAction(), window.prev_act, window.next_act,
@@ -1551,12 +1554,12 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     for i in range(rb.count()):
         tab = [b.defaultAction() for b in rb.tab_page(i).findChildren(QtWidgets.QToolButton)]
         assert not set(tab) & set(view)  # not also in a tab
-    assert window.open_act in home and window.sign_act in home
-    # everything the sign panel had as controls is in the ribbon now
-    assert window.settings_act in home and window.clear_act in home
+    assert window.open_act in edit and window.settings_act in edit
+    assert window.sign_act in signing and window.clear_act in signing
+    assert window.recheck_act in signing and window.details_act in signing
     texts = [b.text() for b in page_buttons(rb)]
     assert not any("ertificate" in t for t in texts)  # managed in Settings only
-    page = rb.tab_page(0)
+    page = rb.tab_page(1)
     labels = [lbl.text() for lbl in page.findChildren(QtWidgets.QLabel)]
     assert "Sign with:" in labels and "Stamp shows:" in labels
     assert page.isAncestorOf(window.image_box) and page.isAncestorOf(window.text_box)
@@ -1566,7 +1569,7 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     assert not window.text_box.isChecked()
     window.image_check.setChecked(True)
     window.text_check.setChecked(True)
-    assert rb.tab_page(0).isAncestorOf(window.cert_combo)
+    assert rb.tab_page(1).isAncestorOf(window.cert_combo)
     assert not window.save_act.isEnabled()  # no document yet
 
     shown = []
@@ -1720,3 +1723,26 @@ def test_open_starts_in_the_last_folder(qapp, profile, tmp_path, monkeypatch):
     assert state.last_folder() == ""
     state.state_path().write_text("not json")
     assert state.last_folder() == ""
+
+
+def test_check_again_and_details_buttons(window, form_pdf, p12, tmp_path, monkeypatch):
+    """Signing tab: Check again validates anew (after a trust change);
+    Details… shows the chosen signature's report."""
+    from conftest import sign_with, write_pem
+
+    out = tmp_path / "s.pdf"
+    sign_with(window.config.certs["alice"], form_pdf, out, field_name="Applicant")
+    window.open(out)
+    assert window.ribbon.currentIndex() == gui_app.EDIT_TAB  # opening shows Edit
+    assert window.details_act.isEnabled() and window.recheck_act.isEnabled()
+    assert sig_rows(window)[0].startswith("Applicant: untrusted")
+    window.config.trust = [str(write_pem(p12[1], tmp_path / "alice.pem"))]
+    window.recheck_act.trigger()
+    assert sig_rows(window)[0].startswith("Applicant: valid")
+    assert "1 signature: 1 valid" in window.statusBar().currentMessage()
+    shown = []
+    monkeypatch.setattr(window, "_exec_details", shown.append, raising=False)
+    window.details_act.trigger()  # the only signature
+    assert len(shown) == 1
+    window.open(form_pdf)  # no signatures: nothing to show
+    assert not window.details_act.isEnabled()
