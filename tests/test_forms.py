@@ -14,8 +14,8 @@ from conftest import (
 from pyhanko.sign import fields
 from test_signing import certify
 
-from pdfsigner import forms, validation
-from pdfsigner.signing import PasswordRequired
+from slim_pdf import forms, validation
+from slim_pdf.signing import PasswordRequired
 
 
 def by_name(data, password=None):

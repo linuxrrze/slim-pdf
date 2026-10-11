@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.sign import fields
 
-from pdfsigner.config import CertProfile
+from slim_pdf.config import CertProfile
 
 PASSPHRASE = "secret"
 
@@ -54,9 +54,9 @@ def make_p12(cn: str, passphrase: str = PASSPHRASE) -> tuple[bytes, x509.Certifi
 def no_downloads(tmp_path_factory, monkeypatch):
     """Intermediate certificates are cached in a temporary folder, and never
     downloaded from the internet; tests of chain.py serve them locally."""
-    from pdfsigner import chain
+    from slim_pdf import chain
 
-    monkeypatch.setenv("PDFSIGNER_CACHE_DIR", str(tmp_path_factory.mktemp("cache")))
+    monkeypatch.setenv("SLIM_PDF_CACHE_DIR", str(tmp_path_factory.mktemp("cache")))
 
     def offline(url):
         raise OSError(f"tests don't download ({url})")
@@ -68,9 +68,9 @@ def no_downloads(tmp_path_factory, monkeypatch):
 def english(monkeypatch):
     """Tests check English messages, whatever the machine's locale; tests of
     the German catalog switch explicitly."""
-    from pdfsigner import i18n
+    from slim_pdf import i18n
 
-    monkeypatch.setenv("PDFSIGNER_LANG", "en")
+    monkeypatch.setenv("SLIM_PDF_LANG", "en")
     i18n.set_language("en")
     yield
     i18n.set_language("en")
@@ -416,7 +416,7 @@ def mem_keyring():
 @pytest.fixture
 def cfg_path(tmp_path, monkeypatch) -> Path:
     path = tmp_path / "config" / "config.toml"
-    monkeypatch.setenv("PDFSIGNER_CONFIG", str(path))
+    monkeypatch.setenv("SLIM_PDF_CONFIG", str(path))
     return path
 
 
@@ -438,8 +438,8 @@ def keepass_db(tmp_path, p12):
 
 def sign_with(profile: CertProfile, src: Path, dst: Path, **kw) -> str:
     """Sign ``src`` into ``dst`` with a PKCS#12 test profile."""
-    from pdfsigner.secretstore import Credentials
-    from pdfsigner.signing import open_signer, sign_pdf
+    from slim_pdf.secretstore import Credentials
+    from slim_pdf.signing import open_signer, sign_pdf
 
     with open_signer(profile, Credentials(secret=PASSPHRASE)) as s:
         return sign_pdf(src, dst, s, profile, **kw)

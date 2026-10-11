@@ -10,11 +10,11 @@ from asn1crypto import x509 as ax509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa, utils
 
-from pdfsigner import cli, systemstore
-from pdfsigner.config import CertProfile, load_config
-from pdfsigner.secretstore import resolve_credentials
-from pdfsigner.signing import SigningError, open_signer, sign_pdf
-from pdfsigner.systemstore import StoreIdentity, p1363_to_der, select
+from slim_pdf import cli, systemstore
+from slim_pdf.config import CertProfile, load_config
+from slim_pdf.secretstore import resolve_credentials
+from slim_pdf.signing import SigningError, open_signer, sign_pdf
+from slim_pdf.systemstore import StoreIdentity, p1363_to_der, select
 
 from conftest import validate_all
 from pki import MiniPKI

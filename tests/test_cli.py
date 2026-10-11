@@ -3,9 +3,9 @@ import os
 import pytest
 from pyhanko.sign import fields
 
-from pdfsigner import cli
-from pdfsigner.config import load_config
-from pdfsigner.signing import inspect_pdf
+from slim_pdf import cli
+from slim_pdf.config import load_config
+from slim_pdf.signing import inspect_pdf
 
 from conftest import PASSPHRASE, make_encrypted, validate_all
 
@@ -95,7 +95,7 @@ def test_add_existing_refused(work, capsys):
 
 def test_set_secret_and_purge(work, mem_keyring, prompts, capsys):
     assert run("certs", "set-secret", "work") == 0
-    assert mem_keyring.store[("pdfsigner", "work")] == PASSPHRASE
+    assert mem_keyring.store[("slim-pdf", "work")] == PASSPHRASE
     assert "switch with" in capsys.readouterr().out  # profile still uses prompt
     assert run("certs", "remove", "work", "--purge-secret") == 0
     assert mem_keyring.store == {}
@@ -188,7 +188,7 @@ def test_sign_in_place_twice_with_two_profiles(work, cfg_path, form_pdf, p12, p1
 def test_sign_with_keyring_never_prompts(work, cfg_path, form_pdf, mem_keyring,
                                          monkeypatch, tmp_path):
     run("certs", "edit", "work", "--secret", "keyring")
-    mem_keyring.store[("pdfsigner", "work")] = PASSPHRASE
+    mem_keyring.store[("slim-pdf", "work")] = PASSPHRASE
     monkeypatch.setattr(cli, "_ask", lambda p: pytest.fail("should not prompt"))
     assert run("sign", form_pdf, "-o", tmp_path / "o.pdf", "--field", "Applicant") == 0
 
@@ -272,7 +272,7 @@ def test_sign_encrypted_pdf(work, form_pdf, tmp_path, monkeypatch, p12):
 
 
 def test_explicit_config_option(tmp_path, p12, monkeypatch, capsys):
-    monkeypatch.delenv("PDFSIGNER_CONFIG", raising=False)
+    monkeypatch.delenv("SLIM_PDF_CONFIG", raising=False)
     cfg = tmp_path / "custom.toml"
     assert run("--config", cfg, "certs", "add", "w", "--p12", p12[0]) == 0
     assert cfg.exists()
@@ -320,10 +320,10 @@ def test_pdf_password_from_stdin_env_or_prompt(form_pdf, tmp_path, monkeypatch, 
     monkeypatch.setattr(cli, "_ask", lambda p: pytest.fail(f"prompted: {p}"))
     monkeypatch.setattr("sys.stdin", io.StringIO("docpw\n"))
     assert run("fields", enc, "--password", "-") == 0
-    monkeypatch.setenv("PDFSIGNER_PDF_PASSWORD", "docpw")
+    monkeypatch.setenv("SLIM_PDF_PDF_PASSWORD", "docpw")
     assert run("fields", enc) == 0
     assert run("rotate", enc, "--angle", "90", "-o", tmp_path / "r.pdf") == 0
-    monkeypatch.delenv("PDFSIGNER_PDF_PASSWORD")
+    monkeypatch.delenv("SLIM_PDF_PDF_PASSWORD")
     asked = []
     monkeypatch.setattr(cli, "_ask", lambda p: asked.append(p) or "docpw")
     assert run("fields", enc) == 0
@@ -342,7 +342,7 @@ def test_system_profile_on_an_unsupported_platform_notes_it(cfg_path, capsys, mo
 
 
 def test_form_list_and_fill(fill_pdf, tmp_path, capsys, cfg_path):
-    from pdfsigner import forms
+    from slim_pdf import forms
 
     assert run("form", fill_pdf) == 0
     listing = capsys.readouterr().out

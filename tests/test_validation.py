@@ -1,4 +1,4 @@
-"""Signature validation: pdfsigner.validation and `pdfsigner verify`."""
+"""Signature validation: slim_pdf.validation and `slim-pdf verify`."""
 
 import io
 import logging
@@ -8,10 +8,10 @@ from cryptography.hazmat.primitives import serialization
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.pdf_utils.generic import ByteStringObject, NameObject, NumberObject
 
-from pdfsigner import cli, pages
-from pdfsigner.config import CertProfile, Config
-from pdfsigner.signing import SigningError
-from pdfsigner.validation import INVALID, UNSUPPORTED, UNTRUSTED, VALID, verify_pdf
+from slim_pdf import cli, pages
+from slim_pdf.config import CertProfile, Config
+from slim_pdf.signing import SigningError
+from slim_pdf.validation import INVALID, UNSUPPORTED, UNTRUSTED, VALID, verify_pdf
 
 from conftest import make_encrypted, sign_with, write_pem
 
@@ -219,7 +219,7 @@ def test_untrusted_timestamp_authority(profile, blank_pdf, alice_pem, tmp_path, 
     from pyhanko.keys import load_cert_from_pemder
     from pyhanko.sign.timestamps.dummy_client import DummyTimeStamper
 
-    from pdfsigner import signing
+    from slim_pdf import signing
     from pki import make_tsa
 
     tsa_cert, tsa_key = make_tsa()
@@ -241,7 +241,7 @@ def legacy(signed):
     """The signature turned into a legacy adbe.x509.rsa_sha1 one (same length,
     so the byte range still fits), which pyHanko skips."""
     data = signed.read_bytes()
-    assert data.count(b"/ETSI.CAdES.detached") == 1  # PAdES, as pdfsigner signs
+    assert data.count(b"/ETSI.CAdES.detached") == 1  # PAdES, as slim-pdf signs
     signed.write_bytes(data.replace(b"/ETSI.CAdES.detached", b"/adbe.x509.rsa_sha1 "))
     return signed
 
@@ -253,7 +253,7 @@ def test_unsupported_format_is_listed_not_skipped(legacy, p12, caplog):
     assert (r.field, r.status, r.ok) == ("Applicant", UNSUPPORTED, False)
     assert r.coverage == "entire document" and r.reason == "Test"
     assert r.signed_at is not None
-    assert "adbe.x509.rsa_sha1, which pdfsigner cannot check" in r.problems[0]
+    assert "adbe.x509.rsa_sha1, which slim-pdf cannot check" in r.problems[0]
     # page edits must still warn about it
     assert pages.signature_names(legacy.read_bytes()) == ["Applicant"]
 
@@ -287,7 +287,7 @@ def test_weak_algorithm_is_named(p12):
     from asn1crypto import x509 as asn1_x509
     from pyhanko.sign.ades.report import AdESIndeterminate
 
-    from pdfsigner.validation import _trust_problem
+    from slim_pdf.validation import _trust_problem
 
     cert = asn1_x509.Certificate.load(p12[1].public_bytes(serialization.Encoding.DER))
     indic = AdESIndeterminate.CRYPTO_CONSTRAINTS_FAILURE

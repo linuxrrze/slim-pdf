@@ -1,4 +1,4 @@
-"""Page operations (pdfsigner.pages) and their CLI commands."""
+"""Page operations (slim_pdf.pages) and their CLI commands."""
 
 import io
 
@@ -6,10 +6,10 @@ import pypdfium2 as pdfium
 import pytest
 from pyhanko.pdf_utils.reader import PdfFileReader
 
-from pdfsigner import cli, pages
-from pdfsigner.pages import PageError, parse_pages
-from pdfsigner.signing import PasswordRequired, SigningError, inspect_pdf
-from pdfsigner.validation import INVALID, VALID, verify_pdf
+from slim_pdf import cli, pages
+from slim_pdf.pages import PageError, parse_pages
+from slim_pdf.signing import PasswordRequired, SigningError, inspect_pdf
+from slim_pdf.validation import INVALID, VALID, verify_pdf
 
 from conftest import make_encrypted, make_pdf, sign_with, write_pem
 
@@ -122,7 +122,7 @@ def test_crop_margins_follow_the_screen(tmp_path, rotate):
     w1, h1, _ = info(out)[0]
     assert (w1, h1) == (w0, h0 - 100)
     # what is now at the top-left was 100 pt further down before
-    from pdfsigner.gui.document import PdfDocument
+    from slim_pdf.gui.document import PdfDocument
 
     cropped, original = PdfDocument(out), PdfDocument(src.read_bytes())
     assert cropped.to_pdf(0, 10, 10) == pytest.approx(original.to_pdf(0, 10, 110), abs=0.5)
@@ -329,7 +329,7 @@ def test_delete_keeps_encryption_and_drops_fields_of_deleted_pages(form_pdf, tmp
 
 
 def test_delete_from_signed_document_is_detected(profile, form_pdf, tmp_path):
-    from pdfsigner.validation import INVALID, verify_pdf
+    from slim_pdf.validation import INVALID, verify_pdf
 
     signed = tmp_path / "s.pdf"
     sign_with(profile, form_pdf, signed, field_name="Applicant")

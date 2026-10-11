@@ -1,1565 +1,1566 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: pdfsigner\n"
+"Project-Id-Version: slim-pdf\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pdfsigner/_macstore.py
+#: src/slim_pdf/_macstore.py
 msgid "unknown error"
 msgstr ""
 
-#: src/pdfsigner/_macstore.py
+#: src/slim_pdf/_macstore.py
 msgid "macOS keychain"
 msgstr ""
 
-#: src/pdfsigner/_macstore.py
+#: src/slim_pdf/_macstore.py
 #, python-brace-format
 msgid "keychain search failed (OSStatus {status})"
 msgstr ""
 
-#: src/pdfsigner/_macstore.py
+#: src/slim_pdf/_macstore.py
 #, python-brace-format
 msgid "unsupported algorithm {mechanism}/{digest}"
 msgstr ""
 
-#: src/pdfsigner/_macstore.py
+#: src/slim_pdf/_macstore.py
 #, python-brace-format
 msgid "cannot access the private key (OSStatus {status})"
 msgstr ""
 
-#: src/pdfsigner/_macstore.py
+#: src/slim_pdf/_macstore.py
 msgid "cancelled in the keychain dialog"
 msgstr ""
 
-#: src/pdfsigner/_macstore.py
+#: src/slim_pdf/_macstore.py
 #, python-brace-format
 msgid "keychain signing failed: {error}"
 msgstr ""
 
-#: src/pdfsigner/_winstore.py
+#: src/slim_pdf/_winstore.py
 msgid "cancelled in the Windows PIN/consent dialog"
 msgstr ""
 
-#: src/pdfsigner/_winstore.py
+#: src/slim_pdf/_winstore.py
 msgid "Windows certificate store (CurrentUser\\My)"
 msgstr ""
 
-#: src/pdfsigner/_winstore.py
+#: src/slim_pdf/_winstore.py
 #, python-brace-format
 msgid "cannot open the certificate store: {error}"
 msgstr ""
 
-#: src/pdfsigner/_winstore.py
+#: src/slim_pdf/_winstore.py
 #, python-brace-format
 msgid "accessing the private key failed: {error}"
 msgstr ""
 
-#: src/pdfsigner/_winstore.py
+#: src/slim_pdf/_winstore.py
 msgid "cannot access the private key"
 msgstr ""
 
-#: src/pdfsigner/_winstore.py
+#: src/slim_pdf/_winstore.py
 #, python-brace-format
 msgid "unsupported digest {digest}"
 msgstr ""
 
-#: src/pdfsigner/_winstore.py
+#: src/slim_pdf/_winstore.py
 #, python-brace-format
 msgid "signing failed: {error}"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Signer's name"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Common name"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "E-mail address"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Organization"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Organizational unit"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Title"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Country"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/certinfo.py
+#: src/slim_pdf/gui/app.py
 msgid "Issuer"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Serial number"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Date and time of signing"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Date of signing"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Time of signing"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/certinfo.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Reason"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/certinfo.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Location"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/certinfo.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Contact"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "the stamp text has a stray %: write %% for a percent sign, placeholders as %(name)s"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 #, python-brace-format
 msgid "unknown placeholder %({name})s in the stamp text; known: {known}"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "expired"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "not yet valid"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 #, python-brace-format
 msgid "valid, {days} days left"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Subject"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Valid from"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/certinfo.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Valid until"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Status"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Key"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Key usage"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Extended key usage"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "Alternative names"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "SHA-256 fingerprint"
 msgstr ""
 
-#: src/pdfsigner/certinfo.py
+#: src/slim_pdf/certinfo.py
 msgid "SHA-1 fingerprint"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid ""
 "Command line interface.\n"
 "\n"
-"    pdfsigner certs list|show|add|edit|remove|default|set-secret|test|system|pkcs11\n"
-"    pdfsigner fields FILE\n"
-"    pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]\n"
-"    pdfsigner verify FILE\n"
-"    pdfsigner rotate|crop FILE [--pages SPEC] ...\n"
-"    pdfsigner delete FILE --pages SPEC\n"
-"    pdfsigner split FILE [--every N | --part SPEC ...]\n"
-"    pdfsigner merge -o OUT FILE[@SPEC] ...\n"
-"    pdfsigner gui [FILE]\n"
+"    slim-pdf certs list|show|add|edit|remove|default|set-secret|test|system|pkcs11\n"
+"    slim-pdf fields FILE\n"
+"    slim-pdf sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]\n"
+"    slim-pdf verify FILE\n"
+"    slim-pdf rotate|crop FILE [--pages SPEC] ...\n"
+"    slim-pdf delete FILE --pages SPEC\n"
+"    slim-pdf split FILE [--every N | --part SPEC ...]\n"
+"    slim-pdf merge -o OUT FILE[@SPEC] ...\n"
+"    slim-pdf form FILE [--set NAME=VALUE ...]\n"
+"    slim-pdf gui [FILE]\n"
 "\n"
 "Pages are 1-based on the command line; coordinates are PDF points with the\n"
 "origin at the bottom-left of the (unrotated) page.\n"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "usage: "
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "%(heading)s:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "positional arguments"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "options"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "subcommands"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "show this help message and exit"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid ""
 "%(prog)s: error: %(message)s\n"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "argument %(argument_name)s: %(message)s"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "the following arguments are required: %s"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "one of the arguments %s is required"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "not allowed with argument %s"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "unrecognized arguments: %s"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "ambiguous option: %(option)s could match %(matches)s"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "ignored explicit argument %r"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "expected one argument"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "expected at most one argument"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "expected at least one argument"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "expected %s argument"
 msgid_plural "expected %s arguments"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "invalid %(type)s value: %(value)r"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "invalid choice: %(value)r (choose from %(choices)s)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "invalid choice: %(value)r, maybe you meant %(closest)r? (choose from %(choices)s)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "unknown parser %(parser_name)r (choices: %(choices)s)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "can't open '%(filename)s': %(error)s"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{prompt}: "
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "expected {n} comma-separated number"
 msgid_plural "expected {n} comma-separated numbers"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "one of {types} (system: Windows and macOS only)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "path to the .p12/.pfx file"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "PKCS#11 module, e.g. {example}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "PKCS#11 token label"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "PKCS#11 key label"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "PKCS#11 key ID in hex, e.g. 02 for YubiKey PIV slot 9c"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "PKCS#11 certificate label (default: the certificate with the key's ID)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "Windows/macOS certificate store: thumbprint or part of the subject (see 'certs system')"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "signature image (PNG with transparency recommended)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "text on the stamp, \\n for a new line; '' for none; placeholders: {fields}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "where the text goes, seen from the image: {positions}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "signature reason"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "signature location"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "contact info"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "RFC 3161 timestamp server URL"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "embed chain and revocation info for long-term validation: yes/no"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "where the passphrase/PIN comes from: {sources}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "KeePass .kdbx file"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "KeePass key file"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "entry as Group/Title or Title"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "attachment name holding the .p12"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "YubiKey slot[:serial] for the database (keepassxc only)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "make this the default certificate"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "note: profiles of type 'system' only work on Windows and macOS"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "no certificates configured ({path})"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
-msgid "certificate: not read yet ('pdfsigner certs test {name}' reads it)"
+msgid "certificate: not read yet ('slim-pdf certs test {name}' reads it)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "certificate:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "certificate {name} exists, use 'certs edit'"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "saved to {path}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
-msgid "'pdfsigner certs test {name}' checks it and stores the certificate's details"
+msgid "'slim-pdf certs test {name}' checks it and stores the certificate's details"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "PIN for '{name}'"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "Passphrase for '{name}'"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "stored in keyring ({backend})"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
-msgid "note: profile uses secret={secret}; switch with 'pdfsigner certs edit {name} --secret keyring'"
+msgid "note: profile uses secret={secret}; switch with 'slim-pdf certs edit {name} --secret keyring'"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "certificate stored in the profile"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "no certificates with a private key in the {store}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "no PKCS#11 module found in the usual places: install OpenSC or your card's software, or give the module's path"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "PKCS#11 modules found: {modules}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "PIN for token '{label}'"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{module}: {error}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "no token found ({module})"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "module {module}:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "(no objects)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "(private keys are usually only listed after logging in: --login)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
-msgid "profile: pdfsigner certs add NAME --pkcs11-lib {module} --key-id ID{token}"
+msgid "profile: slim-pdf certs add NAME --pkcs11-lib {module} --key-id ID{token}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "PDF password"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{n} page, certified ({name})"
 msgid_plural "{n} pages, certified ({name})"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{n} page"
 msgid_plural "{n} pages"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "no signature fields"
 msgstr ""
 
-#: src/pdfsigner/cli.py
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/cli.py
+#: src/slim_pdf/gui/app.py
 msgid "signed"
 msgstr ""
 
-#: src/pdfsigner/cli.py
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/cli.py
+#: src/slim_pdf/gui/app.py
 msgid "LOCKED"
 msgstr ""
 
-#: src/pdfsigner/cli.py
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/cli.py
+#: src/slim_pdf/gui/app.py
 msgid "empty"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "page {page}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "page ?"
 msgstr ""
 
-#: src/pdfsigner/cli.py
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/cli.py
+#: src/slim_pdf/gui/app.py
 msgid "invisible"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "--page needs --box or --at (an existing field is chosen with --field)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "--width only applies to --at"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "--box/--at need --page"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "--at needs --width"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "--at keeps the image aspect ratio but the profile has no image"
 msgstr ""
 
-#: src/pdfsigner/cli.py
-#: src/pdfsigner/insert.py
+#: src/slim_pdf/cli.py
+#: src/slim_pdf/insert.py
 #, python-brace-format
 msgid "no such file: {path}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "signing… if your card reader asks for the PIN or your security key blinks, confirm there"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "signed field {name} -> {path}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
-msgid "password of an encrypted PDF; '-' reads it from stdin. Without it, $PDFSIGNER_PDF_PASSWORD or a prompt is used: a password given here is visible to other users (process list) and in the shell history"
+#: src/slim_pdf/cli.py
+msgid "password of an encrypted PDF; '-' reads it from stdin. Without it, $SLIM_PDF_PDF_PASSWORD or a prompt is used: a password given here is visible to other users (process list) and in the shell history"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "document has no signatures"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "VALID"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "UNTRUSTED"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "INVALID"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "NOT CHECKED"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "signer:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "issuer:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "time:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "covers:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "ltv:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "reason:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "location:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "problem:"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{field}: {status}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{time} (timestamp)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{time} (signer's clock)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "validation data embedded"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "PDF password for {file}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "--margins takes 1, 2 or 4 values (top,right,bottom,left)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "rotating pages would invalidate the signature(s) {names}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "rotated {n} page by {angle}° -> {path}"
 msgid_plural "rotated {n} pages by {angle}° -> {path}"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "deleting pages would invalidate the signature(s) {names}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "deleted {n} page -> {path}"
 msgid_plural "deleted {n} pages -> {path}"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "cropping pages would invalidate the signature(s) {names}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "cropped {n} page -> {path}"
 msgid_plural "cropped {n} pages -> {path}"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{field}: use yes or no"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "no form fields"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "yes"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "no"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "read-only"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "choices: {choices}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "--set takes NAME=VALUE, not {item!r}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
-#: src/pdfsigner/forms.py
+#: src/slim_pdf/cli.py
+#: src/slim_pdf/forms.py
 #, python-brace-format
 msgid "no form field named {name!r}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "filling in would invalidate the signature(s) {names}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "filled in {n} field -> {path}"
 msgid_plural "filled in {n} fields -> {path}"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "splitting would remove the signature(s) {names}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "-o needs {n} in the name, e.g. part-{n}.pdf"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "a part would overwrite the input file {file}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "already exist: {files} (use --overwrite to replace them)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{path}  ({n} page)"
 msgid_plural "{path}  ({n} pages)"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "merging {file} would remove the signature(s) {names}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "{n} file"
 msgid_plural "{n} files"
 msgstr[0] ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "merged {files} ({pages}) -> {path}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
-msgid "the GUI needs PySide6: pip install 'pdfsigner[gui]' ({error})"
+msgid "the GUI needs PySide6: pip install 'slim-pdf[gui]' ({error})"
 msgstr ""
 
-#: src/pdfsigner/cli.py
-msgid "config file (default: $PDFSIGNER_CONFIG, else config.toml in the platform's config folder, see docs/cli.md)"
+#: src/slim_pdf/cli.py
+msgid "config file (default: $SLIM_PDF_CONFIG, else config.toml in the platform's config folder, see docs/cli.md)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "show library warnings"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "manage certificate profiles"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "also delete it from the keyring"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "store passphrase/PIN in the OS keyring"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "list certificates in the Windows/macOS store"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "list the keys and certificates on a PKCS#11 token"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "PKCS#11 module, e.g. {example} (default: all modules found on this system)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "only this token"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "ask for the PIN to list the private keys too"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "unlock the certificate and print its subject"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "list signature fields"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "sign a PDF"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "output file (default: <name>-signed.pdf)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "overwrite the input"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "certificate profile (default: configured default)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "existing field to sign, or name for the new field"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "page for a new field (1-based)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "x1,y1,x2,y2 in points"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "x,y of lower-left corner; height follows the image aspect ratio"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "width in points (with --at)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "sign even if this invalidates an existing signature"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "check the signatures in a PDF"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "extra trusted root certificate (PEM/DER); repeatable"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "don't trust the built-in Mozilla roots and the system's CA store, only --trust and the config's trust list"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "fetch revocation info (OCSP/CRL) from the network"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "don't download intermediate certificates a signature lacks"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "print pyHanko's full report"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "output file (default: <name>-{suffix}.pdf)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "pages, e.g. 1-3,5,8- or odd/even (default: all)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "pages, e.g. 1-3,5,8- or odd/even"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "go ahead even if this invalidates existing signatures"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "rotate pages"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "clockwise degrees"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "delete pages"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "crop pages (sets the visible area)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "points to cut off as seen on screen: ALL, VERTICAL,HORIZONTAL or TOP,RIGHT,BOTTOM,LEFT"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "x1,y1,x2,y2 in PDF points"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "show the whole page again"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "list or fill in form fields"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "fill in a field (repeat for more; check boxes: yes/no; \\n in text starts a new line). Without --set: list the fields"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "output file (default: <name>-filled.pdf)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "split into several PDFs"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "pages per file (default: 1)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "pages of one output file; repeat for more files"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "output names with {n} for the part number (default: <name>-part{n}.pdf)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "replace part files that already exist"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "split even signed documents (the signatures are removed)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "combine PDFs (or some of their pages)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "output file"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "merge even signed documents (the signatures are removed)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 msgid "start the GUI"
 msgstr ""
 
-#: src/pdfsigner/cli.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/cli.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "cancelled"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "error: {message} (use --force to continue anyway)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "error: {message} (use --force to sign anyway)"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "error: {message}"
 msgstr ""
 
-#: src/pdfsigner/cli.py
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "error: cannot read the PDF: {error}"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 msgid ""
 "Digitally signed by %(signer)s\n"
 "%(ts)s"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 msgid "certificate profile needs a name"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: unknown type {type!r}"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: unknown secret source {secret!r}"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: pkcs12 needs a path or a KeePass attachment"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: keepass_attachment requires secret = 'keepass' or 'keepassxc'"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: keepass_yubikey requires secret = 'keepassxc'"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: text_position must be one of {positions}"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: system needs system_cert (thumbprint or subject)"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: pkcs11 needs pkcs11_lib"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: key_id must be hex, e.g. 02"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: ltv must be true or false"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: {secret} needs keepass_db and keepass_entry"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: unknown keys {keys}"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: {key} must be true or false, not {value!r}"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{name}: {key} must be a string, not {value!r}"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 msgid "no certificate given and no default configured"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "unknown certificate {name!r}"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{path}: unknown keys {keys}"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{path}: default {default!r} is not a certificate profile"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{path}: trust must be a list of file names"
 msgstr ""
 
-#: src/pdfsigner/config.py
+#: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{path}: language must be one of {languages}"
 msgstr ""
 
-#: src/pdfsigner/forms.py
+#: src/slim_pdf/forms.py
 #, python-brace-format
 msgid "{field}: the form can't show these characters: {chars}"
 msgstr ""
 
-#: src/pdfsigner/forms.py
-#: src/pdfsigner/pages.py
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/forms.py
+#: src/slim_pdf/pages.py
+#: src/slim_pdf/signing.py
 msgid "PDF is encrypted, a password is required"
 msgstr ""
 
-#: src/pdfsigner/forms.py
+#: src/slim_pdf/forms.py
 msgid "the document is certified: no changes are allowed"
 msgstr ""
 
-#: src/pdfsigner/forms.py
+#: src/slim_pdf/forms.py
 #, python-brace-format
 msgid "{field} is read-only"
 msgstr ""
 
-#: src/pdfsigner/forms.py
+#: src/slim_pdf/forms.py
 #, python-brace-format
 msgid "{field} is locked by a signature"
 msgstr ""
 
-#: src/pdfsigner/forms.py
+#: src/slim_pdf/forms.py
 #, python-brace-format
 msgid "{field} takes at most {n} characters"
 msgstr ""
 
-#: src/pdfsigner/forms.py
+#: src/slim_pdf/forms.py
 #, python-brace-format
 msgid "{field}: {value!r} is not one of its choices"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Wheel: zoom, drag: move the page. Click an empty field to sign it, or use Place signature…; a placed signature is moved by dragging and resized at its corner or with Ctrl+wheel."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Click where the signature should go, or on an empty (dashed) field. Esc cancels."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "valid"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "untrusted"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "invalid"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "not checked"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{n} valid"
 msgid_plural "{n} valid"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{n} untrusted"
 msgid_plural "{n} untrusted"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{n} not checked"
 msgid_plural "{n} not checked"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{n} invalid"
 msgid_plural "{n} invalid"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
-msgid "PDF Signer"
+#: src/slim_pdf/gui/app.py
+msgid "Slim PDF"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Open…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Save"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Save the edited document"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Save as…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Undo"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Clear placement"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Settings…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Certificates…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Manage your certificates (in the settings)"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "The certificate to sign with"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Signature image"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Show the certificate's signature image in the stamp"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/insert.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/insert.py
 msgid "Text"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Show the signer's name and the date in the stamp"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Previous"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Next"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Zoom out"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Fit"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Fit the page into the window"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Zoom in"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Rotate left"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Rotate right"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Crop…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Uncrop"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Delete"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Delete pages"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Delete the pages selected in the Pages panel, or the current one"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Fill in form…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Fill in the document's form fields (or click one on the page)"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Text…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Add text to the page"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Image…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Add an image (PNG, JPEG or PDF) to the page"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-msgid "About PDF Signer"
+#: src/slim_pdf/gui/app.py
+msgid "About Slim PDF"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "About Qt"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Documentation"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Home"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "File"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Sign"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Certificate"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Stamp"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Options"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Edit"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Form"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Insert"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Pages"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Rotate"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Crop"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "View"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Navigate"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Zoom"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Panels"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Help"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Delete page {page}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Delete {n} page"
 msgid_plural "Delete {n} pages"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Target"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Sign…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Signature fields"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Signatures"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Double-click for the full validation report"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/settings.py
 msgid "Settings"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-msgid "The new language is used after restarting PDF Signer."
+#: src/slim_pdf/gui/app.py
+msgid "The new language is used after restarting Slim PDF."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Open PDF"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "PDF"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Password for {name}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Open"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Cannot open {path}:\n"
 "{error}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid " / {count} "
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Document is certified ({name}). {message}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
-msgid "{modified}{name} – PDF Signer"
+msgid "{modified}{name} – Slim PDF"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Existing signatures"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{message} (not saved yet)"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Undone"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Rotating pages will invalidate the signature(s) {names}.\n"
@@ -1567,40 +1568,40 @@ msgid ""
 "Edit pages before signing. Continue anyway?"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Rotated page {page}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Rotated {n} page"
 msgid_plural "Rotated {n} pages"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Drag a rectangle around the area to keep. Esc cancels."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "This page ({page})"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "All pages"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Selected pages ({count})"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Apply to:"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Cropping pages will invalidate the signature(s) {names}.\n"
@@ -1608,18 +1609,18 @@ msgid ""
 "Edit pages before signing. Continue anyway?"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Cropped page {page}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Cropped {n} page"
 msgid_plural "Cropped {n} pages"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Uncropping pages will invalidate the signature(s) {names}.\n"
@@ -1627,22 +1628,22 @@ msgid ""
 "Edit pages before signing. Continue anyway?"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Uncropped page {page}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Uncropped {n} page"
 msgid_plural "Uncropped {n} pages"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "A document can't lose all its pages."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Deleting pages will invalidate the signature(s) {names}.\n"
@@ -1650,18 +1651,18 @@ msgid ""
 "Edit pages before signing. Continue anyway?"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Deleted page {page}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Deleted {n} page"
 msgid_plural "Deleted {n} pages"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Moving pages will invalidate the signature(s) {names}.\n"
@@ -1669,31 +1670,31 @@ msgid ""
 "Edit pages before signing. Continue anyway?"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Move pages"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Moved page {page} to position {pos}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Moved {n} page"
 msgid_plural "Moved {n} pages"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/formdialog.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/formdialog.py
 msgid "Fill in form"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "This document has no form fields to fill in."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Filling in these fields will invalidate the signature(s) {names}.\n"
@@ -1701,36 +1702,36 @@ msgid ""
 "Fill in forms before signing. Continue anyway?"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Filled in {n} field"
 msgid_plural "Filled in {n} fields"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Drag a box for the text on the page (it wraps at its width), or click where it should start. Esc cancels."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Add image"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Images"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/certdialog.py
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/certdialog.py
+#: src/slim_pdf/gui/settings.py
 msgid "All files"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Drag a box for the image on the page, or click where its centre should be. Esc cancels."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Adding to a page will invalidate the signature(s) {names}.\n"
@@ -1738,155 +1739,155 @@ msgid ""
 "Edit pages before signing. Continue anyway?"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Added text to page {page}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Added an image to page {page}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/insertdialog.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/insertdialog.py
 msgid "Add text"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Saved {name}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Save PDF as"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Unsaved changes"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Save the changes to {name}?"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Validation failed: {error}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "{field}: {status}\n"
 "   {signer}, {when}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "{field}: {status}\n"
 "   {signer}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "then changed (allowed): see tooltip"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "{n} signature: {counts}"
 msgid_plural "{n} signatures: {counts}"
 msgstr[0] ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Result"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Signer"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Signed at"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Trusted timestamp"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Covers"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
-#: src/pdfsigner/gui/pageview.py
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/pageview.py
 msgid "Signature"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Problem"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Signer's certificate"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Signature '{name}'"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "p. {page}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "{name}\n"
 "   {state}, {where}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Sign with"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Certificate for this signature:"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Prepared field '{name}'"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "New signature on page {page}\n"
 "at {x:.0f}, {y:.0f} pt, {width:.0f} × {height:.0f} pt"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "None yet: press Place signature…, or pick an empty field below."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Place signature…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Cannot sign"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Existing signature will break"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Signing will invalidate an existing signature:\n"
@@ -1895,475 +1896,475 @@ msgid ""
 "Sign anyway?"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Save signed PDF"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Signing…"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Signing failed"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Signed '{field}' → {file}. You can add further signatures."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Signing… If your card reader asks for the PIN or your security key blinks, confirm there."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "unknown"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
-msgid "PDF Signer {version}"
+msgid "Slim PDF {version}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Sign PDFs with real certificates (PAdES) and a visible signature image, and check the signatures in them."
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Built with: {libraries}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 msgid "Icons: Tabler Icons (MIT license)"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
-msgid "If PDF Signer stops responding, where it hung is logged to {path}"
+msgid "If Slim PDF stops responding, where it hung is logged to {path}"
 msgstr ""
 
-#: src/pdfsigner/gui/app.py
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Cannot read the configuration:\n"
 "{error}"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Ask every time"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "OS keyring"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "KeePass database (.kdbx)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "KeePassXC (keepassxc-cli, YubiKey)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "No passphrase"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "system"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "PKCS#12 file"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "PKCS#11 token"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "System certificate store"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Below the image"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Above the image"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Left of the image"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Right of the image"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "The certificate hasn't been read yet. Save the profile or use the test in its editor; both read it from the key."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "Certificate of {name!r}"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Certificate (PEM, public):"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Full report…"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "The validation report as pyHanko writes it"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "key ID {id}"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "KeePass: {entry}"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Name"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Type"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/certdialog.py
+#: src/slim_pdf/gui/settings.py
 msgid "Add…"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Edit…"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/certdialog.py
+#: src/slim_pdf/gui/settings.py
 msgid "Remove"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Make default"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Details…"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "The certificate's details, without a PIN"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Changes to certificates are saved right away."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "{name}  (default)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/certdialog.py
+#: src/slim_pdf/gui/settings.py
 msgid "Certificates"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid ""
 "Could not save the configuration:\n"
 "{error}"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "Remove {name!r}?"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "Edit certificate {name!r}"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "New certificate"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "e.g. Work, YubiKey"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "~/certs/me.p12 (empty if stored in KeePass)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "System certificate store (Windows / macOS)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "thumbprint or part of the subject"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Choose…"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "PKCS#11 token / smartcard"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "The PKCS#11 modules found on this system; or enter the path of another one. Empty: Show token contents… asks all modules found."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Module"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "PKCS#11 module"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "PKCS#11 modules"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Token label"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Key label"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Key ID"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "hex, e.g. 02 (YubiKey PIV slot 9c)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Cert label"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "default: the certificate with the key's ID"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Show token contents…"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "List the keys and certificates on the token and pick one"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Appearance"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "PNG with transparent background, or PDF (vector)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "empty = image only"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "One line per line on the stamp. Insert adds certificate attributes and the signing time; a line whose values are all empty is left out."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Stamp text"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Text position"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "The stamp as it will look, with the values of the certificate (or sample values until it has been read)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Preview"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Signature details"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Timestamp URL"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "optional RFC 3161 TSA"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Embed validation data (LTV)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Embed the certificate chain and revocation info so the signature can still be verified after the certificate expires (PAdES B-LT; B-LTA with a timestamp server). Needs network access and a trusted chain while signing."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Passphrase / PIN"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Source"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Store passphrase in keyring…"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "KeePass file"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "KeePass database"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Key file"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "optional"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Entry"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Group/Title"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Attachment"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "optional: .p12 stored on the entry"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "optional: slot[:serial], e.g. 2"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Test: unlock and show certificate"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "{type} (not available on this system)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "(cannot load image)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "(no preview)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Not read yet. Saving reads it from the key (asking for the PIN or passphrase once), as does the test below."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "{name}, valid until {date} ({status})"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Keyring"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Enter a name for the certificate first."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "Passphrase/PIN for '{name}'"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid ""
 "Could not store secret:\n"
 "{error}"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "Stored in {backend}"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "No certificates with a private key in the {store}."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Certificate:"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "No PKCS#11 module found in the usual places. Install OpenSC or your card's software, or enter the module's path."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "PIN for token '{label}' (Cancel: certificates only)"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "No keys or certificates with an ID found."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "No token found."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Key / certificate:"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Test failed"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Certificate OK"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid ""
 "The certificate could not be read from the key:\n"
@@ -2372,490 +2373,490 @@ msgid ""
 "Save the profile without the certificate's details?"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "Invalid certificate"
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 msgid "The certificate needs a name."
 msgstr ""
 
-#: src/pdfsigner/gui/certdialog.py
+#: src/slim_pdf/gui/certdialog.py
 #, python-brace-format
 msgid "{name!r} already exists"
 msgstr ""
 
-#: src/pdfsigner/gui/dialogs.py
+#: src/slim_pdf/gui/dialogs.py
 msgid "Password"
 msgstr ""
 
-#: src/pdfsigner/gui/dialogs.py
+#: src/slim_pdf/gui/dialogs.py
 #, python-brace-format
 msgid "{prompt}:"
 msgstr ""
 
-#: src/pdfsigner/gui/document.py
+#: src/slim_pdf/gui/document.py
 msgid "coordinate conversion failed"
 msgstr ""
 
-#: src/pdfsigner/gui/formdialog.py
+#: src/slim_pdf/gui/formdialog.py
 #, python-brace-format
 msgid "{name} (p. {page})"
 msgstr ""
 
-#: src/pdfsigner/gui/formdialog.py
+#: src/slim_pdf/gui/formdialog.py
 msgid "Locked by a signature"
 msgstr ""
 
-#: src/pdfsigner/gui/formdialog.py
+#: src/slim_pdf/gui/formdialog.py
 msgid "Read-only"
 msgstr ""
 
-#: src/pdfsigner/gui/formdialog.py
+#: src/slim_pdf/gui/formdialog.py
 msgid "Changed fields are filled in when you press OK; Undo takes it back."
 msgstr ""
 
-#: src/pdfsigner/gui/formdialog.py
+#: src/slim_pdf/gui/formdialog.py
 msgid "(none)"
 msgstr ""
 
-#: src/pdfsigner/gui/insertdialog.py
+#: src/slim_pdf/gui/insertdialog.py
 msgid "Black"
 msgstr ""
 
-#: src/pdfsigner/gui/insertdialog.py
+#: src/slim_pdf/gui/insertdialog.py
 msgid "Blue"
 msgstr ""
 
-#: src/pdfsigner/gui/insertdialog.py
+#: src/slim_pdf/gui/insertdialog.py
 msgid "Red"
 msgstr ""
 
-#: src/pdfsigner/gui/insertdialog.py
+#: src/slim_pdf/gui/insertdialog.py
 msgid "Green"
 msgstr ""
 
-#: src/pdfsigner/gui/insertdialog.py
+#: src/slim_pdf/gui/insertdialog.py
 msgid "Size"
 msgstr ""
 
-#: src/pdfsigner/gui/insertdialog.py
+#: src/slim_pdf/gui/insertdialog.py
 msgid "Colour"
 msgstr ""
 
-#: src/pdfsigner/gui/insertdialog.py
+#: src/slim_pdf/gui/insertdialog.py
 msgid "Please enter the text to add."
 msgstr ""
 
-#: src/pdfsigner/gui/pageview.py
+#: src/slim_pdf/gui/pageview.py
 #, python-brace-format
 msgid "{name}: signed"
 msgstr ""
 
-#: src/pdfsigner/gui/pageview.py
+#: src/slim_pdf/gui/pageview.py
 #, python-brace-format
 msgid "{name}: locked"
 msgstr ""
 
-#: src/pdfsigner/gui/pageview.py
+#: src/slim_pdf/gui/pageview.py
 #, python-brace-format
 msgid "{name}: empty signature field"
 msgstr ""
 
-#: src/pdfsigner/gui/pageview.py
+#: src/slim_pdf/gui/pageview.py
 #, python-brace-format
 msgid "{name}: click to fill in"
 msgstr ""
 
-#: src/pdfsigner/gui/pageview.py
+#: src/slim_pdf/gui/pageview.py
 #, python-brace-format
 msgid "{name}: can't be changed"
 msgstr ""
 
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/settings.py
 msgid "System default"
 msgstr ""
 
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/settings.py
 msgid "Language"
 msgstr ""
 
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/settings.py
 msgid "Additional trusted certificates"
 msgstr ""
 
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/settings.py
 msgid "Signatures by these certificates, or by certificates they issued, are shown as valid; Mozilla's root list and the system's CA store are always trusted. Use this for your organisation's CA or for colleagues' self-signed certificates."
 msgstr ""
 
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/settings.py
 #, python-brace-format
 msgid "Configuration file: {path}"
 msgstr ""
 
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/settings.py
 msgid "General"
 msgstr ""
 
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/settings.py
 msgid "Trusted certificates"
 msgstr ""
 
-#: src/pdfsigner/gui/settings.py
+#: src/slim_pdf/gui/settings.py
 #, python-brace-format
 msgid ""
 "Cannot save the configuration:\n"
 "{error}"
 msgstr ""
 
-#: src/pdfsigner/insert.py
+#: src/slim_pdf/insert.py
 #, python-brace-format
 msgid "cannot read the image {path}: {error}"
 msgstr ""
 
-#: src/pdfsigner/insert.py
+#: src/slim_pdf/insert.py
 msgid "there is no text to add"
 msgstr ""
 
-#: src/pdfsigner/insert.py
+#: src/slim_pdf/insert.py
 msgid "the font size must be positive"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 #, python-brace-format
 msgid "invalid page spec {spec!r} (use e.g. 1-3,5,8-)"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 #, python-brace-format
 msgid "pages {pages} out of range (document has {count})"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 msgid "no pages selected"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 #, python-brace-format
 msgid "page {page} out of range (document has {count})"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 msgid "rotation must be a multiple of 90 degrees"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 msgid "a document can't lose all its pages"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 msgid "the pages are already in that order"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 msgid "give exactly one of box, margins or reset"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 #, python-brace-format
 msgid "crop leaves nothing of page {page}"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 msgid "PDF is encrypted, a (correct) password is required"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 msgid "--every needs a positive number"
 msgstr ""
 
-#: src/pdfsigner/pages.py
+#: src/slim_pdf/pages.py
 msgid "nothing to merge"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "PIN for certificate '{name}'"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "passphrase for certificate '{name}'"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
-msgid "no PIN for '{name}' in the keyring (store it with: pdfsigner certs set-secret {name})"
+msgid "no PIN for '{name}' in the keyring (store it with: slim-pdf certs set-secret {name})"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
-msgid "no passphrase for '{name}' in the keyring (store it with: pdfsigner certs set-secret {name})"
+msgid "no passphrase for '{name}' in the keyring (store it with: slim-pdf certs set-secret {name})"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "unknown secret source {source!r}"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 msgid "keyring support needs the 'keyring' package"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 msgid "no OS keyring available (on Linux: start a Secret Service provider such as GNOME Keyring, KWallet or KeePassXC, or use another secret source)"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "keyring: {error}"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 msgid "KeePass support needs the 'pykeepass' package"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "KeePass master password for {database}"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "wrong master password or key file for {path}"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "KeePass database not found: {path}"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "entry {entry!r} not found in {database}"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "attachment {attachment!r} not found on entry {entry!r}"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "{count} KeePass entries match {entry!r} ({paths}); give the full path Group/Title"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
-msgid "keepassxc-cli not found (install KeePassXC, or set PDFSIGNER_KEEPASSXC_CLI to its path)"
+#: src/slim_pdf/secretstore.py
+msgid "keepassxc-cli not found (install KeePassXC, or set SLIM_PDF_KEEPASSXC_CLI to its path)"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "wrong master password, key file or YubiKey for {path}"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "keepassxc-cli: {error}"
 msgstr ""
 
-#: src/pdfsigner/secretstore.py
+#: src/slim_pdf/secretstore.py
 #, python-brace-format
 msgid "KeePass master password for {database} (then touch your YubiKey)"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "field {name!r} is locked by an existing signature"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "the document is certified, and a new visible signature field breaks the certification; sign an existing empty field ({fields}) instead"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 msgid "the document is certified, and a new visible signature field breaks the certification; sign invisibly instead"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "cannot read the PDF: {error}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 msgid "wrong PDF password"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "cannot read signature PDF {path}: {error}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "signature image not found: {path}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "'{label}' (ID {id})"
 msgstr ""
 
-#: src/pdfsigner/signing.py
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/signing.py
+#: src/slim_pdf/validation.py
 msgid "none"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "no private key with label {label!r} and ID {id!r} on the token (keys: {keys})"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "no private key with label {label!r} on the token (keys: {keys})"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "no private key with ID {id!r} on the token (keys: {keys})"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "no private key on the token (keys: {keys})"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "{n} private key matches, set key_label or key_id (keys: {keys})"
 msgid_plural "{n} private keys match, set key_label or key_id (keys: {keys})"
 msgstr[0] ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "no certificate with label {label!r} on the token, set cert_label (certificates: {certs})"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "{n} certificate with label {label!r} on the token, set cert_label (certificates: {certs})"
 msgid_plural "{n} certificates with label {label!r} on the token, set cert_label (certificates: {certs})"
 msgstr[0] ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "no certificate for key {key} on the token, set cert_label (certificates: {certs})"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "{n} certificate for key {key} on the token, set cert_label (certificates: {certs})"
 msgid_plural "{n} certificates for key {key} on the token, set cert_label (certificates: {certs})"
 msgstr[0] ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 msgid "Unblock it with the PUK (YubiKey: ykman piv access unblock-pin; OpenSC: pkcs15-tool --unblock-pin) or the card's own tool."
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "wrong PIN for token {label!r}; the PIN is now locked. {unblock}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "wrong PIN for token {label!r}; one attempt is left before the PIN is locked"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "wrong PIN for token {label!r}; only a few attempts are left"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "wrong PIN for token {label!r}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "no token found by {module}: is the card inserted and the reader connected? If GnuPG uses the card, 'gpgconf --kill scdaemon' releases it."
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "no token labelled {label!r} (tokens: {tokens})"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "{count} tokens found ({tokens}); set token_label to choose one"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "the PIN of token {label!r} is locked. {unblock}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
-msgid "only one PIN attempt is left on token {label!r}, and a wrong PIN would lock it; pdfsigner won't try the stored PIN. Sign once with secret = prompt and type the PIN."
+msgid "only one PIN attempt is left on token {label!r}, and a wrong PIN would lock it; slim-pdf won't try the stored PIN. Sign once with secret = prompt and type the PIN."
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "cannot read {path}: {error}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "cannot load PKCS#12 for '{name}' (wrong passphrase?): {error}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/signing.py
+#: src/slim_pdf/tokens.py
 msgid "PKCS#11 support needs 'pyhanko[pkcs11]'"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "wrong PIN for token of '{name}'"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "the PIN is locked. {unblock}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "the key of '{name}' needs the PIN for every signature, but none was given"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "PKCS#11 ({module}): the token refused to sign: {error}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/signing.py
+#: src/slim_pdf/tokens.py
 #, python-brace-format
 msgid "PKCS#11 ({module}): {error}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
-msgid "the key of '{name}' needs the PIN for every signature, which pdfsigner has to send itself: use a PIN source (secret = prompt, keyring, ...) instead of 'none', or a key whose PIN policy is 'once'"
+msgid "the key of '{name}' needs the PIN for every signature, which slim-pdf has to send itself: use a PIN source (secret = prompt, keyring, ...) instead of 'none', or a key whose PIN policy is 'once'"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "unknown certificate type {type!r}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid ""
 "{subject}\n"
@@ -2863,249 +2864,249 @@ msgid ""
 "  valid:   {start} .. {end}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 msgid "document is certified with 'no changes allowed'; it cannot be signed again"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "field {name!r} already exists; omit the box"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "field {name!r} is already signed"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "page out of range (document has {count})"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 msgid "box needs x1 < x2 and y1 < y2"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "signing would invalidate an existing signature: {reason}"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "LTV: cannot validate the signer's certificate chain: {error}. LTV needs a chain to a trusted root (add it with `trust` in the config) and reachable revocation info (OCSP/CRL)"
 msgstr ""
 
-#: src/pdfsigner/signing.py
+#: src/slim_pdf/signing.py
 #, python-brace-format
 msgid "cannot write {path}: {error} (is it open in another program?)"
 msgstr ""
 
-#: src/pdfsigner/systemstore.py
+#: src/slim_pdf/systemstore.py
 #, python-brace-format
 msgid "{thumbprint}  {subject}  (valid until {date})"
 msgstr ""
 
-#: src/pdfsigner/systemstore.py
+#: src/slim_pdf/systemstore.py
 msgid "[smartcard]"
 msgstr ""
 
-#: src/pdfsigner/systemstore.py
+#: src/slim_pdf/systemstore.py
 msgid "the system certificate store is only supported on Windows and macOS"
 msgstr ""
 
-#: src/pdfsigner/systemstore.py
+#: src/slim_pdf/systemstore.py
 msgid "no certificate selected (system_cert is empty)"
 msgstr ""
 
-#: src/pdfsigner/systemstore.py
+#: src/slim_pdf/systemstore.py
 #, python-brace-format
-msgid "no certificate with a private key matches {spec!r} (see: pdfsigner certs system)"
+msgid "no certificate with a private key matches {spec!r} (see: slim-pdf certs system)"
 msgstr ""
 
-#: src/pdfsigner/systemstore.py
+#: src/slim_pdf/systemstore.py
 #, python-brace-format
 msgid ""
 "{spec!r} matches several certificates; use the thumbprint:\n"
 "  {listing}"
 msgstr ""
 
-#: src/pdfsigner/systemstore.py
+#: src/slim_pdf/systemstore.py
 #, python-brace-format
 msgid "unsupported signature mechanism {mechanism!r} for the system store (RSA PKCS#1 v1.5 and ECDSA are supported)"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 #, python-brace-format
 msgid "ID {id}"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 #, python-brace-format
 msgid "key '{label}' ({type}, PIN for every signature)"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 #, python-brace-format
 msgid "key '{label}' ({type})"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 #, python-brace-format
 msgid "certificate '{label}': {subject}, expires {date}"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 #, python-brace-format
 msgid "token '{label}' ({manufacturer} {model}, serial {serial})"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 msgid "PIN locked"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 msgid "one PIN attempt left"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 msgid "few PIN attempts left"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 msgid "(unreadable)"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 #, python-brace-format
 msgid "wrong PIN for token '{label}'"
 msgstr ""
 
-#: src/pdfsigner/tokens.py
+#: src/slim_pdf/tokens.py
 #, python-brace-format
 msgid "PKCS#11 ({module}), token '{label}': {error}"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "validation data and timestamps only"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "form filling and signatures"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "annotations, form filling and signatures"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "changes the signature doesn't allow"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 #, python-brace-format
 msgid "cannot load trust root {path}: {error}"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "entire document"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 #, python-brace-format
 msgid "revision {revision} of {revisions}; later changes: {later}"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "only part of the document"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 #, python-brace-format
 msgid "the signature or its certificate chain uses an algorithm that is no longer considered secure (digest: {algorithm})"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the signature or its certificate chain uses an algorithm that is no longer considered secure"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the certificate was not valid at the time of signing"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the certificate is self-signed and not in the trust list"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the certificate is not meant for signatures (key usage)"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the certificate's revocation status is not known yet"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the certificate (or its CA) is revoked"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 #, python-brace-format
 msgid "the certificate doesn't chain to a trusted root (issuer {issuer!r} not trusted, or not found)"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the signed content was modified"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the signature value doesn't match the certificate"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the signer's certificate is revoked"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the document was changed in a way this signature doesn't allow"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the signature doesn't cover a complete revision"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the signature's timestamp is broken"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the content timestamp is broken"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 #, python-brace-format
 msgid "the signature doesn't meet the field's requirements: {error}"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 #, python-brace-format
 msgid "the timestamp authority {tsa!r} isn't trusted (issuer {issuer!r})"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 #, python-brace-format
 msgid "the content timestamp authority {tsa!r} isn't trusted (issuer {issuer!r})"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "the signature could not be fully validated"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 msgid "an earlier revision; later changes not checked"
 msgstr ""
 
-#: src/pdfsigner/validation.py
+#: src/slim_pdf/validation.py
 #, python-brace-format
-msgid "the signature uses the format {format}, which pdfsigner cannot check (a legacy format, unlike PAdES/PKCS#7)"
+msgid "the signature uses the format {format}, which slim-pdf cannot check (a legacy format, unlike PAdES/PKCS#7)"
 msgstr ""

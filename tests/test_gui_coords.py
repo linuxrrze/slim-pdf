@@ -1,6 +1,6 @@
 import pytest
 
-from pdfsigner.gui.document import PdfDocument
+from slim_pdf.gui.document import PdfDocument
 
 from conftest import make_pdf
 

@@ -6,15 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from pdfsigner import cli
-from pdfsigner.config import CertProfile
+from slim_pdf import cli
+from slim_pdf.config import CertProfile
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md"))]
 
 
 def command_lines(path: Path):
-    """`pdfsigner ...` invocations from fenced code blocks (with continuations)."""
+    """`slim-pdf ...` invocations from fenced code blocks (with continuations)."""
     text = path.read_text(encoding="utf-8")
     for block in re.findall(r"```(?:console|bash)\n(.*?)```", text, re.S):
         lines = block.replace("\\\n", " ").splitlines()
@@ -22,9 +22,9 @@ def command_lines(path: Path):
             line = line.strip()
             if line.startswith("$ "):
                 line = line[2:]
-            # strip shell context around the call, e.g. "PDFSIGNER_CONFIG=x pdfsigner ..."
-            m = re.search(r"(?:^|\s)pdfsigner (.*)", line)
-            if not m or line.startswith("#") or "pdfsigner [" in line:
+            # strip shell context around the call, e.g. "SLIM_PDF_CONFIG=x slim-pdf ..."
+            m = re.search(r"(?:^|\s)slim-pdf (.*)", line)
+            if not m or line.startswith("#") or "slim-pdf [" in line:
                 continue
             cmd = m.group(1).split("  #")[0].split(" | ")[0].strip()
             if "$(" in cmd or "<" in cmd:  # placeholders / shell-generated args
@@ -45,7 +45,7 @@ def test_example_parses(doc, cmd):
     try:
         args = cli.build_parser().parse_args(shlex.split(cmd))
     except SystemExit as e:
-        pytest.fail(f"{doc}: `pdfsigner {cmd}` rejected (exit {e.code})")
+        pytest.fail(f"{doc}: `slim-pdf {cmd}` rejected (exit {e.code})")
     assert callable(args.func)
 
 
@@ -94,7 +94,7 @@ def test_everything_in_the_parser_is_documented():
     opts, commands = _parser_options()
     undocumented = {o for o in opts if not re.search(rf"(?<![\w-]){o}(?![\w-])", text)}
     assert not undocumented
-    missing = {c for c in commands if f"pdfsigner {c}" not in text}
+    missing = {c for c in commands if f"slim-pdf {c}" not in text}
     assert not missing
 
 

@@ -26,10 +26,10 @@ from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter  # noq
 from pyhanko.sign import fields  # noqa: E402
 from cryptography.hazmat.primitives import serialization  # noqa: E402
 
-from pdfsigner.config import CertProfile, Config  # noqa: E402
-from pdfsigner.gui import app as gui_app  # noqa: E402
-from pdfsigner.gui.certdialog import CertEditDialog  # noqa: E402
-from pdfsigner.gui.settings import SettingsDialog  # noqa: E402
+from slim_pdf.config import CertProfile, Config  # noqa: E402
+from slim_pdf.gui import app as gui_app  # noqa: E402
+from slim_pdf.gui.certdialog import CertEditDialog  # noqa: E402
+from slim_pdf.gui.settings import SettingsDialog  # noqa: E402
 
 OUT = ROOT / "docs" / "images"
 A4_H = 842
@@ -141,7 +141,7 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication([])
     app.setFont(QFont("Liberation Sans", 10))
-    tmp = Path(tempfile.mkdtemp(prefix="pdfsigner-shots-"))
+    tmp = Path(tempfile.mkdtemp(prefix="slim-pdf-shots-"))
     # Let "~/certs/..." in the profiles resolve to the throwaway files.
     os.environ["HOME"] = str(tmp)
     (tmp / "certs").mkdir()
@@ -239,7 +239,7 @@ def main() -> None:
     win.ribbon.setCurrentIndex(0)
 
     # filling in a form: the dialog over the window, cursor in the clicked field
-    from pdfsigner import forms
+    from slim_pdf import forms
 
     form = registration_pdf(tmp / "registration-blank.pdf")
     win.open(form)
@@ -297,7 +297,7 @@ def main() -> None:
     dlg.close()
 
     docs_cfg = Config(certs={"FAU S/MIME": alice, "Vault (KeePass)": vault, "YubiKey PIV": token},
-                      default="FAU S/MIME", path=Path("~/.config/pdfsigner/config.toml"))
+                      default="FAU S/MIME", path=Path("~/.config/slim-pdf/config.toml"))
     d = SettingsDialog(docs_cfg, win, SettingsDialog.CERTIFICATES)
     d.show()
     QTest.qWaitForWindowExposed(d)

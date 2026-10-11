@@ -14,8 +14,8 @@ from conftest import (
     validate_all,
 )
 
-from pdfsigner import forms, insert, pages
-from pdfsigner.signing import PasswordRequired
+from slim_pdf import forms, insert, pages
+from slim_pdf.signing import PasswordRequired
 
 H = 842  # A4 height: display y = H - PDF y on unrotated pages
 

@@ -4,9 +4,9 @@ import pytest
 
 QtWidgets = pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
 
-from pdfsigner.gui import app as gui_app  # noqa: E402
-from pdfsigner.gui import insertdialog  # noqa: E402
-from pdfsigner.gui.insertdialog import TextDialog  # noqa: E402
+from slim_pdf.gui import app as gui_app  # noqa: E402
+from slim_pdf.gui import insertdialog  # noqa: E402
+from slim_pdf.gui.insertdialog import TextDialog  # noqa: E402
 
 from conftest import (  # noqa: E402
     blue_bbox,

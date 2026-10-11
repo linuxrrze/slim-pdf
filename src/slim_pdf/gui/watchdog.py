@@ -11,7 +11,6 @@ runs again, a line with the time and the freeze's length is added.
 from __future__ import annotations
 
 import faulthandler
-import os
 import time
 from datetime import datetime
 from pathlib import Path
@@ -19,13 +18,15 @@ from pathlib import Path
 from platformdirs import user_log_dir
 from PySide6.QtCore import QObject, QTimer
 
+from .. import environ
+
 STALL_SECONDS = 4
 BEAT_MS = 500
 MAX_LOG_BYTES = 1_000_000  # start afresh beyond this
 
 
 def log_path() -> Path:
-    base = os.environ.get("PDFSIGNER_LOG_DIR") or user_log_dir("pdfsigner", appauthor=False)
+    base = environ("LOG_DIR") or user_log_dir("slim-pdf", appauthor=False)
     return Path(base) / "freezes.log"
 
 

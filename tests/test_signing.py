@@ -8,11 +8,11 @@ from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.pdf_utils.reader import PdfFileReader
 from pyhanko.sign import fields, signers
 
-from pdfsigner import signing
-from pdfsigner.config import CertProfile
-from pdfsigner.gui.document import PdfDocument
-from pdfsigner.secretstore import Credentials
-from pdfsigner.signing import (
+from slim_pdf import signing
+from slim_pdf.config import CertProfile
+from slim_pdf.gui.document import PdfDocument
+from slim_pdf.secretstore import Credentials
+from slim_pdf.signing import (
     SigningBlocked,
     SigningError,
     box_from_anchor,
@@ -119,7 +119,7 @@ def test_in_place_leaves_no_temp_files(profile, blank_pdf, tmp_path):
 
 def test_locked_output_gives_clear_error(profile, blank_pdf, tmp_path, monkeypatch):
     """Windows refuses os.replace onto a file open elsewhere (e.g. in Acrobat)."""
-    import pdfsigner.signing as signing
+    import slim_pdf.signing as signing
 
     def locked(src, dst):
         raise PermissionError(13, "Permission denied")
@@ -353,7 +353,7 @@ def fake_token(monkeypatch):
     import pkcs11
     from pkcs11 import Attribute, TokenFlag
 
-    from pdfsigner import signing
+    from slim_pdf import signing
 
     tokens = []
     calls = {}
@@ -555,8 +555,8 @@ def test_text_sits_below_image(profile, blank_pdf, tmp_path):
 @pytest.mark.parametrize("position", ["below", "above", "left", "right"])
 def test_text_position(profile, blank_pdf, tmp_path, position):
     """The text goes where the profile says, next to the image, never on it."""
-    from pdfsigner import certinfo
-    from pdfsigner.signing import stamp_size
+    from slim_pdf import certinfo
+    from slim_pdf.signing import stamp_size
 
     profile.image = str(draw_signature_image(tmp_path / "green.png", color=(20, 150, 40)))
     profile.text_position = position
@@ -748,8 +748,8 @@ def test_malformed_xmp_metadata_does_not_block_signing(profile, blank_pdf, tmp_p
     """Some producers write broken XMP; pyHanko failed with "Failed to parse
     XMP XML" when refreshing it. Signing and page edits leave it as is."""
     from conftest import sign_with
-    from pdfsigner import pages
-    from pdfsigner.validation import verify_pdf
+    from slim_pdf import pages
+    from slim_pdf.validation import verify_pdf
 
     w = IncrementalPdfFileWriter(io.BytesIO(blank_pdf.read_bytes()))
     stm = generic.StreamObject({generic.NameObject("/Type"): generic.NameObject("/Metadata"),

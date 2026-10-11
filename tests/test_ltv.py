@@ -5,10 +5,10 @@ from pyhanko.pdf_utils.reader import PdfFileReader
 from pyhanko.sign.validation import validate_pdf_signature
 from pyhanko.sign.validation.dss import DocumentSecurityStore
 
-from pdfsigner import cli, signing
-from pdfsigner.config import CertProfile, Config, load_config
-from pdfsigner.signing import SigningError
-from pdfsigner.validation import VALID, verify_pdf
+from slim_pdf import cli, signing
+from slim_pdf.config import CertProfile, Config, load_config
+from slim_pdf.signing import SigningError
+from slim_pdf.validation import VALID, verify_pdf
 
 from conftest import PASSPHRASE, asn1_cert, sign_with, write_pem
 from pki import MiniPKI, make_tsa, serve

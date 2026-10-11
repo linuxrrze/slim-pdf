@@ -127,7 +127,7 @@ class MainWindow(QMainWindow):
         self.dirty = False
         self.undo_stack: list[bytes] = []
 
-        self.setWindowTitle(_("PDF Signer"))
+        self.setWindowTitle(_("Slim PDF"))
         fit_to_screen(self, 1100, 900)
         self.view = PageView()
         self.view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
         self.insert_image_act = act(_("Image…"), self.insert_image, None, "photo-plus",
                                     _("Add an image (PNG, JPEG or PDF) to the page"), True)
 
-        self.about_act = act(_("About PDF Signer"), self.about, None, "info-circle")
+        self.about_act = act(_("About Slim PDF"), self.about, None, "info-circle")
         self.about_act.setMenuRole(QAction.AboutRole)
         self.about_qt_act = act(_("About Qt"), QApplication.aboutQt, None, "info-square")
         self.about_qt_act.setMenuRole(QAction.AboutQtRole)
@@ -438,7 +438,7 @@ class MainWindow(QMainWindow):
         self._update_target()
 
     def about(self) -> None:
-        QMessageBox.about(self, _("About PDF Signer"), about_text())
+        QMessageBox.about(self, _("About Slim PDF"), about_text())
 
     def open_docs(self) -> None:
         QDesktopServices.openUrl(QUrl(DOCS_URL))
@@ -457,7 +457,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(self._verify() or _(HINT))
         if dlg.language_changed:
             QMessageBox.information(self, _("Settings"),
-                                    _("The new language is used after restarting PDF Signer."))
+                                    _("The new language is used after restarting Slim PDF."))
 
     def manage_certs(self) -> None:
         self.settings_dialog(SettingsDialog.CERTIFICATES)
@@ -521,8 +521,8 @@ class MainWindow(QMainWindow):
         self._update_page_actions()
 
     def _update_title(self) -> None:
-        name = self.path.name if self.path else _("PDF Signer")
-        self.setWindowTitle(_("{modified}{name} – PDF Signer").format(
+        name = self.path.name if self.path else _("Slim PDF")
+        self.setWindowTitle(_("{modified}{name} – Slim PDF").format(
             modified="*" if self.dirty else "", name=name))
 
     def _update_page_actions(self) -> None:
@@ -1145,7 +1145,7 @@ TOKEN_HINT = N_("Signing… If your card reader asks for the PIN or your securit
 
 def version() -> str:
     try:
-        return metadata.version("pdfsigner")
+        return metadata.version("slim-pdf")
     except metadata.PackageNotFoundError:  # run from a source tree
         return _("unknown")
 
@@ -1162,7 +1162,7 @@ def about_text() -> str:
             ("Qt", qVersion()), ("PySide6", dist("PySide6")),
             ("Python", platform.python_version())]
     return "".join([
-        "<h3>{}</h3>".format(html.escape(_("PDF Signer {version}").format(version=version()))),
+        "<h3>{}</h3>".format(html.escape(_("Slim PDF {version}").format(version=version()))),
         "<p>{}</p>".format(html.escape(_(
             "Sign PDFs with real certificates (PAdES) and a visible signature image, "
             "and check the signatures in them."))),
@@ -1171,7 +1171,7 @@ def about_text() -> str:
         "<p>{}</p>".format(html.escape(_("Icons: Tabler Icons (MIT license)"))),
         '<p><a href="{url}">{url}</a></p>'.format(url=HOMEPAGE),
         "<p><small>{}</small></p>".format(html.escape(_(
-            "If PDF Signer stops responding, where it hung is logged to {path}").format(
+            "If Slim PDF stops responding, where it hung is logged to {path}").format(
                 path=watchdog.log_path()))),
     ])
 
@@ -1179,14 +1179,14 @@ def about_text() -> str:
 def setup_language(app: QApplication, configured: str | None) -> str:
     """Our catalog plus Qt's own (OK/Cancel/Yes/No, file dialogs)."""
     lang = i18n.setup(configured, QLocale.system().uiLanguages() + i18n.system_languages())
-    old = getattr(app, "_pdfsigner_qt_translator", None)
+    old = getattr(app, "_slim_pdf_qt_translator", None)
     if old is not None:
         app.removeTranslator(old)
     if lang != "en":
         translator = QTranslator(app)
         if translator.load(f"qtbase_{lang}", QLibraryInfo.path(QLibraryInfo.TranslationsPath)):
             app.installTranslator(translator)
-            app._pdfsigner_qt_translator = translator
+            app._slim_pdf_qt_translator = translator
     return lang
 
 
@@ -1196,14 +1196,14 @@ def main(argv: list[str] | None = None, config_path: Path | None = None) -> int:
     installer builds use it to check that the bundled app starts."""
     argv = sys.argv[1:] if argv is None else argv
     app = QApplication.instance() or QApplication([sys.argv[0], *argv])
-    app.setApplicationName("pdfsigner")
+    app.setApplicationName("slim-pdf")
     if ICON.exists():
         app.setWindowIcon(QIcon(str(ICON)))
     try:
         config = load_config(config_path)
     except (ValueError, OSError) as e:  # tomllib.TOMLDecodeError is a ValueError
         setup_language(app, None)
-        QMessageBox.critical(None, _("PDF Signer"),
+        QMessageBox.critical(None, _("Slim PDF"),
                              _("Cannot read the configuration:\n{error}").format(error=e))
         return 1
     setup_language(app, config.language)

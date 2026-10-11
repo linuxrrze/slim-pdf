@@ -4,8 +4,8 @@ import sys
 
 import pytest
 
-from pdfsigner import osroots, validation
-from pdfsigner.validation import UNTRUSTED, VALID, verify_pdf
+from slim_pdf import osroots, validation
+from slim_pdf.validation import UNTRUSTED, VALID, verify_pdf
 
 from conftest import sign_with, write_pem
 

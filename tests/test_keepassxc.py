@@ -1,7 +1,7 @@
 """The keepassxc-cli secret source.
 
 Real-binary tests run when keepassxc-cli is installed (or
-PDFSIGNER_KEEPASSXC_CLI points to it); the protocol tests use a fake CLI.
+SLIM_PDF_KEEPASSXC_CLI points to it); the protocol tests use a fake CLI.
 """
 
 import json
@@ -11,10 +11,10 @@ import threading
 
 import pytest
 
-from pdfsigner import secretstore
-from pdfsigner.config import CertProfile
-from pdfsigner.secretstore import Cancelled, SecretError, resolve_credentials
-from pdfsigner.signing import open_signer
+from slim_pdf import secretstore
+from slim_pdf.config import CertProfile
+from slim_pdf.secretstore import Cancelled, SecretError, resolve_credentials
+from slim_pdf.signing import open_signer
 
 from conftest import PASSPHRASE
 
@@ -145,7 +145,7 @@ def fake_cli(tmp_path, monkeypatch):
         return real_run(argv, **kw)
 
     monkeypatch.setattr(secretstore.subprocess, "run", run)
-    monkeypatch.setenv("PDFSIGNER_KEEPASSXC_CLI", "fake-keepassxc-cli")
+    monkeypatch.setenv("SLIM_PDF_KEEPASSXC_CLI", "fake-keepassxc-cli")
 
     def calls():
         return [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
@@ -203,7 +203,7 @@ def test_cancel_and_missing_db(fake_cli, tmp_path):
 
 
 def test_cli_not_found(monkeypatch, tmp_path):
-    monkeypatch.delenv("PDFSIGNER_KEEPASSXC_CLI", raising=False)
+    monkeypatch.delenv("SLIM_PDF_KEEPASSXC_CLI", raising=False)
     monkeypatch.setenv("PATH", str(tmp_path))
     monkeypatch.setattr(secretstore, "KEEPASSXC_CLI_CANDIDATES", {})
     with pytest.raises(SecretError, match="keepassxc-cli not found"):
@@ -220,7 +220,7 @@ def _exe(d, name="keepassxc-cli"):
 
 def test_cli_never_from_current_directory(monkeypatch, tmp_path):
     """A keepassxc-cli planted in the working directory must not be used."""
-    monkeypatch.delenv("PDFSIGNER_KEEPASSXC_CLI", raising=False)
+    monkeypatch.delenv("SLIM_PDF_KEEPASSXC_CLI", raising=False)
     monkeypatch.setattr(secretstore, "KEEPASSXC_CLI_CANDIDATES", {})
     planted = _exe(tmp_path / "Downloads")
     real = _exe(tmp_path / "bin")

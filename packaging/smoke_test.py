@@ -1,6 +1,6 @@
 """Smoke-test a frozen build: sign, verify and edit with the bundled CLI, start the GUI.
 
-    python packaging/smoke_test.py "dist/PDF Signer/pdfsigner" "dist/PDF Signer/PDF Signer"
+    python packaging/smoke_test.py "dist/Slim PDF/slim-pdf" "dist/Slim PDF/Slim PDF"
 
 Runs with the build environment's Python (needs cryptography and pypdfium2
 to create the test files); the binaries under test must not need anything.
@@ -55,7 +55,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         d = Path(tmp)
         p12, pem, pdf = make_files(d)
-        env = dict(os.environ, PDFSIGNER_CONFIG=str(d / "config.toml"),
+        env = dict(os.environ, SLIM_PDF_CONFIG=str(d / "config.toml"),
                    QT_QPA_PLATFORM="offscreen")
 
         def run(*args, expect=0):
@@ -64,7 +64,7 @@ def main() -> int:
                                text=True, timeout=300)
             ok = r.returncode == expect
             failures += not ok
-            print(f"[{'ok' if ok else 'FAIL'}] pdfsigner {' '.join(map(str, args))} "
+            print(f"[{'ok' if ok else 'FAIL'}] slim-pdf {' '.join(map(str, args))} "
                   f"-> {r.returncode}")
             if not ok:
                 print(r.stdout, r.stderr, sep="\n")
@@ -85,6 +85,7 @@ def main() -> int:
         run("crop", pdf, "-i", "--margins", "20")
         run("split", pdf, "--every", "2", "-o", d / "part{n}.pdf")
         run("merge", "-o", d / "merged.pdf", d / "part2.pdf", f"{d / 'part1.pdf'}@1")
+        run("form", pdf)  # no fields: lists none
         if sys.platform in ("win32", "darwin"):
             run("certs", "system")
 

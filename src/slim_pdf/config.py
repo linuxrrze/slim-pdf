@@ -1,14 +1,16 @@
 """Certificate profiles, persisted as TOML.
 
-The same file is read and written by the CLI (``pdfsigner certs ...``) and the
-GUI certificate manager. Location: ``$PDFSIGNER_CONFIG`` or
-``<user config dir>/pdfsigner/config.toml``.
+The same file is read and written by the CLI (``slim-pdf certs ...``) and the
+GUI's settings. Location: ``$SLIM_PDF_CONFIG`` or
+``<user config dir>/slim-pdf/config.toml``; on the first start without one,
+the old ``<user config dir>/pdfsigner/config.toml`` is copied there.
 """
 
 from __future__ import annotations
 
 import os
 import re
+import shutil
 import sys
 import tomllib
 from dataclasses import asdict, dataclass, field, fields
@@ -17,6 +19,7 @@ from pathlib import Path
 import tomli_w
 from platformdirs import user_config_dir
 
+from . import OLD_NAME, environ
 from .certinfo import check_template
 from .i18n import LANGUAGES, N_, _
 
@@ -76,7 +79,7 @@ class CertProfile:
     cert_label: str = ""  # empty: the certificate with the key's ID
 
     # system: Windows certificate store / macOS keychain; SHA-1 thumbprint
-    # or part of the subject (see `pdfsigner certs system`)
+    # or part of the subject (see `slim-pdf certs system`)
     system_cert: str = ""
 
     # Appearance: the text's placeholders are listed in certinfo.STAMP_FIELDS
@@ -234,14 +237,25 @@ class Config:
 
 
 def default_config_path() -> Path:
-    env = os.environ.get("PDFSIGNER_CONFIG")
+    env = environ("CONFIG")
     if env:
         return Path(env).expanduser()
-    return Path(user_config_dir("pdfsigner", appauthor=False)) / "config.toml"
+    return Path(user_config_dir("slim-pdf", appauthor=False)) / "config.toml"
+
+
+def _old_config_path() -> Path:
+    return Path(user_config_dir(OLD_NAME, appauthor=False)) / "config.toml"
 
 
 def load_config(path: Path | None = None) -> Config:
-    path = path or default_config_path()
+    if path is None:
+        path = default_config_path()
+        old = _old_config_path()
+        if not path.exists() and not environ("CONFIG") and old.is_file():
+            # first start after the rename: take over the old configuration
+            # (copied, so an older version still finds its own)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(old, path)
     if not path.exists():
         return Config(path=path)
     with open(path, "rb") as f:

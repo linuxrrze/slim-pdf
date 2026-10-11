@@ -242,7 +242,7 @@ certifi==2026.7.22 \
     --hash=sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775 \
     --hash=sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55
     # via
-    #   pdfsigner (pyproject.toml)
+    #   slim-pdf (pyproject.toml)
     #   pyhanko-certvalidator
 cffi==2.1.1 \
     --hash=sha256:046bfc24911b37851ee1b51aab8bffe713d89c68c6a057b09484ce9fd5f69b4e \
@@ -634,7 +634,7 @@ jeepney==0.9.0 ; sys_platform == 'linux' \
 keyring==25.7.0 \
     --hash=sha256:be4a0b195f149690c166e850609a477c532ddbfbaed96a404d4e43f8d5e2689f \
     --hash=sha256:fe01bd85eb3f8fb3dd0405defdeac9a5b4f6f0439edbb3149577f244a2e8245b
-    # via pdfsigner (pyproject.toml)
+    # via slim-pdf (pyproject.toml)
 lxml==6.1.3 \
     --hash=sha256:032a0a97eed428bd143c75a11118238546424ceb2fa311cca5f073aa44658dc4 \
     --hash=sha256:05f5bce9af14fd1506997594bd81cee6d9c6b58ea80a39c058327aa6371ed9e9 \
@@ -1102,11 +1102,11 @@ pillow==12.3.0 \
     --hash=sha256:fdafc9cce40277e0f7a0feabce0ee50dd2fa1800f3b38015e51296b5e814048d \
     --hash=sha256:fe3cca2e4e8a592be0f269a1ca4835c25199d9f3ce815c8491048f785b0a0198 \
     --hash=sha256:ffd0c5368496f41b0944be820fcb7a838aa6e623d250b01acf2643939c3f99d7
-    # via pdfsigner (pyproject.toml)
+    # via slim-pdf (pyproject.toml)
 platformdirs==4.12.4 \
     --hash=sha256:63743c02414e755de4e31b8f68125c1407495b86c5a006e203c01ff8b9924250 \
     --hash=sha256:78bfb9db2a8471ed7eebe3c3c932da413911042994e699b384fbb4493fa872d7
-    # via pdfsigner (pyproject.toml)
+    # via slim-pdf (pyproject.toml)
 propcache==0.5.4 \
     --hash=sha256:004e685b315646c410771836e72a44f143bbe624f29653a42687815069a303d5 \
     --hash=sha256:02c0a34f16889cf800f10f0247a564d8ce6eeab6ffcd7c87198f769067eb8432 \
@@ -1301,12 +1301,12 @@ pycryptodomex==3.24.0 \
 pyhanko==0.37.0 \
     --hash=sha256:79046d8057edec5fcc61aa66dc1041262f5248eec473c33a89905a0a661eed05 \
     --hash=sha256:86a2647720ac798d7e5e1bca8f7a11959b0a13034a74cdb3357f6f40b2fd1e43
-    # via pdfsigner (pyproject.toml)
+    # via slim-pdf (pyproject.toml)
 pyhanko-certvalidator==0.32.1 \
     --hash=sha256:4780e5697f9d8a02fb4648a1b8f2cd0df67615cae491298491467ca53c0fc08d \
     --hash=sha256:76100cdda13bd085beaa94d4b9080fe6f4ee67248976ec9a19c4d58642558a2b
     # via
-    #   pdfsigner (pyproject.toml)
+    #   slim-pdf (pyproject.toml)
     #   pyhanko
 pyinstaller==6.22.3 \
     --hash=sha256:020d4fe0627f5c73dfbcfad1a6578ef354d5fe4bdccd9d8e5a615528f5a45d2b \
@@ -1329,7 +1329,7 @@ pyinstaller-hooks-contrib==2026.8 \
 pykeepass==4.2.0 \
     --hash=sha256:0e40eabdac19a511a2be4e550984cbf01f1fd8ec9d9055456136fab266e5cc66 \
     --hash=sha256:8d6100788422eb8a43710b227fde873f7684d08bf0117eb43c8ae346644b086d
-    # via pdfsigner (pyproject.toml)
+    # via slim-pdf (pyproject.toml)
 pyotp==2.10.0 \
     --hash=sha256:1df2f6a1bcc3bb0716172a5215ddc2f8c7c7fd26a13df9927d52e1746934836c \
     --hash=sha256:d01e9703443616b03c57c700b5cbffd56a1f929c1b0f8f03131bc78c1fca9d3f
@@ -1337,7 +1337,7 @@ pyotp==2.10.0 \
 pypdf==6.20.0 \
     --hash=sha256:72b1e897fef7f5bbed7f2a93881a4861d98dbf25ae39981c8a023583239edbda \
     --hash=sha256:f003fc2014814d264fe7dd3f9d435c158e23e1a85a2233f87a0a2d6d21c914ad
-    # via pdfsigner (pyproject.toml)
+    # via slim-pdf (pyproject.toml)
 pypdfium2==5.14.0 \
     --hash=sha256:09b99c8f0cb427eb17fec13c0862ed598bba34b4843df153f70fff806a2820bc \
     --hash=sha256:11f281613fa22313d9c7ab89947665e84eccf8ebe40e1198a84a88352305648d \
@@ -1362,14 +1362,14 @@ pypdfium2==5.14.0 \
     --hash=sha256:eb8aeca157808f323e39ea298cc6d6c8e080c192ea2efb1ca81daa0f0ff4d095 \
     --hash=sha256:f1b696e6901e16f114a2ec6332e5e3f8f5033a901614ead28499ab18ca6024f5 \
     --hash=sha256:f6f13bbcc5f4adabc2676e52f662c6cb375de86b314790b0ae08f3ab62eb116a
-    # via pdfsigner (pyproject.toml)
+    # via slim-pdf (pyproject.toml)
 pyside6==6.12.0 \
     --hash=sha256:22e2ec6407f32b61955a28f91ab55676e60017210285c28f0c381bfeed389414 \
     --hash=sha256:31a8d2893f2f28ab483b1534dde0438f27af6e234593de30425cb4729052d8f8 \
     --hash=sha256:8920e163f60493e18822d20f1e01c7c4bcf9c1c5cfbc68284788896f692594f8 \
     --hash=sha256:d13ed4d0053cc20f3e4e0fdbf12790a9b7f958d7e22c0843411ecfa8c799e2a9 \
     --hash=sha256:efea4c2f2aa54403c45de825865a902a1960a1cc9d5aaa92d4ebb8f4c4cd0708
-    # via pdfsigner (pyproject.toml)
+    # via slim-pdf (pyproject.toml)
 pyside6-addons==6.12.0 \
     --hash=sha256:1d9bcd294ce1c9829194c7d13b01f771a2254b86cb3462cc3399321d2797fdac \
     --hash=sha256:3c079cbaad2ad28bc5bfa92fd6bac4ba28d622b825825e3b4220f0682599b2db \
@@ -1460,7 +1460,7 @@ shiboken6==6.12.0 \
 tomli-w==1.2.0 \
     --hash=sha256:188306098d013b691fcadc011abd66727d3c414c571bb01b1a174ba8c983cf90 \
     --hash=sha256:2dd14fac5a47c27be9cd4c976af5a12d87fb1f0b4512f81d69cce3b35ae25021
-    # via pdfsigner (pyproject.toml)
+    # via slim-pdf (pyproject.toml)
 typing-extensions==4.16.0 ; python_full_version < '3.13' \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
     --hash=sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5

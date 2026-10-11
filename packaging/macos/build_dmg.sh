@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build dist/PDF-Signer-<version>-macos-<arch>.dmg from dist/PDF Signer.app.
+# Build dist/Slim-PDF-<version>-macos-<arch>.dmg from dist/Slim PDF.app.
 #
 # Signing is optional. Without MACOS_SIGN_IDENTITY the app is signed ad hoc
 # (it runs, but Gatekeeper asks on first start). With MACOS_SIGN_IDENTITY
@@ -10,9 +10,9 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 VERSION="${1:?usage: build_dmg.sh VERSION}"
-APP="dist/PDF Signer.app"
+APP="dist/Slim PDF.app"
 ARCH="$(uname -m)"
-DMG="dist/PDF-Signer-${VERSION}-macos-${ARCH}.dmg"
+DMG="dist/Slim-PDF-${VERSION}-macos-${ARCH}.dmg"
 
 # --deep is deprecated by Apple for signing (signing each nested binary
 # inside-out is preferred), but it still produces a valid, notarizable
@@ -28,10 +28,10 @@ codesign --verify --deep --strict "$APP"
 
 staging="$(mktemp -d)"
 trap 'rm -rf "$staging"' EXIT
-ditto "$APP" "$staging/PDF Signer.app"  # keeps signatures, symlinks and metadata
+ditto "$APP" "$staging/Slim PDF.app"  # keeps signatures, symlinks and metadata
 ln -s /Applications "$staging/Applications"
 rm -f "$DMG"
-hdiutil create -volname "PDF Signer" -srcfolder "$staging" -ov -format UDZO "$DMG"
+hdiutil create -volname "Slim PDF" -srcfolder "$staging" -ov -format UDZO "$DMG"
 
 if [ -n "${MACOS_SIGN_IDENTITY:-}" ] && [ -n "${APPLE_ID:-}" ]; then
   codesign --sign "$MACOS_SIGN_IDENTITY" --timestamp "$DMG"

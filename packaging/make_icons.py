@@ -1,7 +1,7 @@
 """Draw the application icon and write it in the formats the packages need.
 
     python packaging/make_icons.py            # -> packaging/build-icons/
-    python packaging/make_icons.py --package  # also src/pdfsigner/gui/icon.png
+    python packaging/make_icons.py --package  # also src/slim_pdf/gui/icon.png
 
 A document with a signature stroke and a seal, on a blue rounded square.
 """
@@ -54,12 +54,12 @@ def draw() -> Image.Image:
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     im = draw()
-    im.save(OUT / "pdfsigner.png")
-    im.save(OUT / "pdfsigner.ico",
+    im.save(OUT / "slim-pdf.png")
+    im.save(OUT / "slim-pdf.ico",
             sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
-    im.save(OUT / "pdfsigner.icns")
+    im.save(OUT / "slim-pdf.icns")
     if "--package" in sys.argv:
-        im.resize((256, 256), Image.LANCZOS).save(ROOT / "src/pdfsigner/gui/icon.png")
+        im.resize((256, 256), Image.LANCZOS).save(ROOT / "src/slim_pdf/gui/icon.png")
     print(f"icons written to {OUT}")
 
 

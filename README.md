@@ -1,14 +1,19 @@
-# pdfsigner
+# slim-pdf
 
-Sign PDFs with a real certificate (PAdES, via [pyHanko](https://github.com/MatthiasValvekens/pyHanko)),
-optionally showing a scanned signature image. It has a CLI and a Qt GUI that
-share the same certificate profiles.
+A slim PDF tool: sign PDFs with a real certificate (PAdES, via
+[pyHanko](https://github.com/MatthiasValvekens/pyHanko)), optionally showing
+a scanned signature image, check the signatures in them, fill in forms, add
+text and images, and rotate, crop, reorder, delete, split and merge pages.
+It has a CLI and a Qt GUI that share the same certificate profiles.
+
+*slim-pdf was called pdfsigner until its focus grew beyond signing; see
+[Renamed from pdfsigner](#renamed-from-pdfsigner).*
 
 * Sign **prepared signature fields**, or **place a new signature anywhere**
   (click to place, drag to move, drag the corner or press Ctrl+wheel to
   resize; the aspect ratio is kept).
 * **Sign multiple times.** Every signature is an incremental update, so
-  earlier signatures stay valid. Before asking for any passphrase, pdfsigner
+  earlier signatures stay valid. Before asking for any passphrase, slim-pdf
   checks for fields locked by earlier signatures and for certified documents
   (no changes allowed, or no new visible fields).
 * **Multiple certificate profiles:** PKCS#12 files, PKCS#11 tokens, or the
@@ -23,22 +28,22 @@ share the same certificate profiles.
 * Signature images can be PNG/JPEG or **PDF (vector)**.
 * Stamps are drawn upright on rotated pages (`/Rotate`).
 * **Fill in forms** (text fields, check boxes, radio buttons, choices) in
-  the GUI or with `pdfsigner form`, without breaking earlier signatures.
+  the GUI or with `slim-pdf form`, without breaking earlier signatures.
 * **Add text and images** (PNG/JPEG, or PDF as vector graphics) to pages in
   the GUI: drag a box or click where they go.
 * **Page tools:** rotate, crop and delete pages (CLI and the GUI's page
   menu); split and merge on the command line.
 * **English and German** (GUI and command line), following the system
   language or `language` in the config.
-* **Verify** signatures (`pdfsigner verify`, and a *Signatures* list in the
+* **Verify** signatures (`slim-pdf verify`, and a *Signatures* list in the
   GUI): valid, untrusted or invalid (legacy formats: not checked), with what changed after each signature.
 
 ## Install
 
-**Windows and macOS:** an installer (`PDF-Signer-<version>-setup.exe`) and
-disk images (`PDF-Signer-<version>-macos-<arch>.dmg`) are built for every
+**Windows and macOS:** an installer (`Slim-PDF-<version>-setup.exe`) and
+disk images (`Slim-PDF-<version>-macos-<arch>.dmg`) are built for every
 release tag and attached to the GitHub release. They contain the GUI and the
-`pdfsigner` command, no Python needed. See
+`slim-pdf` command, no Python needed. See
 [packaging/README.md](packaging/README.md) for details, code signing and
 building them yourself.
 
@@ -60,7 +65,7 @@ pip install -e ".[all]"
 
 | | Linux | macOS | Windows |
 |---|---|---|---|
-| Config file | `~/.config/pdfsigner/` | `~/Library/Application Support/pdfsigner/` | `%LOCALAPPDATA%\pdfsigner\` |
+| Config file | `~/.config/slim-pdf/` | `~/Library/Application Support/slim-pdf/` | `%LOCALAPPDATA%\slim-pdf\` |
 | `keyring` backend | Secret Service / KWallet (KeePassXC possible) | Keychain | Credential Manager |
 | KeePass profiles | ✅ | ✅ | ✅ |
 | PKCS#11 module (OpenSC) | `opensc-pkcs11.so` | `/Library/OpenSC/lib/opensc-pkcs11.so` | `opensc-pkcs11.dll` |
@@ -71,21 +76,21 @@ pip install -e ".[all]"
   keychain** can be used directly (`--system-cert`, new; see
   [docs/secret-storage.md](docs/secret-storage.md#6-windows-certificate-store--macos-keychain-type--system)).
 * On Windows a PDF can't be overwritten while another program (e.g.
-  Acrobat) has it open. pdfsigner then reports this instead of signing.
+  Acrobat) has it open. slim-pdf then reports this instead of signing.
 
 ## Certificates
 
 ```bash
-pdfsigner certs add work --p12 ~/certs/fau.p12 --image ~/certs/signature.png \
+slim-pdf certs add work --p12 ~/certs/fau.p12 --image ~/certs/signature.png \
     --reason "Approval" --location "Erlangen" --secret keyring --default
-pdfsigner certs set-secret work         # store the passphrase in the keyring
-pdfsigner certs test work               # unlock and print subject/validity
-pdfsigner certs list
-pdfsigner certs edit work --stamp-text ''   # image only, no text
+slim-pdf certs set-secret work          # store the passphrase in the keyring
+slim-pdf certs test work                # unlock and print subject/validity
+slim-pdf certs list
+slim-pdf certs edit work --stamp-text ''    # image only, no text
 ```
 
 Profiles live in `config.toml` in the config directory above (or
-`$PDFSIGNER_CONFIG`, or `--config`). The GUI's *Settings…* dialog edits the same file. Example:
+`$SLIM_PDF_CONFIG`, or `--config`). The GUI's *Settings…* dialog edits the same file. Example:
 
 ```toml
 default = "work"
@@ -111,6 +116,23 @@ The stamp text is a template with placeholders for the certificate (`%(cn)s`,
 the image. An empty text gives an image-only stamp. See
 [the stamp text](docs/cli.md#the-stamp-text).
 
+## Renamed from pdfsigner
+
+Existing setups keep working:
+
+* The commands are `slim-pdf` and `slim-pdf-gui`; `pdfsigner` and
+  `pdfsigner-gui` still work as aliases.
+* The configuration moved from `…/pdfsigner/config.toml` to
+  `…/slim-pdf/config.toml` (same folders otherwise). On the first start
+  without one, the old file is copied over; the old one stays for older
+  versions.
+* Passphrases stored in the OS keyring under "pdfsigner" are still found;
+  new ones are stored under "slim-pdf".
+* Environment variables are now `SLIM_PDF_…` (`SLIM_PDF_CONFIG`,
+  `SLIM_PDF_LANG`, `SLIM_PDF_PDF_PASSWORD`, …); the old `PDFSIGNER_…` names
+  are still read.
+* In Python, the package is `slim_pdf` (was `pdfsigner`).
+
 ## Documentation
 
 * **[Command line reference](docs/cli.md):** every command with real
@@ -122,13 +144,13 @@ the image. An empty text gives an image-only stamp. See
 Quick start:
 
 ```bash
-pdfsigner fields contract.pdf                        # what can be signed?
-pdfsigner sign contract.pdf --field Applicant        # -> contract-signed.pdf
-pdfsigner sign letter.pdf --page 2 --at 350,80 --width 160
-pdfsigner verify contract-signed.pdf                # valid / untrusted / invalid
-pdfsigner rotate scan.pdf --pages even --angle 180 -i    # page tools
-pdfsigner merge -o all.pdf cover.pdf scan.pdf@2-
-pdfsigner gui contract.pdf
+slim-pdf fields contract.pdf                         # what can be signed?
+slim-pdf sign contract.pdf --field Applicant         # -> contract-signed.pdf
+slim-pdf sign letter.pdf --page 2 --at 350,80 --width 160
+slim-pdf verify contract-signed.pdf                 # valid / untrusted / invalid
+slim-pdf rotate scan.pdf --pages even --angle 180 -i     # page tools
+slim-pdf merge -o all.pdf cover.pdf scan.pdf@2-
+slim-pdf gui contract.pdf
 ```
 
 ## Tests
@@ -136,12 +158,12 @@ pdfsigner gui contract.pdf
 ```bash
 pip install -e '.[dev]'
 pytest                       # GUI tests run headless (QT_QPA_PLATFORM=offscreen)
-pytest --cov=pdfsigner       # ~390 tests; ~87 % line coverage on Linux (the Windows/macOS store code runs only there)
+pytest --cov=slim_pdf       # ~390 tests; ~87 % line coverage on Linux (the Windows/macOS store code runs only there)
 ```
 
-Translations live in `src/pdfsigner/locale/`. After changing user-visible
+Translations live in `src/slim_pdf/locale/`. After changing user-visible
 strings, run `python scripts/i18n.py update`, translate the new entries in
-`de/LC_MESSAGES/pdfsigner.po`, then `python scripts/i18n.py compile`;
+`de/LC_MESSAGES/slim-pdf.po`, then `python scripts/i18n.py compile`;
 `test_i18n.py` fails while anything is missing.
 
 | File | Covers |
@@ -156,14 +178,14 @@ strings, run `python scripts/i18n.py update`, translate the new entries in
 | `test_keepassxc.py` | `keepassxc-cli` source against the real binary (binary-exact attachments via named pipe and temp file, key files, wrong password, missing entry/attachment) and a fake CLI (argument protocol, YubiKey option, no hang when the CLI fails). |
 | `test_systemstore.py`, `test_systemstore_native.py` | Windows store / macOS keychain: selection by thumbprint or subject, RSA and ECDSA signing through a fake backend; the native backends against a throwaway store (CI on Windows and macOS only). |
 | `test_pages.py` | Page specs; rotate and crop as incremental updates (encryption kept, signatures reported invalid afterwards); crop margins follow the screen on all four rotations; split/merge drop signed fields but keep empty ones; CLI refuses signed input without `--force`. |
-| `test_forms.py`, `test_gui_forms.py` | Listing and filling in every field kind (text, multi-line, check box, radio, drop-down, list box, child fields), the drawn appearances, refused values and characters, read-only and signature-locked fields, certified and encrypted documents, signatures staying valid; the GUI's form dialog, clicking a field on the page, undo, the warning before a signature would break; `pdfsigner form`. |
+| `test_forms.py`, `test_gui_forms.py` | Listing and filling in every field kind (text, multi-line, check box, radio, drop-down, list box, child fields), the drawn appearances, refused values and characters, read-only and signature-locked fields, certified and encrypted documents, signatures staying valid; the GUI's form dialog, clicking a field on the page, undo, the warning before a signature would break; `slim-pdf form`. |
 | `test_insert.py`, `test_gui_insert.py` | Text and images added upright and in place on all four page rotations, wrapping, vector (PDF) images, encrypted documents, existing content and resources kept; in the GUI: dragging a box, clicking, `Esc`, the text dialog's checks, the warning on signed documents. |
 | `test_gui_pages.py` | GUI page tools: thumbnails, rotating selected pages, cropping by dragging, undo and save, the unsaved-changes prompt, warnings on signed documents, signing an edited document, split and merge dialogs. |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |
 | `test_gui.py`, `test_gui_coords.py` | Click to place, drag, resize with fixed aspect ratio (handle and Ctrl+wheel), clamping, page navigation, prepared fields, signing twice, error dialogs, encrypted PDFs, certificate manager. Screen-to-PDF mapping for all rotations. |
 | `test_gui_background.py` | Slow work (signing, tokens) off the GUI thread: results and errors, PIN dialogs on the GUI thread, events keep flowing, input to the window ignored meanwhile. |
-| `test_docs.py` | Every `pdfsigner …` example in the docs is accepted by the real parser; every command and option is documented, and every documented option and config key exists; links and screenshots exist. |
+| `test_docs.py` | Every `slim-pdf …` example in the docs is accepted by the real parser; every command and option is documented, and every documented option and config key exists; links and screenshots exist. |
 | `test_i18n.py` | Language choice (environment, config, system locale names), the German catalog complete with matching placeholders and an up-to-date `.mo`, the `.mo` writer against Python's gettext, German CLI and GUI output. |
 
 CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and

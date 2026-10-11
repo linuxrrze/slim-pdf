@@ -148,7 +148,7 @@ P11_KIT_PROXY = ["/usr/lib/*/p11-kit-proxy.so", "/usr/lib64/p11-kit-proxy.so"]
 # GNOME Keyring, NSS' built-in roots and software store.
 NOT_FOR_SIGNING = {"p11-kit-trust.so", "p11-kit-client.so", "p11-kit-proxy.so",
                    "gnome-keyring-pkcs11.so", "libnssckbi.so", "libsoftokn3.so"}
-PROGRAM = "pdfsigner"  # our name in p11-kit's enable-in / disable-in
+PROGRAM = "slim-pdf"  # our name in p11-kit's enable-in / disable-in
 
 
 def _pin_status(flags) -> str:

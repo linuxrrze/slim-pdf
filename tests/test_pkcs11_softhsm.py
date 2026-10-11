@@ -19,10 +19,10 @@ from cryptography.hazmat.primitives import hashes, serialization  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import ec, rsa  # noqa: E402
 from cryptography.x509.oid import NameOID  # noqa: E402
 
-from pdfsigner import cli  # noqa: E402
-from pdfsigner.config import CertProfile, Config  # noqa: E402
-from pdfsigner.secretstore import Credentials  # noqa: E402
-from pdfsigner.signing import SigningError, inspect_pdf, open_signer, sign_pdf  # noqa: E402
+from slim_pdf import cli  # noqa: E402
+from slim_pdf.config import CertProfile, Config  # noqa: E402
+from slim_pdf.secretstore import Credentials  # noqa: E402
+from slim_pdf.signing import SigningError, inspect_pdf, open_signer, sign_pdf  # noqa: E402
 
 from conftest import validate_all  # noqa: E402
 
@@ -34,7 +34,7 @@ LIB_CANDIDATES = [
     "/opt/homebrew/lib/softhsm/libsofthsm2.so",
 ]
 PIN = "123456"
-TOKEN = "pdfsigner-test"
+TOKEN = "slim-pdf-test"
 
 
 def _find_lib() -> str | None:
@@ -339,7 +339,7 @@ def test_piv_always_authenticate_without_pin(piv, form_pdf, tmp_path):
 
 
 def test_list_token_without_login(piv):
-    from pdfsigner import tokens
+    from slim_pdf import tokens
 
     lib, _, _ = piv
     [t] = tokens.list_tokens(lib, PIV_TOKEN)
@@ -351,7 +351,7 @@ def test_list_token_without_login(piv):
 
 
 def test_list_token_with_login(piv):
-    from pdfsigner import tokens
+    from slim_pdf import tokens
 
     lib, _, _ = piv
     asked = []
@@ -366,7 +366,7 @@ def test_list_token_with_login(piv):
 
 
 def test_list_token_wrong_pin(piv):
-    from pdfsigner import tokens
+    from slim_pdf import tokens
 
     lib, _, _ = piv
     with pytest.raises(SigningError, match="wrong PIN"):
@@ -465,7 +465,7 @@ def test_sign_with_key_types_cards_use(typed_keys, oid, blank_pdf, tmp_path):
 
 
 def test_cli_certs_pkcs11_without_module(piv, cfg_path, monkeypatch, capsys):
-    from pdfsigner import tokens
+    from slim_pdf import tokens
 
     lib, _, _ = piv
     monkeypatch.setattr(tokens, "find_modules", lambda: [lib, "/no/such/module.so"])
@@ -480,7 +480,7 @@ def test_cli_certs_pkcs11_without_module(piv, cfg_path, monkeypatch, capsys):
 
 
 def test_token_listing_shows_the_pin_state():
-    from pdfsigner import tokens
+    from slim_pdf import tokens
 
     t = tokens.TokenInfo("/x.so", "Card", "Yubico", "YubiKey", "1", False)
     assert "[" not in t.describe()

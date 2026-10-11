@@ -10,7 +10,7 @@
 The private key never leaves the store: pyHanko hands us the data to sign,
 we hash it and ask the OS to sign the digest. A profile selects the
 certificate by SHA-1 thumbprint or by part of its subject
-(``system_cert``); ``pdfsigner certs system`` lists the candidates.
+(``system_cert``); ``slim-pdf certs system`` lists the candidates.
 
 RSA (PKCS#1 v1.5) and ECDSA keys are supported.
 """
@@ -102,7 +102,7 @@ def select(identities: list[StoreIdentity], spec: str) -> StoreIdentity:
         return matches[0]
     if not matches:
         raise SigningError(_("no certificate with a private key matches {spec!r} "
-                             "(see: pdfsigner certs system)").format(spec=spec))
+                             "(see: slim-pdf certs system)").format(spec=spec))
     listing = "\n  ".join(i.describe() for i in matches)
     raise SigningError(_("{spec!r} matches several certificates; use the thumbprint:\n  {listing}")
                        .format(spec=spec, listing=listing))

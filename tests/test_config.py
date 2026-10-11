@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from pdfsigner.config import (
+from slim_pdf.config import (
     DEFAULT_STAMP_TEXT,
     CertProfile,
     Config,
@@ -108,11 +108,11 @@ def test_put_validates():
 
 
 def test_config_path_env(monkeypatch, tmp_path):
-    monkeypatch.setenv("PDFSIGNER_CONFIG", str(tmp_path / "x.toml"))
+    monkeypatch.setenv("SLIM_PDF_CONFIG", str(tmp_path / "x.toml"))
     assert default_config_path() == tmp_path / "x.toml"
-    monkeypatch.delenv("PDFSIGNER_CONFIG")
+    monkeypatch.delenv("SLIM_PDF_CONFIG")
     assert default_config_path().name == "config.toml"
-    assert "pdfsigner" in str(default_config_path())
+    assert "slim-pdf" in str(default_config_path())
 
 
 def test_expand(monkeypatch, tmp_path):
@@ -158,7 +158,7 @@ def test_supported_cert_types():
 
 
 def test_stamp_settings_are_checked():
-    from pdfsigner.config import CertProfile
+    from slim_pdf.config import CertProfile
 
     CertProfile(name="p", path="x.p12", stamp_text="%(cn)s\n%(date)s",
                 text_position="right").validate()
@@ -169,7 +169,7 @@ def test_stamp_settings_are_checked():
 
 
 def test_certificate_is_saved_and_loaded(tmp_path):
-    from pdfsigner.config import CertProfile, Config, load_config
+    from slim_pdf.config import CertProfile, Config, load_config
 
     pem_text = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
     cfg = Config(path=tmp_path / "c.toml")
@@ -177,3 +177,48 @@ def test_certificate_is_saved_and_loaded(tmp_path):
     cfg.save()
     again = load_config(tmp_path / "c.toml").certs["p"]
     assert (again.certificate, again.text_position) == (pem_text, "left")
+
+
+# --- the rename from pdfsigner ------------------------------------------------------
+
+
+@pytest.fixture
+def config_dirs(tmp_path, monkeypatch):
+    """The platform's config folder is tmp_path; no config from the environment."""
+    from slim_pdf import config
+
+    for name in ("SLIM_PDF_CONFIG", "PDFSIGNER_CONFIG"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(config, "user_config_dir",
+                        lambda name, appauthor=False: str(tmp_path / name))
+    return tmp_path
+
+
+def test_old_config_is_taken_over(config_dirs):
+    old = config_dirs / "pdfsigner" / "config.toml"
+    Config(certs={"work": CertProfile(name="work", path="w.p12")}, default="work",
+           path=old).save()
+    cfg = load_config()
+    assert cfg.path == config_dirs / "slim-pdf" / "config.toml" and cfg.path.is_file()
+    assert list(cfg.certs) == ["work"]
+    assert old.is_file()  # copied, not moved
+    cfg.default = ""
+    cfg.save()
+    assert load_config().default == ""  # the new file is used from now on
+
+
+def test_no_old_config(config_dirs):
+    cfg = load_config()
+    assert cfg.certs == {} and not cfg.path.exists()
+
+
+def test_old_environment_variables(config_dirs, monkeypatch, tmp_path):
+    from slim_pdf import environ
+
+    monkeypatch.setenv("PDFSIGNER_CONFIG", str(tmp_path / "old-env.toml"))
+    assert default_config_path() == tmp_path / "old-env.toml"
+    monkeypatch.setenv("SLIM_PDF_CONFIG", str(tmp_path / "new-env.toml"))
+    assert default_config_path() == tmp_path / "new-env.toml"  # the new name wins
+    monkeypatch.setenv("SLIM_PDF_LANG", "")
+    monkeypatch.setenv("PDFSIGNER_LANG", "de")
+    assert environ("LANG") == "de"

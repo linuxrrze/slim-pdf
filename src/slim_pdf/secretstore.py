@@ -26,10 +26,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import OLD_NAME, environ
 from .config import CertProfile, expand
 from .i18n import _
 
-KEYRING_SERVICE = "pdfsigner"
+KEYRING_SERVICE = "slim-pdf"
 
 # Called with a human-readable prompt; returns the secret or None if cancelled.
 AskFn = Callable[[str], "str | None"]
@@ -65,9 +66,9 @@ def resolve_credentials(profile: CertProfile, ask: AskFn) -> Credentials:
             if secret is None:
                 message = (
                     _("no PIN for '{name}' in the keyring "
-                      "(store it with: pdfsigner certs set-secret {name})") if pin
+                      "(store it with: slim-pdf certs set-secret {name})") if pin
                     else _("no passphrase for '{name}' in the keyring "
-                           "(store it with: pdfsigner certs set-secret {name})"))
+                           "(store it with: slim-pdf certs set-secret {name})"))
                 raise SecretError(message.format(name=profile.name))
             return Credentials(secret=secret)
         case "keepass":
@@ -111,7 +112,13 @@ def _keyring_call(fn, *args):
 
 
 def keyring_get(profile_name: str) -> str | None:
-    return _keyring_call(_keyring().get_password, KEYRING_SERVICE, profile_name)
+    """The stored secret; one stored under the old name (pdfsigner) counts
+    until a new one is stored."""
+    get = _keyring().get_password
+    secret = _keyring_call(get, KEYRING_SERVICE, profile_name)
+    if secret is None:
+        secret = _keyring_call(get, OLD_NAME, profile_name)
+    return secret
 
 
 def keyring_set(profile_name: str, secret: str) -> None:
@@ -128,6 +135,7 @@ def keyring_delete(profile_name: str) -> None:
             pass  # nothing stored: fine
 
     _keyring_call(delete, KEYRING_SERVICE, profile_name)
+    _keyring_call(delete, OLD_NAME, profile_name)
 
 
 def keyring_backend_name() -> str:
@@ -245,8 +253,8 @@ def _which_absolute(name: str) -> str | None:
 
 
 def keepassxc_cli() -> str:
-    """Path of keepassxc-cli: $PDFSIGNER_KEEPASSXC_CLI, PATH, or the default install."""
-    env = os.environ.get("PDFSIGNER_KEEPASSXC_CLI")
+    """Path of keepassxc-cli: $SLIM_PDF_KEEPASSXC_CLI, PATH, or the default install."""
+    env = environ("KEEPASSXC_CLI")
     if env:
         return env
     found = _which_absolute("keepassxc-cli")
@@ -256,7 +264,7 @@ def keepassxc_cli() -> str:
         if Path(p).exists():
             return p
     raise SecretError(_("keepassxc-cli not found (install KeePassXC, or set "
-                        "PDFSIGNER_KEEPASSXC_CLI to its path)"))
+                        "SLIM_PDF_KEEPASSXC_CLI to its path)"))
 
 
 def _cli_error(db: Path, stderr: str) -> SecretError:
@@ -305,7 +313,7 @@ def _export_attachment(cli, opts, db, entry, name, stdin) -> bytes:
     files, so it goes to a named pipe instead (never touching the disk), or,
     on Windows, to a file in a private temporary directory.
     """
-    with tempfile.TemporaryDirectory(prefix="pdfsigner-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="slim-pdf-") as tmp:
         target = Path(tmp) / "attachment"
         argv = [cli, "attachment-export", *opts, str(db), entry, name, str(target)]
         if not hasattr(os, "mkfifo"):

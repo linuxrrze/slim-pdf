@@ -4,8 +4,8 @@ import pytest
 
 QtWidgets = pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
 
-from pdfsigner.gui import app as gui_app  # noqa: E402
-from pdfsigner.gui.pageview import FormItem  # noqa: E402
+from slim_pdf.gui import app as gui_app  # noqa: E402
+from slim_pdf.gui.pageview import FormItem  # noqa: E402
 
 from conftest import add_sig_field, sign_with  # noqa: E402
 # fixtures shared with test_gui.py

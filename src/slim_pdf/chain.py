@@ -16,12 +16,13 @@ signatures validate without any download.
 from __future__ import annotations
 
 import hashlib
-import os
 import urllib.request
 from pathlib import Path
 
 from asn1crypto import cms, pem, x509
 from platformdirs import user_cache_dir
+
+from . import environ
 
 TIMEOUT = 5  # seconds per download
 MAX_SIZE = 1 << 20
@@ -29,7 +30,7 @@ MAX_DEPTH = 6  # intermediates between a signer and a root, at most
 
 
 def cache_path() -> Path:
-    base = os.environ.get("PDFSIGNER_CACHE_DIR") or user_cache_dir("pdfsigner", appauthor=False)
+    base = environ("CACHE_DIR") or user_cache_dir("slim-pdf", appauthor=False)
     return Path(base) / "intermediates.pem"
 
 

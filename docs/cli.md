@@ -1,7 +1,7 @@
 # Command line reference
 
 ```
-pdfsigner [--config FILE] [--verbose] <command> ...
+slim-pdf [--config FILE] [--verbose] <command> ...
 
   certs list | show | add | edit | remove | default | set-secret | test | system | pkcs11
   fields FILE
@@ -21,18 +21,18 @@ example about self-signed certificates).
 * **Pages** are 1-based.
 * **Coordinates** are PDF points (1/72 inch), with the origin at the
   bottom-left of the page as stored in the file (before `/Rotate`). An A4
-  page is 595 × 842 pt. `pdfsigner fields` prints the rectangles of existing
+  page is 595 × 842 pt. `slim-pdf fields` prints the rectangles of existing
   fields, which is a quick way to orient yourself.
-* **Config file:** `--config FILE`, else `$PDFSIGNER_CONFIG`, else the
+* **Config file:** `--config FILE`, else `$SLIM_PDF_CONFIG`, else the
   platform default:
-  * Linux: `~/.config/pdfsigner/config.toml`
-  * macOS: `~/Library/Application Support/pdfsigner/config.toml`
-  * Windows: `%LOCALAPPDATA%\pdfsigner\config.toml`
+  * Linux: `~/.config/slim-pdf/config.toml`
+  * macOS: `~/Library/Application Support/slim-pdf/config.toml`
+  * Windows: `%LOCALAPPDATA%\slim-pdf\config.toml`
 * **Encrypted PDFs:** you are asked for the password. Scripts can set
-  `$PDFSIGNER_PDF_PASSWORD` or pipe it in with `--password -`.
+  `$SLIM_PDF_PDF_PASSWORD` or pipe it in with `--password -`.
   `--password VALUE` also works, but other users can see it in the process
   list, and it ends up in your shell history.
-* **Language:** English or German. `$PDFSIGNER_LANG` (`en`, `de`), else
+* **Language:** English or German. `$SLIM_PDF_LANG` (`en`, `de`), else
   `language` in the config file, else the system language; everything else
   falls back to English. The examples below show English output.
 * **Windows:** the examples use bash syntax. In PowerShell, continue lines with
@@ -47,7 +47,7 @@ All outputs below come from real runs. Paths are shortened to `~`.
 
 ---
 
-## Certificate profiles: `pdfsigner certs`
+## Certificate profiles: `slim-pdf certs`
 
 A *profile* says where the key is (a PKCS#12 file, a KeePass attachment, a
 PKCS#11 token, or the Windows certificate store / macOS keychain), where its
@@ -56,13 +56,13 @@ passphrase or PIN comes from, and how the visible signature looks. The first pro
 ### Add a PKCS#12 certificate
 
 ```console
-$ pdfsigner certs add work --p12 ~/certs/fau-smime.p12 --image ~/certs/signature.png \
+$ slim-pdf certs add work --p12 ~/certs/fau-smime.p12 --image ~/certs/signature.png \
       --reason "Expense claim" --location Erlangen
-saved to ~/.config/pdfsigner/config.toml
+saved to ~/.config/slim-pdf/config.toml
 
-$ pdfsigner certs add supervisor --p12 ~/certs/supervisor.p12 --image ~/certs/supervisor.png \
+$ slim-pdf certs add supervisor --p12 ~/certs/supervisor.p12 --image ~/certs/supervisor.png \
       --stamp-text 'Approved by %(signer)s\n%(ts)s'
-saved to ~/.config/pdfsigner/config.toml
+saved to ~/.config/slim-pdf/config.toml
 ```
 
 | Option | Meaning |
@@ -81,11 +81,11 @@ saved to ~/.config/pdfsigner/config.toml
 ### List, inspect and test
 
 ```console
-$ pdfsigner certs list
+$ slim-pdf certs list
 * work                 pkcs12  secret=prompt   ~/certs/fau-smime.p12
   supervisor           pkcs12  secret=prompt   ~/certs/supervisor.p12
 
-$ pdfsigner certs show work
+$ slim-pdf certs show work
 name                 'work'
 type                 'pkcs12'
 path                 '~/certs/fau-smime.p12'
@@ -95,7 +95,7 @@ reason               'Expense claim'
 location             'Erlangen'
 secret               'prompt'
 
-$ pdfsigner certs test work
+$ slim-pdf certs test work
 passphrase for certificate 'work':
 Common Name: Alice Example
   issuer:  Common Name: Alice Example
@@ -109,7 +109,7 @@ also stores the (public) certificate in the profile, so that `certs show`
 lists its details without asking for the PIN:
 
 ```console
-$ pdfsigner certs show work
+$ slim-pdf certs show work
 …
 certificate:
   Subject:               Common Name: Alice Example
@@ -144,7 +144,7 @@ left out. Write `%%` for a percent sign.
 | `%(reason)s`, `%(location)s`, `%(contact)s` | The profile's reason, location and contact |
 
 ```console
-$ pdfsigner certs edit work --text-position right \
+$ slim-pdf certs edit work --text-position right \
       --stamp-text '%(cn)s\n%(org)s\n%(date)s %(time)s\nReason: %(reason)s'
 ```
 
@@ -153,10 +153,10 @@ The stamp scales as a whole: a bigger box gets bigger text, too.
 ### Change, rename the default, remove
 
 ```console
-$ pdfsigner certs edit work --stamp-text ''            # image only from now on
-$ pdfsigner certs edit work --timestamp-url http://timestamp.digicert.com
-$ pdfsigner certs default supervisor
-$ pdfsigner certs remove supervisor --purge-secret     # also delete it from the keyring
+$ slim-pdf certs edit work --stamp-text ''             # image only from now on
+$ slim-pdf certs edit work --timestamp-url http://timestamp.digicert.com
+$ slim-pdf certs default supervisor
+$ slim-pdf certs remove supervisor --purge-secret      # also delete it from the keyring
 ```
 
 `edit` takes the same options as `add` and changes only the ones you pass.
@@ -164,31 +164,31 @@ $ pdfsigner certs remove supervisor --purge-secret     # also delete it from the
 ### Vector signature images
 
 A scanned PNG gets blurry when the stamp is large or the document is
-printed. A PDF signature stays sharp: pdfsigner embeds page 1 of the PDF as
+printed. A PDF signature stays sharp: slim-pdf embeds page 1 of the PDF as
 vector graphics, and its page size determines the aspect ratio. To turn a
 scan into one, trace it (Inkscape: *Path → Trace Bitmap*), set the page to
 the drawing (*Edit → Resize Page to Selection*) and save as PDF. An existing
 SVG only needs the last step.
 
 ```console
-$ pdfsigner certs edit work --image ~/certs/signature.pdf
+$ slim-pdf certs edit work --image ~/certs/signature.pdf
 ```
 
 ### Long-term validation (LTV)
 
 A plain signature can only be checked as long as the certificate's
 revocation status can be looked up, which in practice ends when the
-certificate expires. With `--ltv yes`, pdfsigner validates the signer's
+certificate expires. With `--ltv yes`, slim-pdf validates the signer's
 certificate chain while signing, fetches the revocation info (OCSP/CRL) and
 embeds it in the document. Together with a timestamp server this gives
 PAdES B-LTA; without one, B-LT.
 
 ```console
-$ pdfsigner certs edit work --ltv yes --timestamp-url http://timestamp.digicert.com
-$ pdfsigner sign contract.pdf --field Buyer
+$ slim-pdf certs edit work --ltv yes --timestamp-url http://timestamp.digicert.com
+$ slim-pdf sign contract.pdf --field Buyer
 passphrase for certificate 'work':
 signed field 'Buyer' -> contract-signed.pdf
-$ pdfsigner verify contract-signed.pdf
+$ slim-pdf verify contract-signed.pdf
 Buyer: VALID
   ...
   ltv:      validation data embedded
@@ -201,7 +201,7 @@ file. If the chain can't be validated, or the certificate is revoked,
 signing fails instead of producing a signature without LTV data:
 
 ```console
-$ pdfsigner sign contract.pdf --field Buyer
+$ slim-pdf sign contract.pdf --field Buyer
 passphrase for certificate 'work':
 error: LTV: cannot validate the signer's certificate chain: Unable to build a validation path for the certificate "Common Name: Carol LTV" - no issuer matching "Common Name: Test Root CA" was found. LTV needs a chain to a trusted root (add it with `trust` in the config) and reachable revocation info (OCSP/CRL)
 ```
@@ -209,8 +209,8 @@ error: LTV: cannot validate the signer's certificate chain: Unable to build a va
 ### Store the passphrase in the OS keyring
 
 ```console
-$ pdfsigner certs edit work --secret keyring
-$ pdfsigner certs set-secret work
+$ slim-pdf certs edit work --secret keyring
+$ slim-pdf certs set-secret work
 Passphrase for 'work':
 stored in keyring (keyring.backends.SecretService.Keyring)
 ```
@@ -226,10 +226,10 @@ The entry's password is the passphrase, and the `.p12` is an attachment on
 the same entry. No key file stays on disk:
 
 ```console
-$ pdfsigner certs add vault --secret keepass --keepass-db ~/Passwords.kdbx \
+$ slim-pdf certs add vault --secret keepass --keepass-db ~/Passwords.kdbx \
       --keepass-entry "Certificates/FAU S/MIME" --keepass-attachment fau-smime.p12 \
       --image ~/certs/signature.png
-$ pdfsigner certs test vault
+$ slim-pdf certs test vault
 KeePass master password for Passwords.kdbx:
 Common Name: Alice Example
   ...
@@ -244,10 +244,10 @@ instead: the same options, but the database is opened by KeePassXC's
 selects the YubiKey slot (`slot[:serial]`):
 
 ```console
-$ pdfsigner certs add vault-yk --secret keepassxc --keepass-db ~/Passwords.kdbx \
+$ slim-pdf certs add vault-yk --secret keepassxc --keepass-db ~/Passwords.kdbx \
       --keepass-entry "Certificates/FAU S/MIME" --keepass-attachment fau-smime.p12 \
       --keepass-yubikey 2
-$ pdfsigner certs test vault-yk
+$ slim-pdf certs test vault-yk
 ```
 
 The prompt then reads *KeePass master password for Passwords.kdbx (then
@@ -258,8 +258,8 @@ See [secret-storage.md](secret-storage.md#3-keepassxc-cli-secret--keepassxc) for
 ### Windows certificate store / macOS keychain
 
 ```console
-$ pdfsigner certs system
-$ pdfsigner certs add store --system-cert "Alice Example" --image ~/certs/signature.png
+$ slim-pdf certs system
+$ slim-pdf certs add store --system-cert "Alice Example" --image ~/certs/signature.png
 ```
 
 `certs system` lists the certificates with a private key in the current
@@ -272,7 +272,7 @@ have no `--secret`. Details in
 ### Smartcard / token (PKCS#11)
 
 ```console
-$ pdfsigner certs add yubikey --pkcs11-lib /usr/lib/x86_64-linux-gnu/libykcs11.so \
+$ slim-pdf certs add yubikey --pkcs11-lib /usr/lib/x86_64-linux-gnu/libykcs11.so \
       --key-id 02 --image ~/certs/signature.png
 ```
 
@@ -287,13 +287,13 @@ needed for tokens that pair them differently.
 To see what is on a token, and which ID to use:
 
 ```console
-$ pdfsigner certs pkcs11 /usr/lib/x86_64-linux-gnu/libykcs11.so --login
+$ slim-pdf certs pkcs11 /usr/lib/x86_64-linux-gnu/libykcs11.so --login
 PIN for token 'YubiKey PIV #12345678':
 token 'YubiKey PIV #12345678' (… manufacturer, model, serial …)
   ID 01    key 'Private key for PIV Authentication' (EC)  certificate 'X.509 Certificate for PIV Authentication': Common Name: Alice Example, expires 2027-03-31
   ID 02    key 'Private key for Digital Signature' (EC, PIN for every signature)  certificate 'X.509 Certificate for Digital Signature': Common Name: Alice Example, expires 2027-03-31
 
-profile: pdfsigner certs add NAME --pkcs11-lib /usr/lib/x86_64-linux-gnu/libykcs11.so --key-id ID
+profile: slim-pdf certs add NAME --pkcs11-lib /usr/lib/x86_64-linux-gnu/libykcs11.so --key-id ID
 ```
 
 (This example shows the layout Yubico's module uses, reproduced with a
@@ -311,8 +311,8 @@ first:
   `pkcs11` library directory, SafeNet/Thales (`libeTPkcs11.so`,
   `libIDPrimePKCS11.so`), CardOS (`libcardos11.so`) and `/opt/*/lib*/*pkcs11*.so`.
   Modules without signing keys (p11-kit's CA list, GNOME Keyring, NSS) are
-  left out, as are p11-kit entries with `disable-in: pdfsigner` or an
-  `enable-in` list without `pdfsigner`. If nothing is found, p11-kit's proxy
+  left out, as are p11-kit entries with `disable-in: slim-pdf` or an
+  `enable-in` list without `slim-pdf`. If nothing is found, p11-kit's proxy
   module is tried.
 * **macOS, Windows:** OpenSC and Yubico's module in their install locations.
 
@@ -326,15 +326,15 @@ profile). In the GUI, the *Module* field lists the modules found, and
 | OpenSC (most cards) | `/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so` | `/Library/OpenSC/lib/opensc-pkcs11.so` | `C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll` |
 
 The paths are the usual install locations; they differ with the package
-source. Requires `pip install 'pdfsigner[pkcs11]'`. More in
+source. Requires `pip install 'slim-pdf[pkcs11]'`. More in
 [secret-storage.md](secret-storage.md#5-hardware-tokens-type--pkcs11).
 
 ---
 
-## Inspect a document: `pdfsigner fields`
+## Inspect a document: `slim-pdf fields`
 
 ```console
-$ pdfsigner fields expense-claim.pdf
+$ slim-pdf fields expense-claim.pdf
 2 pages
   Applicant                empty   page 1   60,216,260,282
   Supervisor               empty   page 1   335,216,535,282
@@ -353,10 +353,10 @@ Certified documents show it in the header, e.g. `2 pages, certified
 
 ---
 
-## Sign: `pdfsigner sign`
+## Sign: `slim-pdf sign`
 
 ```
-pdfsigner sign FILE [-c PROFILE] [-o OUT | -i]
+slim-pdf sign FILE [-c PROFILE] [-o OUT | -i]
                [--field NAME | --page N (--box X1,Y1,X2,Y2 | --at X,Y --width W)]
                [--no-image] [--no-text] [--force]
 ```
@@ -369,7 +369,7 @@ always incremental, so earlier signatures stay valid.
 ### 1. Sign a prepared field
 
 ```console
-$ pdfsigner sign expense-claim.pdf --field Applicant
+$ slim-pdf sign expense-claim.pdf --field Applicant
 passphrase for certificate 'work':
 signed field 'Applicant' -> expense-claim-signed.pdf
 ```
@@ -380,7 +380,7 @@ is centred above the text.
 ### 2. A second signer, in place
 
 ```console
-$ pdfsigner sign expense-claim-signed.pdf -i -c supervisor --field Supervisor
+$ slim-pdf sign expense-claim-signed.pdf -i -c supervisor --field Supervisor
 passphrase for certificate 'supervisor':
 signed field 'Supervisor' -> expense-claim-signed.pdf
 ```
@@ -391,7 +391,7 @@ Give the lower-left corner and a width. The height follows the image's
 aspect ratio:
 
 ```console
-$ pdfsigner sign expense-claim-signed.pdf -i --page 2 --at 60,600 --width 150
+$ slim-pdf sign expense-claim-signed.pdf -i --page 2 --at 60,600 --width 150
 passphrase for certificate 'work':
 signed field 'Signature1' -> expense-claim-signed.pdf
 ```
@@ -399,7 +399,7 @@ signed field 'Signature1' -> expense-claim-signed.pdf
 Or give an exact box. The image is fitted into it without distortion:
 
 ```console
-$ pdfsigner sign letter.pdf --page 1 --box 350,80,510,133
+$ slim-pdf sign letter.pdf --page 1 --box 350,80,510,133
 ```
 
 `--field NAME` together with `--page`/`--box` names the new field (default:
@@ -411,11 +411,11 @@ Without a target you get an invisible signature. It is still a full
 cryptographic signature, just without a stamp:
 
 ```console
-$ pdfsigner sign expense-claim-signed.pdf -o final.pdf
+$ slim-pdf sign expense-claim-signed.pdf -o final.pdf
 passphrase for certificate 'work':
 signed field 'Signature2' -> final.pdf
 
-$ pdfsigner fields final.pdf
+$ slim-pdf fields final.pdf
 2 pages
   Applicant                signed  page 1   60,216,260,282
   Supervisor               signed  page 1   335,216,535,282
@@ -426,8 +426,8 @@ $ pdfsigner fields final.pdf
 ### Appearance switches
 
 ```console
-$ pdfsigner sign contract.pdf --field Buyer --no-text     # image only
-$ pdfsigner sign contract.pdf --field Buyer --no-image    # text only, with a thin border
+$ slim-pdf sign contract.pdf --field Buyer --no-text      # image only
+$ slim-pdf sign contract.pdf --field Buyer --no-image     # text only, with a thin border
 ```
 
 A stamp always shows something: with `--no-text` (or `stamp_text = ""`) but
@@ -438,19 +438,19 @@ no image in the profile, it falls back to the signer's name and time.
 The target is checked **before** you're asked for a passphrase:
 
 ```console
-$ pdfsigner sign final.pdf --field Applicant
+$ slim-pdf sign final.pdf --field Applicant
 error: field 'Applicant' is already signed
 
-$ pdfsigner sign expense-claim.pdf --at 60,600 --width 150
+$ slim-pdf sign expense-claim.pdf --at 60,600 --width 150
 error: --box/--at need --page
 
-$ pdfsigner sign expense-claim.pdf --page 5 --at 60,600 --width 150
+$ slim-pdf sign expense-claim.pdf --page 5 --at 60,600 --width 150
 error: page out of range (document has 2)
 
-$ pdfsigner sign approved.pdf --field Second
+$ slim-pdf sign approved.pdf --field Second
 error: signing would invalidate an existing signature: field 'Second' is locked by an existing signature (use --force to sign anyway)
 
-$ pdfsigner sign certified.pdf --field Approval
+$ slim-pdf sign certified.pdf --field Approval
 error: document is certified with 'no changes allowed'; it cannot be signed again
 ```
 
@@ -470,7 +470,7 @@ On Windows a file can't be replaced while another program has it open. If
 the output (or the input, with `-i`) is open in Acrobat, close it first:
 
 ```console
-$ pdfsigner sign contract.pdf -i --field Buyer
+$ slim-pdf sign contract.pdf -i --field Buyer
 passphrase for certificate 'work':
 error: cannot write contract.pdf: Permission denied (is it open in another program?)
 ```
@@ -478,17 +478,17 @@ error: cannot write contract.pdf: Permission denied (is it open in another progr
 A wrong passphrase:
 
 ```console
-$ pdfsigner sign expense-claim.pdf --field Applicant -o x.pdf
+$ slim-pdf sign expense-claim.pdf --field Applicant -o x.pdf
 passphrase for certificate 'work':
 error: cannot load PKCS#12 for 'work' (wrong passphrase?): Could not load key material from PKCS#12 data
 ```
 
 ---
 
-## Check signatures: `pdfsigner verify`
+## Check signatures: `slim-pdf verify`
 
 ```console
-$ pdfsigner verify final.pdf
+$ slim-pdf verify final.pdf
 Applicant: UNTRUSTED
   signer:   Common Name: Alice Example
   issuer:   Common Name: Alice Example
@@ -511,13 +511,13 @@ Each signature gets one verdict:
 |---|---|---|
 | `VALID` | Intact, the certificate chains to a trusted root, and later changes are allowed ones (form filling, more signatures, validation data). | `0` |
 | `UNTRUSTED` | Everything that can be checked is intact, but trust is missing: a self-signed certificate or a CA that isn't in the trust list, a certificate that wasn't valid at signing time or isn't meant for signatures, revocation status not known yet, or a timestamp from an authority that isn't trusted. The `problem:` line says which. | `4` |
-| `NOT CHECKED` | A signature in a format pdfsigner can't check, such as the legacy `adbe.x509.rsa_sha1` (PKCS#1 with SHA-1, deprecated since PDF 2.0). It is listed with signer, time and coverage, but its validity is unknown. | `4` |
+| `NOT CHECKED` | A signature in a format slim-pdf can't check, such as the legacy `adbe.x509.rsa_sha1` (PKCS#1 with SHA-1, deprecated since PDF 2.0). It is listed with signer, time and coverage, but its validity is unknown. | `4` |
 | `INVALID` | The signed content was modified, the document was changed in a way the signature doesn't allow (e.g. pages rotated after signing), the certificate is revoked, a timestamp is broken, or the signature violates the field's requirements (seed values). | `5` |
 
 The exit code is the worst verdict. A document without signatures is an
 error (`1`).
 
-**Trust:** by default, pdfsigner trusts the Mozilla root list (the same list
+**Trust:** by default, slim-pdf trusts the Mozilla root list (the same list
 on every platform, shipped with the `certifi` package) and the operating
 system's CA store: on Linux the distribution's bundle (e.g.
 `/etc/ssl/certs/ca-certificates.crt`, so roots installed with
@@ -529,7 +529,7 @@ file (`trust = ["~/certs/my-ca.pem"]`, or *Settings…* in the GUI). `--no-syste
 those (neither Mozilla's nor the system's roots).
 
 ```console
-$ pdfsigner verify final.pdf --trust ~/certs/alice.pem --trust ~/certs/supervisor-ca.pem
+$ slim-pdf verify final.pdf --trust ~/certs/alice.pem --trust ~/certs/supervisor-ca.pem
 Applicant: VALID
   ...
 ```
@@ -540,8 +540,8 @@ by "USERTrust RSA Certification Authority" from Mozilla's list. A signature
 can only be trusted if it carries that intermediate, and signatures made with
 a token or another program often don't. A missing intermediate is then
 downloaded from the address in the signer's certificate (as PDF viewers do),
-once: it is kept in a cache (`~/.cache/pdfsigner/intermediates.pem` on Linux).
-When signing, pdfsigner puts the intermediates into the signature, so its own
+once: it is kept in a cache (`~/.cache/slim-pdf/intermediates.pem` on Linux).
+When signing, slim-pdf puts the intermediates into the signature, so its own
 signatures validate everywhere without a download.
 
 * `--no-download` doesn't download missing intermediates (the cache is still
@@ -565,7 +565,7 @@ or `even`. Default: all pages.
 commands refuse signed documents (exit code `3`) unless you add `--force`:
 
 ```console
-$ pdfsigner rotate final.pdf -i --angle 90
+$ slim-pdf rotate final.pdf -i --angle 90
 error: rotating pages would invalidate the signature(s) 'Applicant', 'Supervisor', 'Signature1', 'Signature2' (use --force to continue anyway)
 ```
 
@@ -574,7 +574,7 @@ Edit first, sign afterwards.
 ### Rotate
 
 ```console
-$ pdfsigner rotate expense-claim.pdf --pages 2 --angle 90
+$ slim-pdf rotate expense-claim.pdf --pages 2 --angle 90
 rotated 1 page by 90° -> expense-claim-rotated.pdf
 ```
 
@@ -587,9 +587,9 @@ so encryption is kept and earlier revisions stay untouched.
 ### Crop
 
 ```console
-$ pdfsigner crop expense-claim.pdf --margins 40,30
+$ slim-pdf crop expense-claim.pdf --margins 40,30
 cropped 2 pages -> expense-claim-cropped.pdf
-$ pdfsigner crop expense-claim-cropped.pdf -i --reset
+$ slim-pdf crop expense-claim-cropped.pdf -i --reset
 cropped 2 pages -> expense-claim-cropped.pdf
 ```
 
@@ -605,9 +605,9 @@ cropped 2 pages -> expense-claim-cropped.pdf
 ### Delete
 
 ```console
-$ pdfsigner delete scan.pdf --pages 2,4-5
+$ slim-pdf delete scan.pdf --pages 2,4-5
 deleted 3 pages -> scan-deleted.pdf
-$ pdfsigner delete scan-deleted.pdf -i --pages 1
+$ slim-pdf delete scan-deleted.pdf -i --pages 1
 deleted 1 page -> scan-deleted.pdf
 ```
 
@@ -618,10 +618,10 @@ form fields that were only on the deleted pages are removed with them.
 ### Split
 
 ```console
-$ pdfsigner split expense-claim.pdf
+$ slim-pdf split expense-claim.pdf
 expense-claim-part1.pdf  (1 page)
 expense-claim-part2.pdf  (1 page)
-$ pdfsigner split expense-claim.pdf --part 1 --part 2 -o claim-{n}.pdf
+$ slim-pdf split expense-claim.pdf --part 1 --part 2 -o claim-{n}.pdf
 claim-1.pdf  (1 page)
 claim-2.pdf  (1 page)
 ```
@@ -635,7 +635,7 @@ the input file.
 ### Merge
 
 ```console
-$ pdfsigner merge -o both.pdf expense-claim.pdf@1 expense-claim-part2.pdf expense-claim.pdf
+$ slim-pdf merge -o both.pdf expense-claim.pdf@1 expense-claim-part2.pdf expense-claim.pdf
 merged 3 files (4 pages) -> both.pdf
 ```
 
@@ -649,13 +649,13 @@ signature fields are kept and can still be signed.
 
 ---
 
-## Fill in forms: `pdfsigner form`
+## Fill in forms: `slim-pdf form`
 
 Without `--set`, `form` lists the form fields (text, check boxes, radio
 buttons, drop-downs and list boxes) with their current values and choices:
 
 ```console
-$ pdfsigner form application.pdf
+$ slim-pdf form application.pdf
   name                     text     page 1             ''
   agree                    checkbox page 1             'no'
   size                     radio    page 1             ''
@@ -671,7 +671,7 @@ take `yes`/`no`; radio buttons and choices take the value or its label; `\n`
 in a text starts a new line:
 
 ```console
-$ pdfsigner form application.pdf --set "name=Alice Example" --set agree=yes --set country=France
+$ slim-pdf form application.pdf --set "name=Alice Example" --set agree=yes --set country=France
 filled in 3 fields -> application-filled.pdf
 ```
 
@@ -688,13 +688,13 @@ doesn't accept changes to fields whose buttons are separate objects, like
 radio buttons; when filling in would invalidate a signature, `form` stops
 with exit code `3` unless you add `--force`.
 
-## GUI: `pdfsigner gui`
+## GUI: `slim-pdf gui`
 
 ```console
-$ pdfsigner gui expense-claim.pdf
+$ slim-pdf gui expense-claim.pdf
 ```
 
-Starts the graphical interface (same as `pdfsigner-gui`); see
+Starts the graphical interface (same as `slim-pdf-gui`); see
 [gui.md](gui.md).
 
 ---
@@ -705,7 +705,7 @@ Sign every PDF in a folder in the same spot (bottom right of page 1):
 
 ```bash
 for f in invoices/*.pdf; do
-  pdfsigner sign "$f" -c work --page 1 --at 400,40 --width 140 -o "signed/$(basename "$f")"
+  slim-pdf sign "$f" -c work --page 1 --at 400,40 --width 140 -o "signed/$(basename "$f")"
 done
 ```
 
@@ -715,14 +715,14 @@ With `--secret prompt` this asks once per file. For batches, use
 Sign the first empty field, whatever it's called:
 
 ```bash
-field=$(pdfsigner fields form.pdf | awk '$2 == "empty" {print $1; exit}')
-pdfsigner sign form.pdf --field "$field"
+field=$(slim-pdf fields form.pdf | awk '$2 == "empty" {print $1; exit}')
+slim-pdf sign form.pdf --field "$field"
 ```
 
 React to the verdict of `verify`:
 
 ```bash
-pdfsigner verify incoming.pdf --trust ~/certs/company-ca.pem
+slim-pdf verify incoming.pdf --trust ~/certs/company-ca.pem
 case $? in
   0) echo "all signatures valid" ;;
   4) echo "signed, but by someone you don't trust" ;;
@@ -733,15 +733,15 @@ esac
 Use a separate config, e.g. for a shared machine or CI:
 
 ```bash
-PDFSIGNER_CONFIG=./signing.toml pdfsigner certs list
-pdfsigner --config ./signing.toml sign report.pdf
+SLIM_PDF_CONFIG=./signing.toml slim-pdf certs list
+slim-pdf --config ./signing.toml sign report.pdf
 ```
 
 ---
 
 ## Config file format
 
-`pdfsigner certs` and the GUI's *Settings…* dialog (with its *Certificates* tab)
+`slim-pdf certs` and the GUI's *Settings…* dialog (with its *Certificates* tab)
 write this file. You can also edit it by hand:
 
 ```toml

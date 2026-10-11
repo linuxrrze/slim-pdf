@@ -1,10 +1,10 @@
-# PyInstaller spec: one folder with the GUI app and the `pdfsigner` CLI.
+# PyInstaller spec: one folder with the GUI app and the `slim-pdf` CLI.
 #
 #   python packaging/make_icons.py
-#   pyinstaller packaging/pdfsigner.spec --noconfirm
+#   pyinstaller packaging/slim-pdf.spec --noconfirm
 #
-# Output: dist/PDF Signer/ (Windows, Linux) or dist/PDF Signer.app (macOS,
-# with the CLI at Contents/MacOS/pdfsigner).
+# Output: dist/Slim PDF/ (Windows, Linux) or dist/Slim PDF.app (macOS,
+# with the CLI at Contents/MacOS/slim-pdf).
 
 import sys
 import tomllib
@@ -14,7 +14,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy
 
 ROOT = Path(SPECPATH).parent
 ICONS = ROOT / "packaging" / "build-icons"
-APP_NAME = "PDF Signer"
+APP_NAME = "Slim PDF"
 VERSION = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
 
 hidden = (
@@ -27,14 +27,14 @@ datas = (
     collect_data_files("certifi")
     + collect_data_files("pyhanko")
     + collect_data_files("pypdfium2_raw", include_py_files=False)
-    + collect_data_files("pdfsigner", includes=["gui/icon.png", "gui/icons/*",
+    + collect_data_files("slim_pdf", includes=["gui/icon.png", "gui/icons/*",
                                                      "locale/*/LC_MESSAGES/*.mo"])
-    + [(str(ICONS / "pdfsigner.png"), ".")]
+    + [(str(ICONS / "slim-pdf.png"), ".")]
 )
 # Metadata the bundle can't work without (keyring finds its backends through
 # entry points, others read their own version). A missing one fails the build
 # instead of shipping an app without, e.g., keyring support.
-for dist in ("keyring", "pyhanko", "pyhanko-certvalidator", "pypdf", "pykeepass", "pdfsigner"):
+for dist in ("keyring", "pyhanko", "pyhanko-certvalidator", "pypdf", "pykeepass", "slim-pdf"):
     datas += copy_metadata(dist)
 if sys.platform == "win32":
     datas += collect_data_files("tzdata")  # zoneinfo has no system database on Windows
@@ -54,16 +54,16 @@ cli_a = analysis("entry_cli.py")
 
 icon = None
 if sys.platform == "win32":
-    icon = str(ICONS / "pdfsigner.ico")
+    icon = str(ICONS / "slim-pdf.ico")
 elif sys.platform == "darwin":
-    icon = str(ICONS / "pdfsigner.icns")
+    icon = str(ICONS / "slim-pdf.icns")
 
 gui_exe = EXE(PYZ(gui_a.pure), gui_a.scripts, [], exclude_binaries=True,
-              name=APP_NAME if sys.platform != "darwin" else "pdfsigner-gui",
+              name=APP_NAME if sys.platform != "darwin" else "slim-pdf-gui",
               console=False, icon=icon,
               argv_emulation=sys.platform == "darwin")  # files dropped on the Dock icon
 cli_exe = EXE(PYZ(cli_a.pure), cli_a.scripts, [], exclude_binaries=True,
-              name="pdfsigner", console=True, icon=icon)
+              name="slim-pdf", console=True, icon=icon)
 
 coll = COLLECT(gui_exe, gui_a.binaries, gui_a.datas,
                cli_exe, cli_a.binaries, cli_a.datas,
@@ -74,7 +74,7 @@ if sys.platform == "darwin":
         coll,
         name=f"{APP_NAME}.app",
         icon=icon,
-        bundle_identifier="de.linux-ng.pdfsigner",
+        bundle_identifier="de.linux-ng.slim-pdf",
         version=VERSION,
         info_plist={
             "CFBundleShortVersionString": VERSION,

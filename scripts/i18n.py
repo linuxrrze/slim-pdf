@@ -1,6 +1,6 @@
 """Translation catalogs: extract, update, compile, check.
 
-    python scripts/i18n.py update    # source -> locale/pdfsigner.pot -> merge into each .po
+    python scripts/i18n.py update    # source -> locale/slim-pdf.pot -> merge into each .po
     python scripts/i18n.py compile   # .po -> .mo (shipped with the package)
     python scripts/i18n.py check     # exit 1 if anything is out of date or untranslated
 
@@ -19,9 +19,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src" / "pdfsigner"
+SRC = ROOT / "src" / "slim_pdf"
 LOCALE = SRC / "locale"
-POT = LOCALE / "pdfsigner.pot"
+POT = LOCALE / "slim-pdf.pot"
 PLURAL_FORMS = {"de": "nplurals=2; plural=(n != 1);"}
 PLACEHOLDER = re.compile(r"(?<!\{)\{(\w*)[^{}]*\}(?!\})")
 
@@ -173,7 +173,7 @@ def write_po(path: Path, header: str, entries: list[Entry], refs: bool = True) -
 
 
 def _header(lang: str | None) -> str:
-    h = ("Project-Id-Version: pdfsigner\n"
+    h = ("Project-Id-Version: slim-pdf\n"
          "MIME-Version: 1.0\n"
          "Content-Type: text/plain; charset=UTF-8\n"
          "Content-Transfer-Encoding: 8bit\n")
@@ -183,11 +183,11 @@ def _header(lang: str | None) -> str:
 
 
 def languages() -> list[str]:
-    return sorted(p.parent.parent.name for p in LOCALE.glob("*/LC_MESSAGES/pdfsigner.po"))
+    return sorted(p.parent.parent.name for p in LOCALE.glob("*/LC_MESSAGES/slim-pdf.po"))
 
 
 def po_path(lang: str) -> Path:
-    return LOCALE / lang / "LC_MESSAGES" / "pdfsigner.po"
+    return LOCALE / lang / "LC_MESSAGES" / "slim-pdf.po"
 
 
 def updated_catalogs() -> dict[Path, str]:

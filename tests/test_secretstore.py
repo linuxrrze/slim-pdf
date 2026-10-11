@@ -1,9 +1,9 @@
 import pytest
 
-from pdfsigner import secretstore
-from pdfsigner.config import CertProfile
-from pdfsigner.secretstore import Cancelled, SecretError, resolve_credentials
-from pdfsigner.signing import open_signer
+from slim_pdf import secretstore
+from slim_pdf.config import CertProfile
+from slim_pdf.secretstore import Cancelled, SecretError, resolve_credentials
+from slim_pdf.signing import open_signer
 
 from conftest import PASSPHRASE
 
@@ -48,7 +48,7 @@ def test_empty_answer_is_not_cancel():
 def test_keyring_roundtrip(mem_keyring):
     p = CertProfile(name="work", path="a", secret="keyring")
     secretstore.keyring_set("work", "pw")
-    assert mem_keyring.store == {("pdfsigner", "work"): "pw"}
+    assert mem_keyring.store == {("slim-pdf", "work"): "pw"}
     assert resolve_credentials(p, never).secret == "pw"
     secretstore.keyring_delete("work")
     secretstore.keyring_delete("work")  # deleting twice is fine
@@ -148,7 +148,7 @@ def test_no_keyring_backend_is_a_clean_error(no_keyring):
 
 
 def test_cli_no_keyring_backend(no_keyring, p12, cfg_path, capsys, monkeypatch):
-    from pdfsigner import cli
+    from slim_pdf import cli
 
     assert cli.main(["certs", "add", "k", "--p12", str(p12[0]), "--secret", "keyring"]) == 0
     assert cli.main(["certs", "test", "k"]) == 1
@@ -183,3 +183,15 @@ def test_keepass_bare_title_skips_recycle_bin_and_refuses_ambiguity(keepass_db):
     creds = resolve_credentials(kp_profile(keepass_db, keepass_entry="Other/Signing"),
                                 lambda p: "master")
     assert creds.secret == "other-secret"
+
+
+def test_secrets_stored_under_the_old_name(mem_keyring):
+    """A passphrase stored before the rename (service "pdfsigner") is used
+    until a new one is stored; deleting removes both."""
+    mem_keyring.store[("pdfsigner", "work")] = "old secret"
+    assert secretstore.keyring_get("work") == "old secret"
+    secretstore.keyring_set("work", "new secret")
+    assert mem_keyring.store[("slim-pdf", "work")] == "new secret"
+    assert secretstore.keyring_get("work") == "new secret"
+    secretstore.keyring_delete("work")
+    assert secretstore.keyring_get("work") is None

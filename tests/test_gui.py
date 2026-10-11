@@ -10,12 +10,12 @@ from PySide6.QtCore import QPointF, QRectF, Qt  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from pyhanko.sign import fields  # noqa: E402
 
-from pdfsigner.config import CertProfile, Config, load_config  # noqa: E402
-from pdfsigner.gui import app as gui_app  # noqa: E402
-from pdfsigner.gui import certdialog  # noqa: E402
-from pdfsigner.gui.certdialog import CertEditDialog, CertManager  # noqa: E402
-from pdfsigner.gui.pageview import FieldItem, SignatureItem  # noqa: E402
-from pdfsigner.signing import inspect_pdf  # noqa: E402
+from slim_pdf.config import CertProfile, Config, load_config  # noqa: E402
+from slim_pdf.gui import app as gui_app  # noqa: E402
+from slim_pdf.gui import certdialog  # noqa: E402
+from slim_pdf.gui.certdialog import CertEditDialog, CertManager  # noqa: E402
+from slim_pdf.gui.pageview import FieldItem, SignatureItem  # noqa: E402
+from slim_pdf.signing import inspect_pdf  # noqa: E402
 
 from conftest import PASSPHRASE, add_sig_field, make_encrypted, validate_all  # noqa: E402
 
@@ -102,8 +102,8 @@ def click_scene(view, x, y):
 
 def stamp_aspect(window, name="alice"):
     """width / height of the profile's whole stamp (image and text)."""
-    from pdfsigner import certinfo
-    from pdfsigner.signing import stamp_size
+    from slim_pdf import certinfo
+    from slim_pdf.signing import stamp_size
 
     p = window.config.certs[name]
     w, h = stamp_size(p, certinfo.text_params(certinfo.load(p.certificate), p),
@@ -408,7 +408,7 @@ def test_click_on_field_with_one_certificate_asks_nothing(window, form_pdf, save
 
 
 def test_zoomed_in_only_the_visible_part_is_rendered_sharply(window, blank_pdf, qapp):
-    from pdfsigner.gui.pageview import MAX_PAGE_PIXELS
+    from slim_pdf.gui.pageview import MAX_PAGE_PIXELS
 
     window.open(blank_pdf)
     view = window.view
@@ -476,7 +476,7 @@ def test_image_and_text_switches_are_passed(window, blank_pdf, save_to, monkeypa
     window.text_check.setChecked(False)
     window.sign()
     assert seen["with_text"] is False and seen["with_image"] is True
-    assert seen["thread"] == "pdfsigner-work"  # not on the GUI thread
+    assert seen["thread"] == "slim-pdf-work"  # not on the GUI thread
 
 
 # --- prepared fields ------------------------------------------------------------------
@@ -578,8 +578,8 @@ def test_frozen_document_refused(window, blank_pdf, tmp_path, save_to, monkeypat
     from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
     from pyhanko.sign import signers
 
-    from pdfsigner.secretstore import Credentials
-    from pdfsigner.signing import open_signer
+    from slim_pdf.secretstore import Credentials
+    from slim_pdf.signing import open_signer
 
     certified = tmp_path / "cert.pdf"
     with open_signer(profile, Credentials(PASSPHRASE)) as s:
@@ -604,8 +604,8 @@ def test_new_box_on_certified_document_warns(window, form_pdf, tmp_path, save_to
     from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
     from pyhanko.sign import signers
 
-    from pdfsigner.secretstore import Credentials
-    from pdfsigner.signing import open_signer
+    from slim_pdf.secretstore import Credentials
+    from slim_pdf.signing import open_signer
 
     certified = tmp_path / "cert.pdf"
     with open_signer(profile, Credentials(PASSPHRASE)) as s:
@@ -858,19 +858,19 @@ def test_dialog_store_keyring(open_editor, monkeypatch, mem_keyring):
     monkeypatch.setattr(certdialog, "ask_secret", lambda parent, prompt: "1234")
     boxes = Boxes(monkeypatch, certdialog)
     open_editor("tok")._store_keyring()
-    assert mem_keyring.store[("pdfsigner", "tok")] == "1234"
+    assert mem_keyring.store[("slim-pdf", "tok")] == "1234"
     new = open_editor(None)
     new._store_keyring()  # a new profile needs its name first
     assert boxes.kinds()[-1] == "warning" and "name" in boxes.text()
     new.name_edit.setText("card")
     new._store_keyring()
-    assert mem_keyring.store[("pdfsigner", "card")] == "1234"
+    assert mem_keyring.store[("slim-pdf", "card")] == "1234"
 
 
 def test_manage_updates_main_window(window, monkeypatch, tmp_path):
     """Certificates… opens the settings on their Certificates tab; profiles
     are saved as they change, so they stay even when the dialog is cancelled."""
-    from pdfsigner.gui import settings as gui_settings
+    from slim_pdf.gui import settings as gui_settings
 
     window.config.path = tmp_path / "config.toml"
     seen = []
@@ -1106,7 +1106,7 @@ def test_dialog_offers_only_supported_types(open_editor, certs_cfg, monkeypatch)
 
 
 def test_dialog_system_store_unavailable(dialog, monkeypatch):
-    from pdfsigner.signing import SigningError
+    from slim_pdf.signing import SigningError
 
     def unsupported():
         raise SigningError("only supported on Windows and macOS")
@@ -1134,7 +1134,7 @@ def test_main_broken_config(qapp, cfg_path, monkeypatch):
 
 
 def test_dialog_choose_token_key(open_editor, monkeypatch):
-    from pdfsigner import tokens
+    from slim_pdf import tokens
 
     dialog = open_editor("tok")
     dialog.e["key_label"].setText("old label")
@@ -1172,7 +1172,7 @@ def test_dialog_choose_token_key(open_editor, monkeypatch):
 
 
 def test_dialog_choose_token_key_errors(open_editor, monkeypatch):
-    from pdfsigner.signing import SigningError
+    from slim_pdf.signing import SigningError
 
     boxes = Boxes(monkeypatch, certdialog)
     dialog = open_editor("tok")
@@ -1200,7 +1200,7 @@ def test_dialog_choose_token_key_errors(open_editor, monkeypatch):
 def test_settings_trust_and_language(window, form_pdf, p12, tmp_path, monkeypatch):
     from conftest import sign_with, write_pem
 
-    from pdfsigner.gui import settings as gui_settings
+    from slim_pdf.gui import settings as gui_settings
 
     window.config.path = tmp_path / "config.toml"
     signed = tmp_path / "s.pdf"
@@ -1244,7 +1244,7 @@ def test_settings_trust_and_language(window, form_pdf, p12, tmp_path, monkeypatc
 
 
 def test_settings_cancel_changes_nothing(window, tmp_path, monkeypatch):
-    from pdfsigner.gui import settings as gui_settings
+    from slim_pdf.gui import settings as gui_settings
 
     window.config.path = tmp_path / "config.toml"
 
@@ -1278,7 +1278,7 @@ def test_huge_page_render_is_capped(window, tmp_path):
 
     from pypdf import PdfWriter
 
-    from pdfsigner.gui.pageview import MAX_PAGE_PIXELS
+    from slim_pdf.gui.pageview import MAX_PAGE_PIXELS
 
     w = PdfWriter()
     w.add_blank_page(14400, 14400)
@@ -1298,8 +1298,8 @@ def test_huge_page_render_is_capped(window, tmp_path):
 def test_dialog_choose_token_key_searches_modules(open_editor, monkeypatch):
     """Empty module field: every module found is asked, and the choice fills
     in the module too."""
-    from pdfsigner import tokens
-    from pdfsigner.signing import SigningError
+    from slim_pdf import tokens
+    from slim_pdf.signing import SigningError
 
     dialog = open_editor("tok")
     dialog.e["pkcs11_lib"].setText("")
@@ -1324,7 +1324,7 @@ def test_dialog_choose_token_key_searches_modules(open_editor, monkeypatch):
 
 
 def test_signing_with_a_token_shows_a_hint(window, form_pdf, monkeypatch):
-    from pdfsigner.signing import SigningError
+    from slim_pdf.signing import SigningError
 
     window.config.certs["card"] = CertProfile(name="card", type="pkcs11", pkcs11_lib="/x.so",
                                               secret="none")
@@ -1355,8 +1355,8 @@ SMALL_SCREEN = (1024, 540)
 def test_windows_fit_small_screens(qapp, p12, lang, tmp_path, monkeypatch):
     from PySide6.QtWidgets import QDialogButtonBox
 
-    from pdfsigner import i18n
-    from pdfsigner.gui.settings import SettingsDialog
+    from slim_pdf import i18n
+    from slim_pdf.gui.settings import SettingsDialog
 
     i18n.set_language(lang)
     # a long config path (as in CI's temp folders) must not widen the dialogs
@@ -1422,7 +1422,7 @@ def test_new_profile_reads_its_certificate_once(open_editor, monkeypatch, p12, t
     new._save()
     assert new.result() == QtWidgets.QDialog.Accepted and len(asked) == 1
     saved = load_config(tmp_path / "config.toml").certs["card"]
-    from pdfsigner import certinfo
+    from slim_pdf import certinfo
 
     assert certinfo.signer_name(certinfo.load(saved.certificate)) == "Alice Example"
     assert "Alice Example, valid until" in new.cert_label.text()
@@ -1500,7 +1500,7 @@ def test_stamp_preview_follows_the_form(dialog, qapp):
 
 
 def test_signing_keeps_the_stored_certificate_current(window, form_pdf, save_to, p12):
-    from pdfsigner import certinfo
+    from slim_pdf import certinfo
 
     window.config.certs["alice"].certificate = ""
     window.open(form_pdf)
@@ -1529,7 +1529,7 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
                         lambda parent, title, text: shown.append((title, text)))
     window.about_act.trigger()
     [(title, text)] = shown
-    assert title == "About PDF Signer"
+    assert title == "About Slim PDF"
     assert gui_app.version() in text and "pyHanko" in text
     assert gui_app.HOMEPAGE in text
 
@@ -1540,7 +1540,7 @@ def test_ribbon_icons_render_in_the_palette_colour(window, qapp):
     from PySide6.QtCore import QSize
     from PySide6.QtGui import QColor, QPalette
 
-    from pdfsigner.gui import ribbon
+    from slim_pdf.gui import ribbon
 
     rb = window.ribbon
     for i in range(rb.count()):
@@ -1569,7 +1569,7 @@ def test_watchdog_logs_where_the_gui_hangs(qapp, tmp_path, monkeypatch):
     """A blocked GUI thread leaves its stack in the freeze log."""
     import time
 
-    from pdfsigner.gui import watchdog
+    from slim_pdf.gui import watchdog
 
     monkeypatch.setattr(watchdog, "STALL_SECONDS", 0.3)
     dog = watchdog.Watchdog(path=tmp_path / "freezes.log")

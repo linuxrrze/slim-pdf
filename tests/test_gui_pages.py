@@ -7,8 +7,8 @@ QtWidgets = pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
 from PySide6.QtCore import QItemSelectionModel, Qt  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 
-from pdfsigner.gui import app as gui_app  # noqa: E402
-from pdfsigner.signing import inspect_pdf  # noqa: E402
+from slim_pdf.gui import app as gui_app  # noqa: E402
+from slim_pdf.signing import inspect_pdf  # noqa: E402
 
 from conftest import make_pdf, sign_with, validate_all  # noqa: E402
 # fixtures shared with test_gui.py
@@ -357,8 +357,8 @@ from PySide6.QtWidgets import QApplication
 from pypdf import PdfWriter
 
 app = QApplication([])
-from pdfsigner.config import Config
-from pdfsigner.gui.app import MainWindow
+from slim_pdf.config import Config
+from slim_pdf.gui.app import MainWindow
 
 w = PdfWriter()
 for i in range(1, 6):

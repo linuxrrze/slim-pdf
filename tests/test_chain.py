@@ -13,10 +13,10 @@ from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 
 from conftest import PASSPHRASE, make_pdf
-from pdfsigner import chain, validation
-from pdfsigner.config import CertProfile
-from pdfsigner.secretstore import Credentials
-from pdfsigner.signing import open_signer, sign_pdf
+from slim_pdf import chain, validation
+from slim_pdf.config import CertProfile
+from slim_pdf.secretstore import Credentials
+from slim_pdf.signing import open_signer, sign_pdf
 
 NOW = datetime.datetime.now(datetime.UTC)
 
@@ -125,7 +125,7 @@ def test_a_signature_carries_the_chain(pki, tmp_path, monkeypatch):
     with open_signer(profile, Credentials(secret=PASSPHRASE)) as s:
         sign_pdf(src, out, s, profile)
     assert pki["requests"]  # fetched while signing
-    monkeypatch.setenv("PDFSIGNER_CACHE_DIR", str(tmp_path / "empty-cache"))
+    monkeypatch.setenv("SLIM_PDF_CACHE_DIR", str(tmp_path / "empty-cache"))
     [report] = validation.verify_pdf(out, trust=[root_pem(pki, tmp_path)],
                                      system_trust=False, fetch_issuers=False)
     assert report.status == validation.VALID, report.problems

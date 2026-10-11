@@ -39,7 +39,7 @@ class SettingsDialog(QDialog):
     """Edits a copy of the config; ``config`` holds the result after OK.
 
     The General tab's changes are saved by OK. The Certificates tab saves
-    each change at once (as ``pdfsigner certs`` does), so ``certs.changed``
+    each change at once (as ``slim-pdf certs`` does), so ``certs.changed``
     means ``config`` holds new profiles even after Cancel."""
 
     GENERAL, CERTIFICATES = 0, 1

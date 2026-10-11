@@ -1,18 +1,18 @@
-; Inno Setup script for PDF Signer.
+; Inno Setup script for Slim PDF.
 ;
-;   iscc /DAppVersion=0.1.0 /DSourceDir="..\..\dist\PDF Signer" packaging\windows\pdfsigner.iss
+;   iscc /DAppVersion=0.1.0 /DSourceDir="..\..\dist\Slim PDF" packaging\windows\slim-pdf.iss
 ;
 ; Installs per user by default (no admin rights needed); "Install for all
-; users" is offered in the dialog. Output: dist\PDF-Signer-<version>-setup.exe
+; users" is offered in the dialog. Output: dist\Slim-PDF-<version>-setup.exe
 
 #ifndef AppVersion
   #define AppVersion "0.1.0"
 #endif
 #ifndef SourceDir
-  #define SourceDir "..\..\dist\PDF Signer"
+  #define SourceDir "..\..\dist\Slim PDF"
 #endif
-#define AppName "PDF Signer"
-#define AppExe "PDF Signer.exe"
+#define AppName "Slim PDF"
+#define AppExe "Slim PDF.exe"
 ; /DSign (with /Ssigntool=... from the release workflow) signs the two
 ; executables, the uninstaller and the setup itself.
 #ifdef Sign
@@ -35,8 +35,8 @@ PrivilegesRequiredOverridesAllowed=commandline dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\..\dist
-OutputBaseFilename=PDF-Signer-{#AppVersion}-setup
-SetupIconFile=..\build-icons\pdfsigner.ico
+OutputBaseFilename=Slim-PDF-{#AppVersion}-setup
+SetupIconFile=..\build-icons\slim-pdf.ico
 UninstallDisplayIcon={app}\{#AppExe}
 Compression=lzma2/max
 SolidCompression=yes
@@ -53,13 +53,13 @@ Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "addtopath"; Description: "Add the pdfsigner command to PATH"; GroupDescription: "Command line:"
-Name: "openwith"; Description: "Offer PDF Signer in ""Open with"" for PDF files"; GroupDescription: "Integration:"
+Name: "addtopath"; Description: "Add the slim-pdf command to PATH"; GroupDescription: "Command line:"
+Name: "openwith"; Description: "Offer Slim PDF in ""Open with"" for PDF files"; GroupDescription: "Integration:"
 
 [Files]
-Source: "{#SourceDir}\*"; Excludes: "\PDF Signer.exe,\pdfsigner.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#SourceDir}\PDF Signer.exe"; DestDir: "{app}"; Flags: ignoreversion{#SignFlag}
-Source: "{#SourceDir}\pdfsigner.exe"; DestDir: "{app}"; Flags: ignoreversion{#SignFlag}
+Source: "{#SourceDir}\*"; Excludes: "\Slim PDF.exe,\slim-pdf.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourceDir}\Slim PDF.exe"; DestDir: "{app}"; Flags: ignoreversion{#SignFlag}
+Source: "{#SourceDir}\slim-pdf.exe"; DestDir: "{app}"; Flags: ignoreversion{#SignFlag}
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"

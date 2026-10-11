@@ -18,7 +18,7 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
       # import a throwaway identity into the Windows store / macOS keychain
-      PDFSIGNER_TEST_SYSTEM_STORE: ${{ matrix.os != 'ubuntu-latest' && '1' || '0' }}
+      SLIM_PDF_TEST_SYSTEM_STORE: ${{ matrix.os != 'ubuntu-latest' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,4 +36,4 @@ jobs:
       - run: pip install -e ".[dev]"
       # Fail instead of silently skipping the GUI tests if Qt can't load.
       - run: python -c "from PySide6 import QtWidgets"
-      - run: pytest -q -rs --cov=pdfsigner
+      - run: pytest -q -rs --cov=slim_pdf

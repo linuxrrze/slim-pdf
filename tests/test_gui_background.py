@@ -11,7 +11,7 @@ from PySide6.QtCore import QEvent, Qt, QTimer  # noqa: E402
 from PySide6.QtGui import QKeyEvent  # noqa: E402
 from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
 
-from pdfsigner.gui import background  # noqa: E402
+from slim_pdf.gui import background  # noqa: E402
 from test_gui import qapp  # noqa: E402,F401
 
 

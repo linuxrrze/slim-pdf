@@ -56,14 +56,14 @@ jobs:
       - name: Icons
         run: python packaging/make_icons.py
       - name: Freeze
-        run: pyinstaller packaging/pdfsigner.spec --noconfirm
+        run: pyinstaller packaging/slim-pdf.spec --noconfirm
 
       - name: Smoke test (Windows)
         if: runner.os == 'Windows'
-        run: python packaging/smoke_test.py "dist/PDF Signer/pdfsigner.exe" "dist/PDF Signer/PDF Signer.exe"
+        run: python packaging/smoke_test.py "dist/Slim PDF/slim-pdf.exe" "dist/Slim PDF/Slim PDF.exe"
       - name: Smoke test (macOS)
         if: runner.os == 'macOS'
-        run: python packaging/smoke_test.py "dist/PDF Signer.app/Contents/MacOS/pdfsigner" "dist/PDF Signer.app/Contents/MacOS/pdfsigner-gui"
+        run: python packaging/smoke_test.py "dist/Slim PDF.app/Contents/MacOS/slim-pdf" "dist/Slim PDF.app/Contents/MacOS/slim-pdf-gui"
 
       # --- Windows ------------------------------------------------------------
       # With a certificate, Inno Setup signs both executables, the uninstaller
@@ -94,7 +94,7 @@ jobs:
             $iscc += "/DSign"
             $iscc += "/Ssigntool=`"$signtool`" sign /sha1 $($cert.Thumbprint) /s My /fd sha256 /tr http://timestamp.digicert.com /td sha256 `$f"
           }
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" @iscc packaging\windows\pdfsigner.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" @iscc packaging\windows\slim-pdf.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Remove the signing certificate (Windows)
         if: always() && runner.os == 'Windows' && env.SIGNING_THUMBPRINT != ''
@@ -104,11 +104,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $setup = (Get-Item dist\PDF-Signer-*-setup.exe).FullName
-          Start-Process -Wait -FilePath $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/DIR=$env:RUNNER_TEMP\pdfsigner-inst"
-          & "$env:RUNNER_TEMP\pdfsigner-inst\pdfsigner.exe" --help
+          $setup = (Get-Item dist\Slim-PDF-*-setup.exe).FullName
+          Start-Process -Wait -FilePath $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/DIR=$env:RUNNER_TEMP\slim-pdf-inst"
+          & "$env:RUNNER_TEMP\slim-pdf-inst\slim-pdf.exe" --help
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          Start-Process -Wait -FilePath "$env:RUNNER_TEMP\pdfsigner-inst\unins000.exe" -ArgumentList "/VERYSILENT"
+          Start-Process -Wait -FilePath "$env:RUNNER_TEMP\slim-pdf-inst\unins000.exe" -ArgumentList "/VERYSILENT"
 
       # --- macOS ----------------------------------------------------------------
       - name: Import signing certificate (optional)
@@ -144,17 +144,17 @@ jobs:
       - name: Test the disk image (macOS)
         if: runner.os == 'macOS'
         run: |
-          dmg=$(ls dist/PDF-Signer-*.dmg)
-          hdiutil attach "$dmg" -mountpoint /Volumes/pdfsigner-test -nobrowse
-          "/Volumes/pdfsigner-test/PDF Signer.app/Contents/MacOS/pdfsigner" --help
-          hdiutil detach /Volumes/pdfsigner-test
+          dmg=$(ls dist/Slim-PDF-*.dmg)
+          hdiutil attach "$dmg" -mountpoint /Volumes/slim-pdf-test -nobrowse
+          "/Volumes/slim-pdf-test/Slim PDF.app/Contents/MacOS/slim-pdf" --help
+          hdiutil detach /Volumes/slim-pdf-test
 
       - uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.os }}
           path: |
-            dist/PDF-Signer-*-setup.exe
-            dist/PDF-Signer-*.dmg
+            dist/Slim-PDF-*-setup.exe
+            dist/Slim-PDF-*.dmg
           if-no-files-found: error
 
   release:

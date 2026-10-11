@@ -646,7 +646,7 @@ def _open_token(profile: CertProfile, pin: str | None):
         if token.flags & TokenFlag.USER_PIN_FINAL_TRY and profile.secret not in ("prompt",):
             raise SigningError(_(
                 "only one PIN attempt is left on token {label!r}, and a wrong PIN would "
-                "lock it; pdfsigner won't try the stored PIN. Sign once with "
+                "lock it; slim-pdf won't try the stored PIN. Sign once with "
                 "secret = prompt and type the PIN.").format(label=label))
         try:
             return token.open(user_pin=pin)
@@ -753,7 +753,7 @@ def open_signer(profile: CertProfile, creds: Credentials) -> Iterator[signers.Si
                     # over to a reader's PIN pad
                     raise SigningError(_(
                         "the key of '{name}' needs the PIN for every signature, which "
-                        "pdfsigner has to send itself: use a PIN source (secret = prompt, "
+                        "slim-pdf has to send itself: use a PIN source (secret = prompt, "
                         "keyring, ...) instead of 'none', or a key whose PIN policy is "
                         "'once'").format(name=profile.name))
                 signer = pkcs11.PKCS11Signer(

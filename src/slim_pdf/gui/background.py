@@ -91,7 +91,7 @@ def run(parent: QWidget, work: Callable[[Ask], T]) -> T:
     guard = _IgnoreInput(parent.window())
     app = QApplication.instance()
     app.installEventFilter(guard)
-    thread = threading.Thread(target=target, name="pdfsigner-work", daemon=True)
+    thread = threading.Thread(target=target, name="slim-pdf-work", daemon=True)
     thread.start()
     timer.start()
     try:

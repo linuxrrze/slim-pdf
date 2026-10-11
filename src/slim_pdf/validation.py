@@ -323,7 +323,7 @@ def unsupported_report(name: str, sig_object, size: int) -> SignatureReport:
         issuer=cert.issuer.human_friendly if cert else "",
         signed_at=signed_at, coverage=coverage,
         reason=_str(sig_object, "/Reason"), location=_str(sig_object, "/Location"),
-        problems=[_("the signature uses the format {format}, which pdfsigner cannot check "
+        problems=[_("the signature uses the format {format}, which slim-pdf cannot check "
                     "(a legacy format, unlike PAdES/PKCS#7)").format(format=subfilter)],
         certificate=cert)
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import getpass
 import logging
-import os
 import sys
 from dataclasses import fields as dc_fields
 from pathlib import Path
@@ -13,7 +12,7 @@ from pathlib import Path
 from pyhanko.pdf_utils.misc import PdfError
 from pypdf.errors import PyPdfError
 
-from . import forms, i18n, pages, secretstore, validation
+from . import environ, forms, i18n, pages, secretstore, validation
 from .certinfo import STAMP_FIELDS
 from .config import (
     CERT_TYPES,
@@ -32,8 +31,8 @@ from .signing import (
     SigningBlocked,
     SigningError,
     _atomic_write,
-    check_target,
     box_from_anchor,
+    check_target,
     describe_signer,
     image_aspect,
     inspect_pdf,
@@ -44,15 +43,16 @@ from .signing import (
 
 DESCRIPTION = N_("""Command line interface.
 
-    pdfsigner certs list|show|add|edit|remove|default|set-secret|test|system|pkcs11
-    pdfsigner fields FILE
-    pdfsigner sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]
-    pdfsigner verify FILE
-    pdfsigner rotate|crop FILE [--pages SPEC] ...
-    pdfsigner delete FILE --pages SPEC
-    pdfsigner split FILE [--every N | --part SPEC ...]
-    pdfsigner merge -o OUT FILE[@SPEC] ...
-    pdfsigner gui [FILE]
+    slim-pdf certs list|show|add|edit|remove|default|set-secret|test|system|pkcs11
+    slim-pdf fields FILE
+    slim-pdf sign FILE [--field NAME | --page N (--box ... | --at X,Y --width W)]
+    slim-pdf verify FILE
+    slim-pdf rotate|crop FILE [--pages SPEC] ...
+    slim-pdf delete FILE --pages SPEC
+    slim-pdf split FILE [--every N | --part SPEC ...]
+    slim-pdf merge -o OUT FILE[@SPEC] ...
+    slim-pdf form FILE [--set NAME=VALUE ...]
+    slim-pdf gui [FILE]
 
 Pages are 1-based on the command line; coordinates are PDF points with the
 origin at the bottom-left of the (unrotated) page.
@@ -201,7 +201,7 @@ def cmd_certs_show(cfg: Config, args) -> int:
     cert = certinfo.load(p.certificate)
     print()
     if cert is None:
-        print(_("certificate: not read yet ('pdfsigner certs test {name}' reads it)").format(
+        print(_("certificate: not read yet ('slim-pdf certs test {name}' reads it)").format(
             name=_quote(p.name)))
     else:
         print(_("certificate:"))
@@ -220,7 +220,7 @@ def cmd_certs_add(cfg: Config, args) -> int:
     if args.default:
         cfg.default = profile.name
     print(_("saved to {path}").format(path=cfg.save()))
-    print(_("'pdfsigner certs test {name}' checks it and stores the certificate's "
+    print(_("'slim-pdf certs test {name}' checks it and stores the certificate's "
             "details").format(name=_quote(profile.name)))
     return 0
 
@@ -262,7 +262,7 @@ def cmd_certs_set_secret(cfg: Config, args) -> int:
     print(_("stored in keyring ({backend})").format(backend=secretstore.keyring_backend_name()))
     if p.secret != "keyring":
         print(_("note: profile uses secret={secret}; switch with "
-                "'pdfsigner certs edit {name} --secret keyring'").format(
+                "'slim-pdf certs edit {name} --secret keyring'").format(
                     secret=repr(p.secret), name=p.name))
     return 0
 
@@ -333,7 +333,7 @@ def cmd_certs_pkcs11(cfg: Config, args) -> int:
     first = found[0]
     token = f" --token-label {_quote(first.label)}" if len(found) > 1 else ""
     print()
-    print(_("profile: pdfsigner certs add NAME --pkcs11-lib {module} --key-id ID{token}").format(
+    print(_("profile: slim-pdf certs add NAME --pkcs11-lib {module} --key-id ID{token}").format(
         module=_quote(first.module), token=token))
     return 0
 
@@ -412,23 +412,23 @@ def cmd_sign(cfg: Config, args) -> int:
     return 0
 
 
-PDF_PASSWORD_ENV = "PDFSIGNER_PDF_PASSWORD"
+PDF_PASSWORD_ENV = "PDF_PASSWORD"  # $SLIM_PDF_PDF_PASSWORD
 
 
 PASSWORD_HELP = N_("password of an encrypted PDF; '-' reads it from stdin. Without it, "
-                   "$PDFSIGNER_PDF_PASSWORD or a prompt is used: a password given here is "
+                   "$SLIM_PDF_PDF_PASSWORD or a prompt is used: a password given here is "
                    "visible to other users (process list) and in the shell history")
 
 
 def _pdf_password(path: Path, given: str | None, prompt: str) -> str | None:
     """The password for an encrypted PDF: --password (``-`` reads a line from
-    stdin), else $PDFSIGNER_PDF_PASSWORD, else a prompt. Prompt and stdin keep
+    stdin), else $SLIM_PDF_PDF_PASSWORD, else a prompt. Prompt and stdin keep
     it out of the process list and shell history."""
     if given == "-":
         return sys.stdin.readline().rstrip("\r\n")
     if given is not None or not path.is_file() or not inspect_needs_password(path):
         return given
-    env = os.environ.get(PDF_PASSWORD_ENV)
+    env = environ(PDF_PASSWORD_ENV)
     return env if env is not None else _ask(prompt)
 
 
@@ -691,7 +691,7 @@ def cmd_gui(cfg: Config, args) -> int:
     try:
         from .gui.app import main as gui_main
     except ImportError as e:
-        raise SigningError(_("the GUI needs PySide6: pip install 'pdfsigner[gui]' ({error})")
+        raise SigningError(_("the GUI needs PySide6: pip install 'slim-pdf[gui]' ({error})")
                            .format(error=e)) from None
 
     return gui_main([args.file] if args.file else [], config_path=args.config)
@@ -706,10 +706,10 @@ def build_parser() -> argparse.ArgumentParser:
     # catalog. The msgids are listed in ARGPARSE_MESSAGES.
     argparse._ = _
     argparse.ngettext = ngettext
-    ap = argparse.ArgumentParser(prog="pdfsigner", description=_(DESCRIPTION),
+    ap = argparse.ArgumentParser(prog="slim-pdf", description=_(DESCRIPTION),
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", type=Path, help=_(
-        "config file (default: $PDFSIGNER_CONFIG, "
+        "config file (default: $SLIM_PDF_CONFIG, "
         "else config.toml in the platform's config folder, see docs/cli.md)"))
     ap.add_argument("-v", "--verbose", action="store_true", help=_("show library warnings"))
     sub = ap.add_subparsers(dest="cmd", required=True)

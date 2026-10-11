@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-from pdfsigner import tokens
+from slim_pdf import tokens
 
 
 @pytest.fixture
@@ -67,9 +67,9 @@ def test_p11_kit_registry(system):
 
 def test_p11_kit_enable_and_disable(system):
     a, b, c = (lib(system, f"{n}.so") for n in "abc")
-    register(system, "share", "a", f"module: {a}\ndisable-in: firefox pdfsigner\n")
+    register(system, "share", "a", f"module: {a}\ndisable-in: firefox slim-pdf\n")
     register(system, "share", "b", f"module: {b}\nenable-in: virt-viewer\n")
-    register(system, "share", "c", f"module: {c}\nenable-in: pdfsigner firefox\n")
+    register(system, "share", "c", f"module: {c}\nenable-in: slim-pdf firefox\n")
     assert tokens.find_modules("linux") == [c]
 
 
@@ -78,5 +78,5 @@ def test_later_registry_directories_win(system):
     register(system, "share", "card", f"module: {a}\n")
     register(system, "etc", "card", f"module: {b}\n")
     assert tokens.find_modules("linux") == [b]
-    register(system, "user", "card", f"module: {b}\ndisable-in: pdfsigner\n")
+    register(system, "user", "card", f"module: {b}\ndisable-in: slim-pdf\n")
     assert tokens.find_modules("linux") == []

@@ -1,6 +1,6 @@
 """Translations (gettext): English source strings, German catalog.
 
-The language is chosen once at start-up by :func:`setup`: ``$PDFSIGNER_LANG``,
+The language is chosen once at start-up by :func:`setup`: ``$SLIM_PDF_LANG``,
 else ``language`` in the config file, else the system language (the GUI
 passes Qt's idea of it, which also works for apps started from Finder or
 the Start menu); anything without a catalog falls back to English.
@@ -20,7 +20,9 @@ import os
 from collections.abc import Iterable
 from pathlib import Path
 
-DOMAIN = "pdfsigner"
+from . import environ
+
+DOMAIN = "slim-pdf"
 LOCALE_DIR = Path(__file__).with_name("locale")
 LANGUAGES = {"en": "English", "de": "Deutsch"}  # code -> name in that language
 
@@ -68,8 +70,8 @@ def system_languages() -> list[str]:
 
 
 def choose(configured: str | None = None, system: Iterable[str] = ()) -> str:
-    """The language to use: $PDFSIGNER_LANG, the config, then the system."""
-    for candidate in (os.environ.get("PDFSIGNER_LANG"), configured, *system):
+    """The language to use: $SLIM_PDF_LANG, the config, then the system."""
+    for candidate in (environ("LANG"), configured, *system):
         if candidate == "system":
             continue
         if lang := _normalize(candidate):

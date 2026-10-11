@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from pdfsigner import i18n
-from pdfsigner.config import Config, load_config
+from slim_pdf import i18n
+from slim_pdf.config import Config, load_config
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -30,14 +30,14 @@ tool = _tool()
     (None, "de", ["en_US"], "de"),
     (None, "en", ["de_DE"], "en"),
     (None, "system", ["de_DE"], "de"),
-    ("de", "en", ["en_US"], "de"),  # $PDFSIGNER_LANG wins
+    ("de", "en", ["en_US"], "de"),  # $SLIM_PDF_LANG wins
     ("xx", None, ["de_DE"], "de"),
 ])
 def test_choose(monkeypatch, env, configured, system, expected):
     if env is None:
-        monkeypatch.delenv("PDFSIGNER_LANG", raising=False)
+        monkeypatch.delenv("SLIM_PDF_LANG", raising=False)
     else:
-        monkeypatch.setenv("PDFSIGNER_LANG", env)
+        monkeypatch.setenv("SLIM_PDF_LANG", env)
     assert i18n.choose(configured, system) == expected
 
 
@@ -72,7 +72,7 @@ def test_mo_writer_roundtrip(tmp_path):
 
 
 def test_placeholder_mismatch_is_reported(tmp_path, monkeypatch):
-    po = tmp_path / "de" / "LC_MESSAGES" / "pdfsigner.po"
+    po = tmp_path / "de" / "LC_MESSAGES" / "slim-pdf.po"
     po.parent.mkdir(parents=True)
     tool.write_po(po, tool._header("de"), [
         tool.Entry("page {page} of {count}", msgstr=["Seite {seite} von {count}"]),
@@ -106,17 +106,17 @@ def test_set_language_switches_and_falls_back():
 
 @pytest.fixture
 def german(monkeypatch):
-    monkeypatch.setenv("PDFSIGNER_LANG", "de")
+    monkeypatch.setenv("SLIM_PDF_LANG", "de")
     i18n.set_language("de")
 
 
 def test_cli_help_and_errors_in_german(german, cfg_path, tmp_path, capsys):
-    from pdfsigner import cli
+    from slim_pdf import cli
 
     with pytest.raises(SystemExit):
         cli.main(["sign", "--help"])
     out = capsys.readouterr().out
-    assert out.startswith("Aufruf: pdfsigner sign")
+    assert out.startswith("Aufruf: slim-pdf sign")
     assert "Optionen:" in out and "diese Hilfe anzeigen und beenden" in out
     assert cli.main(["fields", str(tmp_path / "missing.pdf")]) == 1
     assert capsys.readouterr().err.startswith("Fehler: ")
@@ -126,7 +126,7 @@ def test_cli_help_and_errors_in_german(german, cfg_path, tmp_path, capsys):
 
 
 def test_cli_verify_in_german(german, profile, form_pdf, tmp_path, cfg_path, capsys):
-    from pdfsigner import cli
+    from slim_pdf import cli
 
     from conftest import sign_with
 
@@ -139,17 +139,17 @@ def test_cli_verify_in_german(german, profile, form_pdf, tmp_path, cfg_path, cap
 
 
 def test_language_from_config_for_cli(cfg_path, monkeypatch, capsys):
-    from pdfsigner import cli
+    from slim_pdf import cli
 
-    monkeypatch.delenv("PDFSIGNER_LANG")
+    monkeypatch.delenv("SLIM_PDF_LANG")
     Config(path=cfg_path, language="de").save()
     assert cli.main(["certs", "list"]) == 0
     assert capsys.readouterr().out.startswith("keine Zertifikate konfiguriert")
 
 
 def test_new_profiles_get_the_stamp_text_in_the_current_language(german, cfg_path, p12):
-    from pdfsigner import cli
-    from pdfsigner.config import DEFAULT_STAMP_TEXT
+    from slim_pdf import cli
+    from slim_pdf.config import DEFAULT_STAMP_TEXT
 
     assert cli.main(["certs", "add", "w", "--p12", str(p12[0])]) == 0
     saved = load_config(cfg_path).certs["w"]
@@ -160,8 +160,8 @@ def test_new_profiles_get_the_stamp_text_in_the_current_language(german, cfg_pat
 def test_gui_in_german(german, qapp_de):
     from PySide6.QtWidgets import QDialogButtonBox
 
-    from pdfsigner.gui import app as gui_app
-    from pdfsigner.gui.settings import SettingsDialog
+    from slim_pdf.gui import app as gui_app
+    from slim_pdf.gui.settings import SettingsDialog
 
     win = gui_app.MainWindow(Config())
     dlg = None
@@ -188,7 +188,7 @@ def test_gui_in_german(german, qapp_de):
 @pytest.fixture
 def qapp_de():
     QtWidgets = pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
-    from pdfsigner.gui.app import setup_language
+    from slim_pdf.gui.app import setup_language
 
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     assert setup_language(app, None) == "de"

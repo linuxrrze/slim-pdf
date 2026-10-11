@@ -9,8 +9,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
-from pdfsigner import certinfo
-from pdfsigner.config import CertProfile
+from slim_pdf import certinfo
+from slim_pdf.config import CertProfile
 
 
 @pytest.fixture(scope="module")

@@ -1,7 +1,7 @@
 """The real Windows certificate store / macOS keychain backends.
 
 These modify the user's certificate store (they import a throwaway identity
-and remove it again), so they only run when PDFSIGNER_TEST_SYSTEM_STORE=1,
+and remove it again), so they only run when SLIM_PDF_TEST_SYSTEM_STORE=1,
 which CI sets on its Windows and macOS runners.
 """
 
@@ -14,18 +14,18 @@ import pytest
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
 
-from pdfsigner import systemstore
-from pdfsigner.config import CertProfile
-from pdfsigner.secretstore import Credentials
-from pdfsigner.signing import open_signer, sign_pdf
+from slim_pdf import systemstore
+from slim_pdf.config import CertProfile
+from slim_pdf.secretstore import Credentials
+from slim_pdf.signing import open_signer, sign_pdf
 
 from conftest import validate_all
 from pki import MiniPKI
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("PDFSIGNER_TEST_SYSTEM_STORE") != "1"
+    os.environ.get("SLIM_PDF_TEST_SYSTEM_STORE") != "1"
     or sys.platform not in ("win32", "darwin"),
-    reason="needs Windows/macOS and PDFSIGNER_TEST_SYSTEM_STORE=1")
+    reason="needs Windows/macOS and SLIM_PDF_TEST_SYSTEM_STORE=1")
 
 PFX_PASSWORD = "pfx-pass"
 
@@ -55,7 +55,7 @@ def store(ca, tmp_path_factory):
     for kind in ("ec", "rsa"):
         key = (ec.generate_private_key(ec.SECP256R1()) if kind == "ec"
                else rsa.generate_private_key(public_exponent=65537, key_size=2048))
-        cn = f"pdfsigner test {kind} {uuid.uuid4().hex[:8]}"
+        cn = f"slim-pdf test {kind} {uuid.uuid4().hex[:8]}"
         data, cert = ca.issue(cn, PFX_PASSWORD.encode(), key=key, chain=False, legacy=True)
         pfx = tmp / f"{kind}.p12"
         pfx.write_bytes(data)
@@ -74,7 +74,7 @@ def store(ca, tmp_path_factory):
                                 cert.fingerprint(hashes.SHA1()).hex().upper()],
                                capture_output=True)
     else:
-        kc = tmp / "pdfsigner-test.keychain-db"
+        kc = tmp / "slim-pdf-test.keychain-db"
         kc_pw = "kc-pass"
         old = [line.strip().strip('"') for line in
                run("security", "list-keychains", "-d", "user").splitlines() if line.strip()]

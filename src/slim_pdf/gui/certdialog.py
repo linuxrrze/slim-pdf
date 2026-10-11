@@ -1,4 +1,4 @@
-"""Certificate manager dialog: edits the same config file as ``pdfsigner certs``."""
+"""Certificate manager dialog: edits the same config file as ``slim-pdf certs``."""
 
 from __future__ import annotations
 
