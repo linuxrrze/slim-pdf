@@ -148,3 +148,25 @@ def test_radio_buttons_are_labelled_with_the_page_text(window, tmp_path, qapp):
     assert {s: b.text() for s, b in size.buttons.items()} == {"S": "Sm", "L": "Large"}
     agree = window.form_panel.editors["agree"]
     assert isinstance(agree, QtWidgets.QCheckBox)  # a real check box stays one
+
+
+def test_editing_in_the_panel_shows_the_field_on_the_page(window, tmp_path, qapp):
+    """The cursor in a field's editor: the view goes to its page and marks
+    it; leaving the Edit tab removes the mark."""
+    from conftest import add_form_fields, make_pdf
+
+    pdf = add_form_fields(make_pdf(tmp_path / "b.pdf", pages=2), tmp_path / "f.pdf", page=1)
+    window.open(pdf)
+    window.show_tab(gui_app.EDIT_TAB)
+    assert window.view.page == 0
+    window.form_panel.editors["address"].setFocus()
+    qapp.processEvents()
+    assert window.view.page == 1
+    marked = [i.name for i in window.view.scene().items()
+              if isinstance(i, FormItem) and i.active]
+    assert marked == ["address"]
+    window.form_panel.editors["size"].buttons["L"].setFocus()  # a radio button, too
+    qapp.processEvents()
+    assert window.view.active_form_field == "size"
+    window.show_tab(gui_app.HOME_TAB)
+    assert not any(i.active for i in window.view.scene().items() if isinstance(i, FormItem))

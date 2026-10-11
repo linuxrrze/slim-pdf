@@ -214,14 +214,23 @@ class FormItem(QGraphicsRectItem):
                         else _("{name}: can't be changed").format(name=label))
         if fillable:
             self.setCursor(Qt.IBeamCursor)
+        self.active = False
+
+    def set_active(self, active: bool) -> None:
+        """The field being edited: framed and tinted."""
+        self.active = active
+        pen = QPen(QColor(30, 90, 200), 2, Qt.SolidLine) if active else QPen(Qt.NoPen)
+        pen.setCosmetic(True)  # 2 pixels at any zoom
+        self.setPen(pen)
+        self.setBrush(QBrush(QColor(30, 90, 200, 35)) if active else QBrush(Qt.NoBrush))
 
     def hoverEnterEvent(self, event):
-        if self.fillable:
+        if self.fillable and not self.active:
             self.setPen(QPen(QColor(30, 90, 200), 0, Qt.DotLine))
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
-        self.setPen(QPen(Qt.NoPen))
+        self.set_active(self.active)
         super().hoverLeaveEvent(event)
 
 
@@ -259,6 +268,7 @@ class PageView(QGraphicsView):
         self.doc: PdfDocument | None = None
         self.fields: list[SigField] = []
         self.form_fields: list = []  # forms.FormField
+        self.active_form_field: str | None = None  # highlighted while being edited
         self.page = 0
         self.zoom = 1.0
         self._fit_width = True
@@ -335,6 +345,23 @@ class PageView(QGraphicsView):
         if on:
             self.clear_target()
         self._update_mode()
+
+    def highlight_form_field(self, name: str | None) -> None:
+        """Mark the form field ``name`` (None: none) and show it: its page,
+        scrolled into view."""
+        self.active_form_field = name
+        f = next((f for f in self.form_fields if f.name == name), None)
+        page = f.page if f is not None else None
+        if page is not None and page != self.page:
+            self.go_to(page)  # re-renders, marking it
+        for it in self._form_items:
+            it.set_active(it.name == name)
+        shown = [it for it in self._form_items if it.name == name]
+        if shown:
+            area = shown[0].rect()
+            for it in shown[1:]:
+                area = area.united(it.rect())
+            self.ensureVisible(area, 40, 40)
 
     def set_insert_mode(self, on: bool) -> None:
         on = on and self.doc is not None
@@ -487,6 +514,7 @@ class PageView(QGraphicsView):
                     continue
                 x, y, fw, fh = self.doc.rect_to_display(self.page, wd.rect)
                 item = FormItem(f.name, QRectF(x, y, fw, fh), f.fillable, f.label)
+                item.set_active(f.name == self.active_form_field)
                 scene.addItem(item)
                 self._form_items.append(item)
 

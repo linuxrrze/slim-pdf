@@ -153,7 +153,9 @@ The tooltip shows what the signature covers. Extra trusted roots come from
 On the *Edit* tab, the side panel lists the document's form fields with
 their values: text fields, check boxes, radio buttons (labelled with the
 text printed next to them on the page), drop-downs and list boxes. A click on a form field on the page
-switches there and puts the cursor in that field. Read-only fields and
+switches there and puts the cursor in that field; the other way round,
+the field whose editor has the cursor is framed in blue on the page, which
+turns to that page if needed. Read-only fields and
 fields locked by a signature are greyed out. **Apply** (or `Enter` in a
 one-line field) fills in the fields you changed, **Discard** goes back to
 the document's values; like page edits, filling in is undone with **Undo**

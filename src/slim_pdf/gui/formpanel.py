@@ -3,7 +3,7 @@ in form order; Apply fills in the changed fields, Discard resets them."""
 
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QEvent, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -62,14 +62,17 @@ class RadioGroup(QWidget):
 
 
 class FormPanel(QWidget):
-    """``applyRequested(values)``: the fields whose value changed."""
+    """``applyRequested(values)``: the fields whose value changed;
+    ``fieldFocused(name)``: the cursor went into a field's editor."""
 
     applyRequested = Signal(dict)
+    fieldFocused = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.fields: list[forms.FormField] = []
         self.editors: dict[str, QWidget] = {}
+        self._owner: dict[QWidget, str] = {}
         self.labels: dict[tuple[str, str], str] = {}
 
         self.hint = QLabel()
@@ -111,9 +114,13 @@ class FormPanel(QWidget):
         while self.form_layout.rowCount():
             self.form_layout.removeRow(0)
         self.editors = {}
+        self._owner: dict[QWidget, str] = {}
         for f in self.fields:
             editor = self._editor(f)
             self.editors[f.name] = editor
+            for w in [editor, *editor.findChildren(QWidget)]:  # e.g. radio buttons
+                self._owner[w] = f.name
+                w.installEventFilter(self)
             label = printable(f.label or f.name)
             if f.page is not None:
                 label = _("{name} (p. {page})").format(name=label, page=f.page + 1)
@@ -132,6 +139,11 @@ class FormPanel(QWidget):
                                 "in what you changed."))
         self.scroll.setVisible(bool(self.fields))
         self._update_buttons()
+
+    def eventFilter(self, obj, event) -> bool:
+        if event.type() == QEvent.FocusIn and obj in self._owner:
+            self.fieldFocused.emit(self._owner[obj])
+        return False
 
     def discard(self) -> None:
         self.set_fields(self.fields, self.labels)

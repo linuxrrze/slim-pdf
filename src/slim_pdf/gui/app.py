@@ -430,6 +430,7 @@ class MainWindow(QMainWindow):
         self.sign_panel = scrollable(panel)  # scrolls on small screens, below the ribbon
         self.form_panel = FormPanel()
         self.form_panel.applyRequested.connect(self.fill_form)
+        self.form_panel.fieldFocused.connect(self.view.highlight_form_field)
         self.side_stack = QStackedWidget()
         self.side_stack.addWidget(self.sign_panel)
         self.side_stack.addWidget(self.form_panel)
@@ -445,6 +446,8 @@ class MainWindow(QMainWindow):
     def _ribbon_tab_changed(self, index: int) -> None:
         title = self.SIDE_PANELS.get(index)
         self.side_dock.setVisible(title is not None)
+        if index != EDIT_TAB:  # a form field is marked only while the form is edited
+            self.view.highlight_form_field(None)
         if title is not None:
             self.side_stack.setCurrentIndex(index)
             self.side_dock.setWindowTitle(_(title))
