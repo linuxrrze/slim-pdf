@@ -31,6 +31,8 @@ It has a CLI and a Qt GUI that share the same certificate profiles.
   the GUI or with `slim-pdf form`, without breaking earlier signatures.
 * **Add text and images** (PNG/JPEG, or PDF as vector graphics) to pages in
   the GUI: drag a box or click where they go.
+* **Several documents in tabs;** copy, cut and paste pages between them,
+  or drag pages from one to another.
 * **Page tools:** rotate, crop and delete pages (CLI and the GUI's page
   menu); split and merge on the command line.
 * **English and German** (GUI and command line), following the system

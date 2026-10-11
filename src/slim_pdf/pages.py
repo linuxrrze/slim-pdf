@@ -195,6 +195,16 @@ def move(data: bytes, pages: Iterable[int], to: int, password: str | None = None
              + [i for i in range(to, n) if i not in moved])
     if order == list(range(n)):
         raise PageError(_("the pages are already in that order"))
+    root_ref, root = _flatten(w, refs)
+    root[generic.NameObject("/Kids")] = generic.ArrayObject(refs[i] for i in order)
+    root[generic.NameObject("/Count")] = generic.NumberObject(n)
+    w.update_container(root)
+    return _finish(w)
+
+
+def _flatten(w, refs):
+    """Make every page a child of the root /Pages node (copying in what
+    they inherited from intermediate nodes); returns (root ref, root)."""
     root_ref = w.root.raw_get("/Pages")
     root = root_ref.get_object()
     for ref in refs:
@@ -208,8 +218,55 @@ def move(data: bytes, pages: Iterable[int], to: int, password: str | None = None
                     page[generic.NameObject(key)] = value
         page[generic.NameObject("/Parent")] = root_ref
         w.update_container(page)
-    root[generic.NameObject("/Kids")] = generic.ArrayObject(refs[i] for i in order)
-    root[generic.NameObject("/Count")] = generic.NumberObject(n)
+    return root_ref, root
+
+
+# What a copied page takes along. Annotations (links, form fields, comments)
+# are left behind: they point to other pages and to the document's form.
+PAGE_KEYS = ("/Resources", "/MediaBox", "/CropBox", "/Rotate", "/Contents", "/UserUnit",
+             "/Group", "/BleedBox", "/TrimBox", "/ArtBox")
+
+
+def insert(data: bytes, source: bytes, pages: Iterable[int], at: int,
+           password: str | None = None, source_password: str | None = None) -> bytes:
+    """Copy ``pages`` of the PDF ``source`` into ``data`` before its page
+    ``at`` (its page count: at the end), as an incremental update of
+    ``data``. Content, resources, size and rotation come along; annotations
+    and form fields don't. ``source`` may be ``data`` itself."""
+    w, refs = _incremental(data, password)
+    n = len(refs)
+    if not 0 <= at <= n:
+        raise PageError(_("page {page} out of range (document has {count})").format(
+            page=at + 1, count=n))
+    reader = _open_reader(source, source_password)
+    src_pages = [page for page, _pid, _rot in _walk_pages(reader.root.raw_get("/Pages"))]
+    selected = _check_pages(pages, len(src_pages))
+    copies = generic.ArrayObject()
+    for i in selected:
+        page = src_pages[i]
+        copy = generic.DictionaryObject({generic.NameObject("/Type"):
+                                         generic.NameObject("/Page")})
+        for key in PAGE_KEYS:
+            if key in page:
+                copy[generic.NameObject(key)] = page.raw_get(key)
+            elif key in INHERITABLE:
+                value = find_inherited_value_in_tree(page, key, "/Parent")
+                if value is not None:
+                    copy[generic.NameObject(key)] = value
+        copies.append(copy)
+    # in one go, so resources shared by the pages (fonts, images) are copied
+    # once (pyHanko's importer: pinned version, see pyproject.toml)
+    from pyhanko.pdf_utils.writer import _ObjectImporter
+
+    imported = _ObjectImporter(source=reader, target=w, obj_stream=None,
+                               reference_map={}).import_object(copies)
+    root_ref, root = _flatten(w, refs)
+    new_refs = []
+    for copy in imported:
+        copy[generic.NameObject("/Parent")] = root_ref
+        new_refs.append(w.add_object(copy))
+    root[generic.NameObject("/Kids")] = generic.ArrayObject(refs[:at] + new_refs + refs[at:])
+    root[generic.NameObject("/Count")] = generic.NumberObject(n + len(new_refs))
     w.update_container(root)
     return _finish(w)
 

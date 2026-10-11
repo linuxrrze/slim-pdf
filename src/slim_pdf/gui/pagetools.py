@@ -18,12 +18,16 @@ BATCH_SECONDS = 0.03  # thumbnails are rendered in small batches between events
 class PagesPanel(QListWidget):
     """Page thumbnails. Click to go to a page; Ctrl/Shift-click to select
     several; right-click for the page menu (``menuRequested``); drag pages
-    (or Alt+Up/Down) to reorder them (``moveRequested``)."""
+    (or Alt+Up/Down) to reorder them (``moveRequested``). A drag that ends
+    in another document (the main window switches documents while it goes
+    on) asks for a copy instead (``copyRequested``)."""
 
     pageActivated = Signal(int)
     menuRequested = Signal(QPoint)  # global position
     deleteRequested = Signal()  # Delete key on the selected pages
     moveRequested = Signal(list, int)  # pages, to go before this page (count: the end)
+    # the document the pages were dragged from, its pages, before this page here
+    copyRequested = Signal(object, list, int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -41,6 +45,8 @@ class PagesPanel(QListWidget):
         self.setDefaultDropAction(Qt.MoveAction)
         self.viewport().setAcceptDrops(True)  # off with Static movement
         self._dragging = False
+        self._drag_source: PdfDocument | None = None  # document and pages being dragged
+        self._drag_pages: list[int] = []
         self._drop_row: int | None = None
         self.setMinimumWidth(THUMB_WIDTH + 40)
         self.itemClicked.connect(lambda item: self.pageActivated.emit(self.row(item)))
@@ -74,12 +80,19 @@ class PagesPanel(QListWidget):
                 return row
         return self.count()
 
+    @property
+    def dragged(self) -> tuple[PdfDocument | None, list[int]]:
+        """(document, pages) of the drag going on, else (None, [])."""
+        return (self._drag_source, list(self._drag_pages)) if self._dragging else (None, [])
+
     def startDrag(self, actions) -> None:
         self._dragging = True
+        self._drag_source, self._drag_pages = self._doc, self.selected_pages()
         try:
-            super().startDrag(actions)
+            super().startDrag(actions | Qt.CopyAction)  # copied into another document
         finally:
             self._dragging = False
+            self._drag_source, self._drag_pages = None, []
             self._set_drop_row(None)
 
     def dragEnterEvent(self, event) -> None:
@@ -94,7 +107,11 @@ class PagesPanel(QListWidget):
             return
         super().dragMoveEvent(event)  # scrolls near the edges
         self._set_drop_row(self.drop_row(event.position().toPoint()))
-        event.acceptProposedAction()
+        if self._doc is not self._drag_source:  # into another document: a copy
+            event.setDropAction(Qt.CopyAction)
+            event.accept()
+        else:
+            event.acceptProposedAction()
 
     def dragLeaveEvent(self, event) -> None:
         self._set_drop_row(None)
@@ -109,10 +126,14 @@ class PagesPanel(QListWidget):
         # IgnoreAction: Qt must not move or remove the items itself
         event.setDropAction(Qt.IgnoreAction)
         event.accept()
-        pages = self.selected_pages()
-        if pages:
-            # after the drag has finished: the edit rebuilds this list
+        source, pages = self._drag_source, list(self._drag_pages)
+        if not pages:
+            return
+        # after the drag has finished: the edit rebuilds this list
+        if source is self._doc:
             QTimer.singleShot(0, lambda: self.moveRequested.emit(pages, row))
+        else:
+            QTimer.singleShot(0, lambda: self.copyRequested.emit(source, pages, row))
 
     def _set_drop_row(self, row: int | None) -> None:
         if row != self._drop_row:

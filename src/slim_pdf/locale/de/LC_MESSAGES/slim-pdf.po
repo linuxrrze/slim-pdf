@@ -1436,6 +1436,30 @@ msgid "Add an image (PNG, JPEG or PDF) to the page"
 msgstr "Ein Bild (PNG, JPEG oder PDF) auf die Seite setzen"
 
 #: src/slim_pdf/gui/app.py
+msgid "Copy pages"
+msgstr "Seiten kopieren"
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy the selected pages (or the current one), to paste them into this or another document"
+msgstr "Die ausgewählten Seiten (oder die aktuelle) kopieren, um sie in dieses oder ein anderes Dokument einzufügen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Cut pages"
+msgstr "Seiten ausschneiden"
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy the selected pages, then delete them here"
+msgstr "Die ausgewählten Seiten kopieren und hier löschen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Paste pages"
+msgstr "Seiten einfügen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Insert the copied pages after the selected (or the current) page"
+msgstr "Die kopierten Seiten nach der ausgewählten (oder der aktuellen) Seite einfügen"
+
+#: src/slim_pdf/gui/app.py
 msgid "About Slim PDF"
 msgstr "Über Slim PDF"
 
@@ -1493,6 +1517,10 @@ msgstr "Drehen"
 #: src/slim_pdf/gui/app.py
 msgid "Crop"
 msgstr "Zuschneiden"
+
+#: src/slim_pdf/gui/app.py
+msgid "Clipboard"
+msgstr "Zwischenablage"
 
 #: src/slim_pdf/gui/app.py
 msgid "Help"
@@ -1824,6 +1852,31 @@ msgstr "Bild auf Seite {page} eingefügt"
 #: src/slim_pdf/gui/insertdialog.py
 msgid "Add text"
 msgstr "Text einfügen"
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid "Copied {n} page: paste it with Ctrl+V, here or in another document"
+msgid_plural "Copied {n} pages: paste them with Ctrl+V, here or in another document"
+msgstr[0] "{n} Seite kopiert: mit Strg+V hier oder in einem anderen Dokument einfügen"
+msgstr[1] "{n} Seiten kopiert: mit Strg+V hier oder in einem anderen Dokument einfügen"
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid ""
+"Adding pages will invalidate the signature(s) {names}.\n"
+"\n"
+"Edit pages before signing. Continue anyway?"
+msgstr ""
+"Das Hinzufügen von Seiten macht die Signatur(en) {names} ungültig.\n"
+"\n"
+"Seiten vor dem Signieren bearbeiten. Trotzdem fortfahren?"
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid "Inserted {n} page at position {pos}"
+msgid_plural "Inserted {n} pages from position {pos}"
+msgstr[0] "{n} Seite an Position {pos} eingefügt"
+msgstr[1] "{n} Seiten ab Position {pos} eingefügt"
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format

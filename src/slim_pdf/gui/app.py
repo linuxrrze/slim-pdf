@@ -8,7 +8,7 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
-from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTranslator, QUrl, qVersion
+from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTimer, QTranslator, QUrl, qVersion
 from PySide6.QtGui import (
     QAction,
     QColor,
@@ -37,7 +37,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QStackedWidget,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -64,7 +63,7 @@ from .settings import SettingsDialog
 from .dialogs import ask_secret
 from .formpanel import FormPanel
 from .insertdialog import TextDialog
-from .doctab import DocumentTab
+from .doctab import DocumentTab, DocumentTabs
 from .document import PdfDocument, render_stamp
 from .pageview import FormItem, PageView
 from .pagetools import PagesPanel
@@ -145,7 +144,10 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(_("Slim PDF"))
         fit_to_screen(self, 1100, 900)
-        self.tabs = QTabWidget()
+        self.tabs = DocumentTabs()
+        self.tabs.pagesDropped.connect(self._pages_dropped_on_tab)
+        # copied (or cut) pages: (document bytes, its password, pages, name)
+        self._page_clipboard: tuple | None = None
         self.tabs.setDocumentMode(True)
         self.tabs.setTabsClosable(True)
         self.tabs.setMovable(True)
@@ -364,6 +366,16 @@ class MainWindow(QMainWindow):
         self.insert_image_act = act(_("Image…"), self.insert_image, None, "photo-plus",
                                     _("Add an image (PNG, JPEG or PDF) to the page"), True)
 
+        self.copy_pages_act = act(_("Copy pages"), self.copy_pages, QKeySequence.Copy, "copy",
+                                  _("Copy the selected pages (or the current one), to paste "
+                                    "them into this or another document"), True)
+        self.cut_pages_act = act(_("Cut pages"), self.cut_pages, QKeySequence.Cut, "cut",
+                                 _("Copy the selected pages, then delete them here"), True)
+        self.paste_pages_act = act(_("Paste pages"), self.paste_pages, QKeySequence.Paste,
+                                   "clipboard", _("Insert the copied pages after the "
+                                                  "selected (or the current) page"))
+        self.paste_pages_act.setEnabled(False)
+
         self.about_act = act(_("About Slim PDF"), self.about, None, "info-circle")
         self.about_act.setMenuRole(QAction.AboutRole)
         self.docs_act = act(_("Documentation"), self.open_docs, QKeySequence.HelpContents,
@@ -418,6 +430,10 @@ class MainWindow(QMainWindow):
         g.add(self.uncrop_act)
         g = pages_tab.group(_("Delete"))
         g.add(self.delete_pages_act)
+        g = pages_tab.group(_("Clipboard"))
+        g.add(self.paste_pages_act)
+        g.add(self.copy_pages_act, large=False)
+        g.add(self.cut_pages_act, large=False)
 
         help_tab = rb.tab(_("Help"))
         g = help_tab.group(_("Help"))
@@ -465,6 +481,8 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
         menu.addActions([self.crop_act, self.uncrop_act])
         menu.addSeparator()
+        menu.addActions([self.copy_pages_act, self.cut_pages_act, self.paste_pages_act])
+        menu.addSeparator()
         menu.addAction(self.delete_act)
         return menu
 
@@ -481,6 +499,7 @@ class MainWindow(QMainWindow):
         self.thumbs.menuRequested.connect(self._show_page_menu)
         self.thumbs.deleteRequested.connect(self.delete_pages)  # Delete key on thumbnails
         self.thumbs.moveRequested.connect(self.move_pages)  # drag and drop, Alt+Up/Down
+        self.thumbs.copyRequested.connect(self._pages_dropped)  # dragged from another document
         dock = QDockWidget(_("Pages"))
         dock.setWidget(self.thumbs)
         dock.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetClosable)
@@ -712,6 +731,7 @@ class MainWindow(QMainWindow):
             a.setEnabled(has_doc)
         self.save_act.setEnabled(has_doc and self.dirty)
         self.undo_act.setEnabled(bool(self.undo_stack))
+        self.paste_pages_act.setEnabled(has_doc and self._page_clipboard is not None)
 
     # page tools -----------------------------------------------------------------
 
@@ -1089,6 +1109,80 @@ class MainWindow(QMainWindow):
                                  str(e))
             return
         self.apply_edit(new, message, page)
+
+    # copying pages between documents ------------------------------------------------
+
+    def copy_pages(self) -> None:
+        if self.data is None:
+            return
+        target = self.target_pages()
+        self._page_clipboard = (self.data, self.pdf_password, target, self.path.name)
+        self._update_page_actions()
+        self.statusBar().showMessage(ngettext(
+            "Copied {n} page: paste it with Ctrl+V, here or in another document",
+            "Copied {n} pages: paste them with Ctrl+V, here or in another document",
+            len(target)).format(n=len(target)), 10000)
+
+    def cut_pages(self) -> None:
+        if self.data is None:
+            return
+        self.copy_pages()
+        self.delete_pages()
+
+    def paste_pages(self) -> None:
+        """The copied pages, after the selected pages (or the current one)."""
+        if self.data is None or self._page_clipboard is None:
+            return
+        source, password, pages_, _name = self._page_clipboard
+        self.insert_pages(source, password, pages_, max(self.target_pages()) + 1)
+
+    def insert_pages(self, source: bytes, source_password: str | None, pages_: list[int],
+                     at: int) -> None:
+        """Copy ``pages_`` of the PDF ``source`` into the current document,
+        before its page ``at``."""
+        if self.data is None or not pages_:
+            return
+        if not self._confirm_breaking(_(
+                "Adding pages will invalidate the signature(s) {names}.\n\n"
+                "Edit pages before signing. Continue anyway?")):
+            return
+        try:
+            new = pages.insert(self.data, source, pages_, at, self.pdf_password,
+                               source_password)
+        except (pages.PageError, SigningError) as e:
+            QMessageBox.critical(self, _("Paste pages"), str(e))
+            return
+        n = len(pages_)
+        self.apply_edit(new, ngettext("Inserted {n} page at position {pos}",
+                                      "Inserted {n} pages from position {pos}", n).format(
+                                          n=n, pos=at + 1), page=at)
+        self.thumbs.clearSelection()
+        for row in range(at, at + n):  # the new pages, selected
+            self.thumbs.item(row).setSelected(True)
+
+    def _tab_of(self, doc) -> DocumentTab | None:
+        return next((self.tabs.widget(i) for i in range(self.tabs.count())
+                     if self.tabs.widget(i).doc is doc), None)
+
+    def _pages_dropped(self, source_doc, pages_: list[int], row: int) -> None:
+        """Pages dragged from another document into this one's Pages panel."""
+        source = self._tab_of(source_doc)
+        if source is not None and source is not self.tab and source.data is not None:
+            self.insert_pages(source.data, source.pdf_password, pages_, row)
+
+    def _pages_dropped_on_tab(self, index: int) -> None:
+        """Pages dragged onto a document's tab: copied to its end."""
+        source_doc, pages_ = self.thumbs.dragged
+        source, target = self._tab_of(source_doc), self.tabs.widget(index)
+        if source is None or target is None or source is target or source.data is None:
+            return
+
+        def copy():  # once the drag is over (the edit rebuilds the Pages panel)
+            if self.tabs.indexOf(target) >= 0 and target.data is not None:
+                self.tabs.setCurrentWidget(target)
+                self.insert_pages(source.data, source.pdf_password, pages_, len(target.doc))
+
+        QTimer.singleShot(0, copy)
 
     def save(self) -> bool:
         if self.data is None or self.path is None:

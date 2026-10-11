@@ -28,7 +28,8 @@ guide show the English version.
   * *Edit:* **Text…** and **Image…** (see
     [Adding text and images](#adding-text-and-images)); the form is in the
     side panel (see [Filling in forms](#filling-in-forms)).
-  * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
+  * *Pages:* rotate, crop and delete pages; copy, cut and paste them (see
+    [Page tools](#page-tools)).
   * *Help:* **Documentation** (`F1`, this guide online), **About Slim PDF**
     (version, and the libraries it is built on).
   * *View*, a group at the ribbon's right end, the same on every tab:
@@ -233,6 +234,15 @@ just that one:
 * **Reorder:** drag pages in the *Pages* panel to a new place; a line shows
   where they will go. Several selected pages move together and keep their
   order. `Alt+Up` / `Alt+Down` move the selected pages by one.
+* **Copy pages / Cut pages / Paste pages** (`Ctrl+C` / `Ctrl+X` /
+  `Ctrl+V`, also in the page menu) copy pages within a document or into
+  another open one: copy (or cut) the selected pages, go to the other
+  document, select the page to paste after (or go to it), paste. Or drag
+  pages from the *Pages* panel onto another document's tab: it comes up,
+  and dropping them into its *Pages* panel copies them there (dropping
+  them on the tab adds them at its end). The pages come with their
+  content, size and rotation; links, comments and form fields on them
+  are left out.
 * **Delete page / Delete N pages** (*Delete pages* in the ribbon, also the
   `Delete` key in the *Pages* panel) removes them; at least one page stays.
   Form fields on deleted pages go with them.
@@ -367,6 +377,7 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | `Ctrl+S` | Place signature, then sign |
 | `Ctrl+L` / `Ctrl+R` | Rotate the selected pages left / right |
 | `Delete` | Delete the selected pages (in the *Pages* panel) |
+| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut the selected pages, paste them after the selected (or current) page |
 | `Alt+Up` / `Alt+Down` | Move the selected pages up / down (in the *Pages* panel) |
 | `Ctrl+Z` | Undo the last page edit |
 | `Ctrl+Shift+S` | Save as |

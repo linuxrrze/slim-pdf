@@ -218,10 +218,12 @@ def numbered(tmp_path, n=5):
 def test_page_tools_are_in_the_context_menu(window, blank_pdf):
     window.open(blank_pdf)
     texts = [a.text() for a in window.page_menu().actions() if not a.isSeparator()]
-    assert texts == ["Rotate left", "Rotate right", "Crop…", "Uncrop", "Delete page 1"]
+    assert texts == ["Rotate left", "Rotate right", "Crop…", "Uncrop", "Copy pages",
+                     "Cut pages", "Paste pages", "Delete page 1"]
     pages_tab = window.ribbon.tab_page(2)
     buttons = [b.defaultAction().text() for b in pages_tab.findChildren(QtWidgets.QToolButton)]
-    assert buttons == ["Rotate left", "Rotate right", "Crop…", "Uncrop", "Delete pages"]
+    assert buttons == ["Rotate left", "Rotate right", "Crop…", "Uncrop", "Delete pages",
+                       "Paste pages", "Copy pages", "Cut pages"]
     assert window.rotate_left_act.shortcut().toString() == "Ctrl+L"  # shortcuts still work
 
 
@@ -286,6 +288,7 @@ def drop_on(panel, row, below=False):
     from PySide6.QtGui import QDropEvent
 
     panel._dragging = True  # as during startDrag()
+    panel._drag_source, panel._drag_pages = panel.document, panel.selected_pages()
     try:
         drop = QDropEvent(QPointF(rect.center().x(), y), Qt.MoveAction, QMimeData(),
                           Qt.LeftButton, Qt.NoModifier)

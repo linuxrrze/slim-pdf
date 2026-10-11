@@ -1402,6 +1402,30 @@ msgid "Add an image (PNG, JPEG or PDF) to the page"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
+msgid "Copy pages"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy the selected pages (or the current one), to paste them into this or another document"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Cut pages"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy the selected pages, then delete them here"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Paste pages"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Insert the copied pages after the selected (or the current) page"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
 msgid "About Slim PDF"
 msgstr ""
 
@@ -1458,6 +1482,10 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Crop"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Clipboard"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1760,6 +1788,26 @@ msgstr ""
 #: src/slim_pdf/gui/insertdialog.py
 msgid "Add text"
 msgstr ""
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid "Copied {n} page: paste it with Ctrl+V, here or in another document"
+msgid_plural "Copied {n} pages: paste them with Ctrl+V, here or in another document"
+msgstr[0] ""
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid ""
+"Adding pages will invalidate the signature(s) {names}.\n"
+"\n"
+"Edit pages before signing. Continue anyway?"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid "Inserted {n} page at position {pos}"
+msgid_plural "Inserted {n} pages from position {pos}"
+msgstr[0] ""
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
