@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import certinfo, i18n, pages, secretstore, systemstore, validation
+from .. import certinfo, forms, i18n, pages, secretstore, systemstore, validation
 from ..config import Config, load_config
 from ..i18n import N_, _, ngettext
 from ..signing import (
@@ -58,6 +58,7 @@ from .certdialog import details_dialog
 from .screen import fit_to_screen, scrollable
 from .settings import SettingsDialog
 from .dialogs import ask_secret
+from .formdialog import FormDialog
 from .document import PdfDocument, render_stamp
 from .pageview import PageView
 from .pagetools import PagesPanel
@@ -115,6 +116,7 @@ class MainWindow(QMainWindow):
         self.path: Path | None = None
         self.pdf_password: str | None = None
         self.info = None
+        self.form_fields: list[forms.FormField] = []
         # The document is edited in memory (page tools); self.path is where it
         # came from or was last saved to.
         self.data: bytes | None = None
@@ -132,6 +134,7 @@ class MainWindow(QMainWindow):
         self.view.cropSelected.connect(self._crop_selected)
         self.view.placeModeChanged.connect(self._place_mode_changed)
         self.view.fieldActivated.connect(self._field_activated)
+        self.view.formFieldActivated.connect(self.fill_form)
         self.setCentralWidget(self.view)
 
         self._build_actions()
@@ -221,6 +224,10 @@ class MainWindow(QMainWindow):
                                     _("Delete the pages selected in the Pages panel, or the "
                                       "current one"), True)
 
+        self.fill_form_act = act(_("Fill in form…"), lambda: self.fill_form(), None, "forms",
+                                 _("Fill in the document's form fields (or click one on "
+                                   "the page)"), True)
+
         self.about_act = act(_("About PDF Signer"), self.about, None, "info-circle")
         self.about_act.setMenuRole(QAction.AboutRole)
         self.about_qt_act = act(_("About Qt"), QApplication.aboutQt, None, "info-square")
@@ -250,6 +257,10 @@ class MainWindow(QMainWindow):
         g.add(self.text_check, large=False)
         g = home.group(_("Options"))
         g.add(self.settings_act)
+
+        edit = rb.tab(_("Edit"))
+        g = edit.group(_("Form"))
+        g.add(self.fill_form_act)
 
         pages_tab = rb.tab(_("Pages"))
         g = pages_tab.group(_("Rotate"))
@@ -471,8 +482,12 @@ class MainWindow(QMainWindow):
             self.doc.close()
         self.data, self.info, self.dirty = data, info, dirty
         self.doc = PdfDocument(data, self.pdf_password)
+        try:
+            self.form_fields = forms.form_fields(data, self.pdf_password)
+        except Exception:  # noqa: BLE001 - a broken form never blocks viewing
+            self.form_fields = []
         page = min(page, len(self.doc) - 1)
-        self.view.set_document(self.doc, info.fields, page)
+        self.view.set_document(self.doc, info.fields, page, self.form_fields)
         self.page_spin.blockSignals(True)
         self.page_spin.setMaximum(len(self.doc))
         self.page_spin.setValue(page + 1)
@@ -653,6 +668,61 @@ class MainWindow(QMainWindow):
         self.thumbs.clearSelection()
         for row in range(first, first + len(moved)):  # still selected, for further moves
             self.thumbs.item(row).setSelected(True)
+
+    # forms ----------------------------------------------------------------------
+
+    def fill_form(self, focus: str | None = None) -> None:
+        """The form dialog (with the cursor in ``focus``, a field clicked on
+        the page); OK fills in the changed fields, as an edit."""
+        if self.data is None:
+            return
+        if not self.form_fields:
+            QMessageBox.information(self, _("Fill in form"),
+                                    _("This document has no form fields to fill in."))
+            return
+        dlg = FormDialog(self.form_fields, self, focus)
+        if not self._exec_form(dlg):
+            return
+        values = dlg.values()
+        if not values:
+            return
+        try:
+            new = forms.fill(self.data, values, self.pdf_password)
+        except SigningError as e:  # forms.FormError among them
+            QMessageBox.critical(self, _("Fill in form"), str(e))
+            return
+        if not self._confirm_signatures_survive(new, _(
+                "Filling in these fields will invalidate the signature(s) {names}.\n\n"
+                "Fill in forms before signing. Continue anyway?")):
+            return
+        n = len(values)
+        self.apply_edit(new, ngettext("Filled in {n} field", "Filled in {n} fields", n).format(
+            n=n))
+
+    def _exec_form(self, dlg: FormDialog) -> int:
+        return dlg.exec()  # a hook for the tests
+
+    def _confirm_signatures_survive(self, new: bytes, message: str) -> bool:
+        """For edits that signatures may allow (filling in forms): check the
+        result, and ask if a signature valid now would become invalid."""
+        before = {r.field: r.status for r in self.reports}
+        if not before:
+            return True
+        trust, password = self.config.trust, self.pdf_password
+        try:
+            after = background.run(self, lambda ask: validation.verify_pdf(
+                new, trust=trust, password=password))
+        except Exception:  # noqa: BLE001 - can't tell: let the user decide
+            after = [validation.SignatureReport(field=f, status=validation.INVALID)
+                     for f in before]
+        broken = [printable(r.field) for r in after
+                  if r.status == validation.INVALID
+                  and before.get(r.field, validation.INVALID) != validation.INVALID]
+        if not broken:
+            return True
+        return QMessageBox.warning(
+            self, _("Existing signatures"), message.format(names=", ".join(broken)),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
 
     def save(self) -> bool:
         if self.data is None or self.path is None:

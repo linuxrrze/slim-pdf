@@ -649,6 +649,45 @@ signature fields are kept and can still be signed.
 
 ---
 
+## Fill in forms: `pdfsigner form`
+
+Without `--set`, `form` lists the form fields (text, check boxes, radio
+buttons, drop-downs and list boxes) with their current values and choices:
+
+```console
+$ pdfsigner form application.pdf
+  name                     text     page 1             ''
+  agree                    checkbox page 1             'no'
+  size                     radio    page 1             ''
+      choices: S, L
+  country                  choice   page 1             ''
+      choices: de (Germany), fr (France)
+  fixed                    text     page 1   read-only 'constant'
+  person.first             text     page 1             ''
+```
+
+`--set NAME=VALUE` (repeat it for more fields) fills them in. Check boxes
+take `yes`/`no`; radio buttons and choices take the value or its label; `\n`
+in a text starts a new line:
+
+```console
+$ pdfsigner form application.pdf --set "name=Alice Example" --set agree=yes --set country=France
+filled in 3 fields -> application-filled.pdf
+```
+
+Like the page tools, `form` takes `-o`/`--output` or `-i`/`--in-place`
+(default: `<name>-filled.pdf`) and `--password`. The fields are filled in
+as an incremental update with new appearances, so every viewer shows the
+values. Text must be in the Windows-1252 character set (Latin script, €);
+other characters are refused.
+
+**Signatures:** filling in a form after signing is an allowed change, so
+signatures stay valid, unless a signature locks the field (refused) or the
+document is certified as "no changes allowed" (refused). pyHanko also
+doesn't accept changes to fields whose buttons are separate objects, like
+radio buttons; when filling in would invalidate a signature, `form` stops
+with exit code `3` unless you add `--force`.
+
 ## GUI: `pdfsigner gui`
 
 ```console

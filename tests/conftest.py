@@ -170,6 +170,132 @@ def add_sig_field(src: Path, dst: Path, name: str, page: int, box, **kw) -> Path
     return dst
 
 
+def add_form_fields(src: Path, dst: Path, page: int = 0) -> Path:
+    """Fillable fields of every kind on ``page``, as form tools make them:
+    name (text), address (multi-line), agree (check box), size (radio: S, L),
+    country (drop-down: de/Germany, fr/France), colour (list box), fixed
+    (read-only, "constant"), person.first (a child field)."""
+    from pyhanko.pdf_utils import generic as g
+
+    n = g.pdf_name
+    w = IncrementalPdfFileWriter(io.BytesIO(src.read_bytes()))
+    root = w.root
+    page_ref = [ref for ref in _page_refs(w)][page]
+    page_obj = page_ref.get_object()
+
+    def stream(content: bytes, box=(0, 0, 14, 14)):
+        return w.add_object(g.StreamObject({
+            n("/Type"): n("/XObject"), n("/Subtype"): n("/Form"),
+            n("/BBox"): g.ArrayObject(g.FloatObject(v) for v in box),
+            n("/Resources"): g.DictionaryObject()}, stream_data=content))
+
+    def nums(*v):
+        return g.ArrayObject(g.FloatObject(x) for x in v)
+
+    def widget(rect, **extra):
+        d = g.DictionaryObject({n("/Type"): n("/Annot"), n("/Subtype"): n("/Widget"),
+                                n("/Rect"): nums(*rect), n("/F"): g.NumberObject(4),
+                                n("/P"): page_ref,
+                                n("/MK"): g.DictionaryObject({n("/BC"): nums(0)})})
+        d.update({n(k): v for k, v in extra.items()})
+        return d
+
+    def check_ap(state):
+        return g.DictionaryObject({n("/N"): g.DictionaryObject({
+            n("/" + state): stream(b"0 G 0.5 0.5 13 13 re S 0 g 3 3 8 8 re f"),
+            n("/Off"): stream(b"0 G 0.5 0.5 13 13 re S")})})
+
+    annots = []
+    top = []
+
+    def add(d, is_top=True):
+        ref = w.add_object(d)
+        if "/Subtype" in d:
+            annots.append(ref)
+        if is_top:
+            top.append(ref)
+        return ref
+
+    text = g.TextStringObject
+    add(widget((50, 760, 300, 780), **{"/FT": n("/Tx"), "/T": text("name"),
+                                       "/TU": text("Your name")}))
+    add(widget((50, 680, 300, 750), **{"/FT": n("/Tx"), "/T": text("address"),
+                                       "/Ff": g.NumberObject(1 << 12)}))
+    add(widget((50, 650, 64, 664), **{"/FT": n("/Btn"), "/T": text("agree"),
+                                      "/V": n("/Off"), "/AS": n("/Off"),
+                                      "/AP": check_ap("Yes")}))
+    size = g.DictionaryObject({n("/FT"): n("/Btn"), n("/T"): text("size"),
+                               n("/TU"): text("T-shirt size"),
+                               n("/Ff"): g.NumberObject(1 << 15), n("/V"): n("/Off")})
+    size_ref = add(size)
+    kids = []
+    for state, x in (("S", 50), ("L", 80)):
+        kids.append(add(widget((x, 620, x + 14, 634), **{
+            "/Parent": size_ref, "/AS": n("/Off"), "/AP": check_ap(state)}), is_top=False))
+    size[n("/Kids")] = g.ArrayObject(kids)
+    opts = g.ArrayObject([g.ArrayObject([text("de"), text("Germany")]),
+                          g.ArrayObject([text("fr"), text("France")])])
+    add(widget((50, 580, 200, 600), **{"/FT": n("/Ch"), "/T": text("country"),
+                                       "/Ff": g.NumberObject(1 << 17), "/Opt": opts}))
+    add(widget((50, 500, 200, 570), **{"/FT": n("/Ch"), "/T": text("colour"),
+                                       "/Opt": g.ArrayObject(map(text, ["red", "green",
+                                                                        "blue"]))}))
+    add(widget((50, 460, 200, 480), **{"/FT": n("/Tx"), "/T": text("fixed"),
+                                       "/Ff": g.NumberObject(1), "/V": text("constant")}))
+    person = g.DictionaryObject({n("/T"): text("person"), n("/FT"): n("/Tx")})
+    person_ref = add(person)
+    first = add(widget((50, 420, 200, 440), **{"/T": text("first"), "/Parent": person_ref}),
+                is_top=False)
+    person[n("/Kids")] = g.ArrayObject([first])
+
+    helv = w.add_object(g.DictionaryObject({
+        n("/Type"): n("/Font"), n("/Subtype"): n("/Type1"), n("/BaseFont"): n("/Helvetica"),
+        n("/Encoding"): n("/WinAnsiEncoding")}))
+    if "/AcroForm" not in root:
+        root[n("/AcroForm")] = w.add_object(g.DictionaryObject({n("/Fields"): g.ArrayObject()}))
+        w.update_root()
+    acro = root["/AcroForm"]
+    acro[n("/Fields")] = g.ArrayObject(_raw_items(acro.get("/Fields")) + top)
+    acro[n("/DA")] = text("/Helv 0 Tf 0 g")
+    acro[n("/DR")] = g.DictionaryObject({n("/Font"): g.DictionaryObject({n("/Helv"): helv})})
+    w.update_container(acro)
+    page_obj[n("/Annots")] = g.ArrayObject(_raw_items(page_obj.get("/Annots")) + annots)
+    w.update_container(page_obj)
+    buf = io.BytesIO()
+    w.write(buf)
+    dst.write_bytes(buf.getvalue())
+    return dst
+
+
+def _raw_items(arr) -> list:
+    """The references in a (possibly indirect, possibly missing) array."""
+    if arr is None:
+        return []
+    arr = arr.get_object()
+    return [arr.raw_get(i) for i in range(len(arr))]
+
+
+def _page_refs(w):
+    out = []
+
+    def walk(ref):
+        node = ref.get_object()
+        if "/Kids" in node:
+            for i in range(len(node["/Kids"])):
+                walk(node["/Kids"].raw_get(i))
+        else:
+            out.append(ref)
+
+    walk(w.root.raw_get("/Pages"))
+    return out
+
+
+@pytest.fixture
+def fill_pdf(tmp_path) -> Path:
+    """A one-page PDF with the fields of :func:`add_form_fields`."""
+    return add_form_fields(make_pdf(tmp_path / "base.pdf", pages=1), tmp_path / "fill.pdf")
+
+
 def make_encrypted(src: Path, dst: Path, user_pw: str) -> Path:
     from pyhanko.pdf_utils.reader import PdfFileReader
     from pyhanko.pdf_utils.writer import copy_into_new_writer

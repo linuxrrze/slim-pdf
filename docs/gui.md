@@ -23,6 +23,7 @@ guide show the English version.
     signature… / Sign…** (`Ctrl+S`), the certificate to sign with, the
     stamp options **Signature image** and **Text**, **Clear placement**
     (`Esc`), **Certificates…**; **Settings…**.
+  * *Edit:* **Fill in form…** (see [Filling in forms](#filling-in-forms)).
   * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
   * *View:* move between pages (`PgUp`/`PgDown`, or type the page number),
     zoom (`Ctrl +`/`Ctrl -`, *Fit* = fit width), show or hide the *Pages*
@@ -36,6 +37,9 @@ guide show the English version.
   * blue, dashed: empty, can be signed; a click signs it;
   * green: already signed; a click shows the signature's details;
   * red: locked by an earlier signature.
+
+  Form fields show a dotted frame under the mouse; a click fills them in
+  (see [Filling in forms](#filling-in-forms)).
 * **Pages panel** (left): thumbnails. Click one to go there; Ctrl- or
   Shift-click to select several pages for the page tools; drag pages to
   reorder them.
@@ -127,6 +131,26 @@ any problems, then the signer's certificate in the same form as
 The tooltip shows what the signature covers. Extra trusted roots come from
 *Settings…* (or `trust = [...]` in the config file, see
 [cli.md](cli.md#check-signatures-pdfsigner-verify)).
+
+## Filling in forms
+
+![Filling in a form](images/gui-form.png)
+
+**Fill in form…** (ribbon, *Edit* tab), or a click on a form field on the
+page, opens the document's form fields in one list: text fields, check
+boxes, radio buttons (as a list of their choices), drop-downs and list
+boxes. A field clicked on the page has the cursor. Read-only fields and
+fields locked by a signature are greyed out. **OK** fills in the fields you
+changed; like page edits, this is undone with **Undo** and written with
+**Save**.
+
+Text must be in the Windows-1252 character set (Latin script, €); other
+characters are refused. Filling in a form after signing is an allowed
+change, so signatures stay valid; if it would still invalidate one (pyHanko
+doesn't accept changes to radio buttons and other fields whose buttons are
+separate objects), pdfsigner asks first. Fill in forms, then sign.
+The same is possible on the command line with `pdfsigner form` (see
+[cli.md](cli.md#fill-in-forms-pdfsigner-form)).
 
 ## Page tools
 

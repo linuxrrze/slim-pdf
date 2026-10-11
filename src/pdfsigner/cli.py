@@ -13,7 +13,7 @@ from pathlib import Path
 from pyhanko.pdf_utils.misc import PdfError
 from pypdf.errors import PyPdfError
 
-from . import i18n, pages, secretstore
+from . import forms, i18n, pages, secretstore, validation
 from .certinfo import STAMP_FIELDS
 from .config import (
     CERT_TYPES,
@@ -571,6 +571,66 @@ def cmd_crop(cfg: Config, args) -> int:
     return 0
 
 
+def _form_value(f: forms.FormField, text: str):
+    """A --set value as the field takes it: yes/no for check boxes, a
+    choice's value or label."""
+    if f.kind == forms.CHECKBOX:
+        word = text.strip().lower()
+        if word in ("1", "yes", "y", "true", "on", "x", "ja", "j"):
+            return True
+        if word in ("0", "no", "n", "false", "off", "", "nein"):
+            return False
+        raise SigningError(_("{field}: use yes or no").format(field=f.name))
+    for value, label in f.options:  # a label stands for its value
+        if text == label and text not in (v for v, _label in f.options):
+            return value
+    return text
+
+
+def cmd_form(cfg: Config, args) -> int:
+    src = Path(args.file)
+    data, pw = _read_pdf(src, args.password)
+    found = {f.name: f for f in forms.form_fields(data, pw)}
+    if not args.set:
+        if not found:
+            print(_("no form fields"))
+        for f in found.values():
+            value = (_("yes") if f.value else _("no")) if f.kind == forms.CHECKBOX else f.value
+            where = _("page {page}").format(page=f.page + 1) if f.page is not None else ""
+            state = (_("LOCKED") if f.locked else _("read-only") if f.read_only else "")
+            print(f"  {printable(f.name):24} {f.kind:8} {where:8} {state:9} "
+                  f"{printable(str(value))!r}".rstrip())
+            if f.options and f.kind != forms.CHECKBOX:
+                print("      " + _("choices: {choices}").format(choices=", ".join(
+                    v if v == label else f"{v} ({label})" for v, label in f.options)))
+        return 0
+    values = {}
+    for item in args.set:
+        name, sep, text = item.partition("=")
+        if not sep:
+            raise SigningError(_("--set takes NAME=VALUE, not {item!r}").format(item=item))
+        if name not in found:
+            raise forms.FormError(_("no form field named {name!r}").format(name=name))
+        values[name] = _form_value(found[name], text.replace("\\n", "\n"))
+    out = forms.fill(data, values, pw)
+    if not args.force:  # a change the signatures don't allow (e.g. separate widgets)
+        before = {r.field: r.status for r in validation.verify_pdf(
+            data, trust=cfg.trust, password=pw, fetch_issuers=False)}
+        broken = [r.field for r in validation.verify_pdf(
+            out, trust=cfg.trust, password=pw, fetch_issuers=False)
+            if r.status == validation.INVALID
+            and before.get(r.field, validation.INVALID) != validation.INVALID]
+        if broken:
+            raise pages.EditBlocked(_(
+                "filling in would invalidate the signature(s) {names}").format(
+                names=", ".join(repr(n) for n in broken)))
+    dst = _edit_output(src, args, "filled")
+    _atomic_write(dst, out)
+    print(ngettext("filled in {n} field -> {path}", "filled in {n} fields -> {path}",
+                   len(values)).format(n=len(values), path=dst))
+    return 0
+
+
 def cmd_split(cfg: Config, args) -> int:
     src = Path(args.file)
     data, pw = _read_pdf(src, args.password)
@@ -750,6 +810,18 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--box", type=lambda s: _floats(s, 4), help=_("x1,y1,x2,y2 in PDF points"))
     g.add_argument("--reset", action="store_true", help=_("show the whole page again"))
     p.set_defaults(func=cmd_crop)
+
+    p = sub.add_parser("form", help=_("list or fill in form fields"))
+    p.add_argument("file")
+    p.add_argument("--set", action="append", metavar="NAME=VALUE",
+                   help=_("fill in a field (repeat for more; check boxes: yes/no; \\n in "
+                          "text starts a new line). Without --set: list the fields"))
+    p.add_argument("-o", "--output", help=_("output file (default: <name>-filled.pdf)"))
+    p.add_argument("-i", "--in-place", action="store_true", help=_("overwrite the input"))
+    p.add_argument("--password", help=_(PASSWORD_HELP))
+    p.add_argument("--force", action="store_true",
+                   help=_("go ahead even if this invalidates existing signatures"))
+    p.set_defaults(func=cmd_form)
 
     p = sub.add_parser("split", help=_("split into several PDFs"))
     p.add_argument("file")

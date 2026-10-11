@@ -1514,7 +1514,8 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     """The ribbon replaces the toolbars; Help → About names the version."""
     rb = window.ribbon
     assert window.menuWidget() is rb
-    assert [rb.tabText(i) for i in range(rb.count())] == ["Home", "Pages", "View", "Help"]
+    assert [rb.tabText(i) for i in range(rb.count())] == ["Home", "Edit", "Pages", "View",
+                                                          "Help"]
     home = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
     assert window.open_act in home and window.sign_act in home
     # everything the sign panel had as controls is in the ribbon now

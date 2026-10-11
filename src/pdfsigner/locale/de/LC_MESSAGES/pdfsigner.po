@@ -748,6 +748,55 @@ msgstr[1] "{n} Seiten zugeschnitten -> {path}"
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "{field}: use yes or no"
+msgstr "{field}: ja oder nein angeben"
+
+#: src/pdfsigner/cli.py
+msgid "no form fields"
+msgstr "keine Formularfelder"
+
+#: src/pdfsigner/cli.py
+msgid "yes"
+msgstr "ja"
+
+#: src/pdfsigner/cli.py
+msgid "no"
+msgstr "nein"
+
+#: src/pdfsigner/cli.py
+msgid "read-only"
+msgstr "schreibgeschützt"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "choices: {choices}"
+msgstr "Auswahl: {choices}"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "--set takes NAME=VALUE, not {item!r}"
+msgstr "--set erwartet NAME=WERT, nicht {item!r}"
+
+#: src/pdfsigner/cli.py
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "no form field named {name!r}"
+msgstr "kein Formularfeld namens {name!r}"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "filling in would invalidate the signature(s) {names}"
+msgstr "das Ausfüllen würde die Signatur(en) {names} ungültig machen"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "filled in {n} field -> {path}"
+msgid_plural "filled in {n} fields -> {path}"
+msgstr[0] "{n} Feld ausgefüllt -> {path}"
+msgstr[1] "{n} Felder ausgefüllt -> {path}"
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "splitting would remove the signature(s) {names}"
 msgstr "Aufteilen würde die Signatur(en) {names} entfernen"
 
@@ -954,6 +1003,18 @@ msgid "show the whole page again"
 msgstr "wieder die ganze Seite anzeigen"
 
 #: src/pdfsigner/cli.py
+msgid "list or fill in form fields"
+msgstr "Formularfelder auflisten oder ausfüllen"
+
+#: src/pdfsigner/cli.py
+msgid "fill in a field (repeat for more; check boxes: yes/no; \\n in text starts a new line). Without --set: list the fields"
+msgstr "ein Feld ausfüllen (für weitere wiederholen; Kontrollkästchen: ja/nein; \\n im Text beginnt eine neue Zeile). Ohne --set: die Felder auflisten"
+
+#: src/pdfsigner/cli.py
+msgid "output file (default: <name>-filled.pdf)"
+msgstr "Ausgabedatei (Standard: <Name>-filled.pdf)"
+
+#: src/pdfsigner/cli.py
 msgid "split into several PDFs"
 msgstr "in mehrere PDFs aufteilen"
 
@@ -1130,6 +1191,41 @@ msgstr "{path}: trust muss eine Liste von Dateinamen sein"
 msgid "{path}: language must be one of {languages}"
 msgstr "{path}: language muss eines von {languages} sein"
 
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field}: the form can't show these characters: {chars}"
+msgstr "{field}: das Formular kann diese Zeichen nicht darstellen: {chars}"
+
+#: src/pdfsigner/forms.py
+#: src/pdfsigner/pages.py
+#: src/pdfsigner/signing.py
+msgid "PDF is encrypted, a password is required"
+msgstr "PDF ist verschlüsselt, ein Passwort ist erforderlich"
+
+#: src/pdfsigner/forms.py
+msgid "the document is certified: no changes are allowed"
+msgstr "das Dokument ist zertifiziert: keine Änderungen erlaubt"
+
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field} is read-only"
+msgstr "{field} ist schreibgeschützt"
+
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field} is locked by a signature"
+msgstr "{field} ist durch eine Signatur gesperrt"
+
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field} takes at most {n} characters"
+msgstr "{field} nimmt höchstens {n} Zeichen auf"
+
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field}: {value!r} is not one of its choices"
+msgstr "{field}: {value!r} ist keine der Auswahlmöglichkeiten"
+
 #: src/pdfsigner/gui/app.py
 msgid "Wheel: zoom, drag: move the page. Click an empty field to sign it, or use Place signature…; a placed signature is moved by dragging and resized at its corner or with Ctrl+wheel."
 msgstr "Mausrad: zoomen, Ziehen: Seite verschieben. Klick auf ein leeres Feld signiert es, oder „Signatur platzieren…“ verwenden; eine platzierte Signatur wird durch Ziehen verschoben und an ihrer Ecke oder mit Strg+Mausrad in der Größe geändert."
@@ -1296,6 +1392,14 @@ msgid "Delete the pages selected in the Pages panel, or the current one"
 msgstr "Die in der Seitenleiste ausgewählten Seiten löschen, sonst die aktuelle"
 
 #: src/pdfsigner/gui/app.py
+msgid "Fill in form…"
+msgstr "Formular ausfüllen…"
+
+#: src/pdfsigner/gui/app.py
+msgid "Fill in the document's form fields (or click one on the page)"
+msgstr "Die Formularfelder des Dokuments ausfüllen (oder eines auf der Seite anklicken)"
+
+#: src/pdfsigner/gui/app.py
 msgid "About PDF Signer"
 msgstr "Über PDF Signer"
 
@@ -1332,6 +1436,14 @@ msgstr "Stempel"
 #: src/pdfsigner/gui/app.py
 msgid "Options"
 msgstr "Optionen"
+
+#: src/pdfsigner/gui/app.py
+msgid "Edit"
+msgstr "Bearbeiten"
+
+#: src/pdfsigner/gui/app.py
+msgid "Form"
+msgstr "Formular"
 
 #: src/pdfsigner/gui/app.py
 msgid "Pages"
@@ -1604,6 +1716,33 @@ msgid "Moved {n} page"
 msgid_plural "Moved {n} pages"
 msgstr[0] "{n} Seite verschoben"
 msgstr[1] "{n} Seiten verschoben"
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/formdialog.py
+msgid "Fill in form"
+msgstr "Formular ausfüllen"
+
+#: src/pdfsigner/gui/app.py
+msgid "This document has no form fields to fill in."
+msgstr "Dieses Dokument hat keine Formularfelder zum Ausfüllen."
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Filling in these fields will invalidate the signature(s) {names}.\n"
+"\n"
+"Fill in forms before signing. Continue anyway?"
+msgstr ""
+"Das Ausfüllen dieser Felder macht die Signatur(en) {names} ungültig.\n"
+"\n"
+"Formulare vor dem Signieren ausfüllen. Trotzdem fortfahren?"
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Filled in {n} field"
+msgid_plural "Filled in {n} fields"
+msgstr[0] "{n} Feld ausgefüllt"
+msgstr[1] "{n} Felder ausgefüllt"
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
@@ -2286,6 +2425,27 @@ msgstr "{prompt}:"
 msgid "coordinate conversion failed"
 msgstr "Koordinatenumrechnung fehlgeschlagen"
 
+#: src/pdfsigner/gui/formdialog.py
+#, python-brace-format
+msgid "{name} (p. {page})"
+msgstr "{name} (S. {page})"
+
+#: src/pdfsigner/gui/formdialog.py
+msgid "Locked by a signature"
+msgstr "Durch eine Signatur gesperrt"
+
+#: src/pdfsigner/gui/formdialog.py
+msgid "Read-only"
+msgstr "Schreibgeschützt"
+
+#: src/pdfsigner/gui/formdialog.py
+msgid "Changed fields are filled in when you press OK; Undo takes it back."
+msgstr "Geänderte Felder werden mit OK ausgefüllt; Rückgängig nimmt das zurück."
+
+#: src/pdfsigner/gui/formdialog.py
+msgid "(none)"
+msgstr "(keine)"
+
 #: src/pdfsigner/gui/pageview.py
 #, python-brace-format
 msgid "{name}: signed"
@@ -2300,6 +2460,16 @@ msgstr "{name}: gesperrt"
 #, python-brace-format
 msgid "{name}: empty signature field"
 msgstr "{name}: leeres Signaturfeld"
+
+#: src/pdfsigner/gui/pageview.py
+#, python-brace-format
+msgid "{name}: click to fill in"
+msgstr "{name}: zum Ausfüllen klicken"
+
+#: src/pdfsigner/gui/pageview.py
+#, python-brace-format
+msgid "{name}: can't be changed"
+msgstr "{name}: kann nicht geändert werden"
 
 #: src/pdfsigner/gui/settings.py
 msgid "System default"
@@ -2348,11 +2518,6 @@ msgstr "ungültige Seitenangabe {spec!r} (z. B. 1-3,5,8- verwenden)"
 #, python-brace-format
 msgid "pages {pages} out of range (document has {count})"
 msgstr "Seiten {pages} außerhalb des Bereichs (Dokument hat {count})"
-
-#: src/pdfsigner/pages.py
-#: src/pdfsigner/signing.py
-msgid "PDF is encrypted, a password is required"
-msgstr "PDF ist verschlüsselt, ein Passwort ist erforderlich"
 
 #: src/pdfsigner/pages.py
 msgid "no pages selected"

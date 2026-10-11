@@ -336,3 +336,47 @@ def test_system_profile_on_an_unsupported_platform_notes_it(cfg_path, capsys, mo
     assert run("certs", "add", "store", "--system-cert", "Alice") == 0  # e.g. a shared config
     assert "only work on Windows and macOS" in capsys.readouterr().err
     assert load_config(cfg_path).certs["store"].type == "system"
+
+
+# --- forms --------------------------------------------------------------------------
+
+
+def test_form_list_and_fill(fill_pdf, tmp_path, capsys, cfg_path):
+    from pdfsigner import forms
+
+    assert run("form", fill_pdf) == 0
+    listing = capsys.readouterr().out
+    assert "name" in listing and "read-only" in listing and "de (Germany)" in listing
+    out = tmp_path / "out.pdf"
+    assert run("form", fill_pdf, "-o", out, "--set", "name=Ann", "--set", r"address=a\nb",
+               "--set", "agree=yes", "--set", "country=France", "--set", "size=L") == 0
+    assert "filled in 5 fields" in capsys.readouterr().out
+    values = {f.name: f.value for f in forms.form_fields(out.read_bytes())}
+    assert (values["name"], values["address"], values["agree"], values["country"],
+            values["size"]) == ("Ann", "a\nb", True, "fr", "L")
+
+
+@pytest.mark.parametrize("arg, message", [
+    ("nope=1", "no form field named 'nope'"),
+    ("agree=maybe", "use yes or no"),
+    ("fixed=x", "read-only"),
+    ("name", "NAME=VALUE"),
+])
+def test_form_errors(fill_pdf, tmp_path, capsys, cfg_path, arg, message):
+    assert run("form", fill_pdf, "-o", tmp_path / "o.pdf", "--set", arg) == 1
+    assert message in capsys.readouterr().err
+    assert not (tmp_path / "o.pdf").exists()
+
+
+def test_form_guards_signatures(fill_pdf, profile, tmp_path, capsys, cfg_path):
+    """Radio buttons are separate widgets, which pyHanko doesn't accept as a
+    change after signing; text fields are fine."""
+    from conftest import add_sig_field, sign_with
+
+    with_sig = add_sig_field(fill_pdf, tmp_path / "sig.pdf", "Signer", 0, (300, 100, 500, 150))
+    signed = tmp_path / "signed.pdf"
+    sign_with(profile, with_sig, signed, field_name="Signer")
+    assert run("form", signed, "-o", tmp_path / "a.pdf", "--set", "name=Ann") == 0
+    assert run("form", signed, "-o", tmp_path / "b.pdf", "--set", "size=S") == 3
+    assert "'Signer'" in capsys.readouterr().err and not (tmp_path / "b.pdf").exists()
+    assert run("form", signed, "-o", tmp_path / "b.pdf", "--set", "size=S", "--force") == 0

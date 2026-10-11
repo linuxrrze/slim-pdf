@@ -724,6 +724,54 @@ msgstr[0] ""
 
 #: src/pdfsigner/cli.py
 #, python-brace-format
+msgid "{field}: use yes or no"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "no form fields"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "yes"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "no"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "read-only"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "choices: {choices}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "--set takes NAME=VALUE, not {item!r}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "no form field named {name!r}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "filling in would invalidate the signature(s) {names}"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
+msgid "filled in {n} field -> {path}"
+msgid_plural "filled in {n} fields -> {path}"
+msgstr[0] ""
+
+#: src/pdfsigner/cli.py
+#, python-brace-format
 msgid "splitting would remove the signature(s) {names}"
 msgstr ""
 
@@ -928,6 +976,18 @@ msgid "show the whole page again"
 msgstr ""
 
 #: src/pdfsigner/cli.py
+msgid "list or fill in form fields"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "fill in a field (repeat for more; check boxes: yes/no; \\n in text starts a new line). Without --set: list the fields"
+msgstr ""
+
+#: src/pdfsigner/cli.py
+msgid "output file (default: <name>-filled.pdf)"
+msgstr ""
+
+#: src/pdfsigner/cli.py
 msgid "split into several PDFs"
 msgstr ""
 
@@ -1102,6 +1162,41 @@ msgstr ""
 msgid "{path}: language must be one of {languages}"
 msgstr ""
 
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field}: the form can't show these characters: {chars}"
+msgstr ""
+
+#: src/pdfsigner/forms.py
+#: src/pdfsigner/pages.py
+#: src/pdfsigner/signing.py
+msgid "PDF is encrypted, a password is required"
+msgstr ""
+
+#: src/pdfsigner/forms.py
+msgid "the document is certified: no changes are allowed"
+msgstr ""
+
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field} is read-only"
+msgstr ""
+
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field} is locked by a signature"
+msgstr ""
+
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field} takes at most {n} characters"
+msgstr ""
+
+#: src/pdfsigner/forms.py
+#, python-brace-format
+msgid "{field}: {value!r} is not one of its choices"
+msgstr ""
+
 #: src/pdfsigner/gui/app.py
 msgid "Wheel: zoom, drag: move the page. Click an empty field to sign it, or use Place signature…; a placed signature is moved by dragging and resized at its corner or with Ctrl+wheel."
 msgstr ""
@@ -1264,6 +1359,14 @@ msgid "Delete the pages selected in the Pages panel, or the current one"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+msgid "Fill in form…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Fill in the document's form fields (or click one on the page)"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 msgid "About PDF Signer"
 msgstr ""
 
@@ -1299,6 +1402,14 @@ msgstr ""
 
 #: src/pdfsigner/gui/app.py
 msgid "Options"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Edit"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Form"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1548,6 +1659,29 @@ msgstr ""
 #, python-brace-format
 msgid "Moved {n} page"
 msgid_plural "Moved {n} pages"
+msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/formdialog.py
+msgid "Fill in form"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "This document has no form fields to fill in."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Filling in these fields will invalidate the signature(s) {names}.\n"
+"\n"
+"Fill in forms before signing. Continue anyway?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Filled in {n} field"
+msgid_plural "Filled in {n} fields"
 msgstr[0] ""
 
 #: src/pdfsigner/gui/app.py
@@ -2208,6 +2342,27 @@ msgstr ""
 msgid "coordinate conversion failed"
 msgstr ""
 
+#: src/pdfsigner/gui/formdialog.py
+#, python-brace-format
+msgid "{name} (p. {page})"
+msgstr ""
+
+#: src/pdfsigner/gui/formdialog.py
+msgid "Locked by a signature"
+msgstr ""
+
+#: src/pdfsigner/gui/formdialog.py
+msgid "Read-only"
+msgstr ""
+
+#: src/pdfsigner/gui/formdialog.py
+msgid "Changed fields are filled in when you press OK; Undo takes it back."
+msgstr ""
+
+#: src/pdfsigner/gui/formdialog.py
+msgid "(none)"
+msgstr ""
+
 #: src/pdfsigner/gui/pageview.py
 #, python-brace-format
 msgid "{name}: signed"
@@ -2221,6 +2376,16 @@ msgstr ""
 #: src/pdfsigner/gui/pageview.py
 #, python-brace-format
 msgid "{name}: empty signature field"
+msgstr ""
+
+#: src/pdfsigner/gui/pageview.py
+#, python-brace-format
+msgid "{name}: click to fill in"
+msgstr ""
+
+#: src/pdfsigner/gui/pageview.py
+#, python-brace-format
+msgid "{name}: can't be changed"
 msgstr ""
 
 #: src/pdfsigner/gui/settings.py
@@ -2267,11 +2432,6 @@ msgstr ""
 #: src/pdfsigner/pages.py
 #, python-brace-format
 msgid "pages {pages} out of range (document has {count})"
-msgstr ""
-
-#: src/pdfsigner/pages.py
-#: src/pdfsigner/signing.py
-msgid "PDF is encrypted, a password is required"
 msgstr ""
 
 #: src/pdfsigner/pages.py

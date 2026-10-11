@@ -213,7 +213,7 @@ def test_page_tools_are_in_the_context_menu(window, blank_pdf):
     window.open(blank_pdf)
     texts = [a.text() for a in window.page_menu().actions() if not a.isSeparator()]
     assert texts == ["Rotate left", "Rotate right", "Crop…", "Uncrop", "Delete page 1"]
-    pages_tab = window.ribbon.tab_page(1)
+    pages_tab = window.ribbon.tab_page(2)
     buttons = [b.defaultAction().text() for b in pages_tab.findChildren(QtWidgets.QToolButton)]
     assert buttons == ["Rotate left", "Rotate right", "Crop…", "Uncrop", "Delete pages"]
     assert window.rotate_left_act.shortcut().toString() == "Ctrl+L"  # shortcuts still work

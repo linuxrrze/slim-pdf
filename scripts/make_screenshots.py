@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tests"))
 
-from conftest import draw_signature_image, make_p12, write_pem  # noqa: E402
+from conftest import add_form_fields, draw_signature_image, make_p12, write_pem  # noqa: E402
 from PySide6.QtCore import QMarginsF, QPointF, QRectF, Qt  # noqa: E402
 from PySide6.QtGui import QFont, QPageLayout, QPageSize, QPainter, QPdfWriter, QPen  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
@@ -95,6 +95,33 @@ def sample_pdf(path: Path) -> Path:
     wr.write(buf)
     path.write_bytes(buf.getvalue())
     return path
+
+
+def registration_pdf(path: Path) -> Path:
+    """A one-page form with the fields of the tests' add_form_fields(),
+    labelled to their right."""
+    w = QPdfWriter(str(path))
+    w.setResolution(72)
+    w.setPageLayout(QPageLayout(QPageSize(QPageSize.A4), QPageLayout.Portrait,
+                                QMarginsF(0, 0, 0, 0)))
+    p = QPainter(w)
+    f = QFont("Liberation Sans")
+    f.setPointSizeF(16)
+    f.setBold(True)
+    p.setFont(f)
+    p.drawText(QPointF(50, 50), "Workshop registration")
+    f.setPointSizeF(10)
+    f.setBold(False)
+    p.setFont(f)
+    # (label, PDF y of the field's top): the fields are at x 50..300
+    for label, top, x in (("Name", 780, 310), ("Address", 750, 310),
+                          ("I take part in the workshop dinner", 664, 72),
+                          ("T-shirt size: S, L", 634, 102), ("Country", 600, 210),
+                          ("Workshop", 570, 210), ("Reference (filled in by us)", 480, 210),
+                          ("First name for the badge", 440, 210)):
+        p.drawText(QPointF(x, A4_H - top + 11), label)
+    p.end()
+    return add_form_fields(path, path.with_name("registration.pdf"))
 
 
 def click(view, x, y):
@@ -183,7 +210,7 @@ def main() -> None:
 
     # page tools: a scanned attachment page that needs rotating and cropping
     win.open(doc)
-    win.ribbon.setCurrentIndex(1)  # the Pages tab
+    win.ribbon.setCurrentIndex(2)  # the Pages tab
     win.view.go_to(1)
     win.thumbs.show_page(1)
     # the page menu on the second thumbnail; a popup is its own window, so it
@@ -208,6 +235,37 @@ def main() -> None:
     QTest.mouseMove(vp, b)  # leave the rectangle visible
     grab(win, "gui-pages.png")
     win._escape()
+    win.dirty = False
+    win.ribbon.setCurrentIndex(0)
+
+    # filling in a form: the dialog over the window, cursor in the clicked field
+    from pdfsigner import forms
+
+    form = registration_pdf(tmp / "registration-blank.pdf")
+    win.open(form)
+    win.ribbon.setCurrentIndex(1)  # the Edit tab
+    win.apply_edit(forms.fill(win.data, {"name": "Alice Example", "agree": True,
+                                         "country": "de", "colour": "green"}),
+                   "Filled in 4 fields")
+    shown = []
+    win._exec_form = lambda d: shown.append(d) or 0
+    win.fill_form("address")
+    [d] = shown
+    d.editors["address"].setPlainText("Martensstraße 3\n91058 Erlangen")
+    d.show()
+    d.editors["address"].setFocus()
+    QTest.qWaitForWindowExposed(d)
+    QTest.qWait(60)
+    shot = win.grab()
+    painter = QPainter(shot)
+    at = QPointF(shot.width() - d.width() - 12, 300).toPoint()
+    painter.drawPixmap(at, d.grab())
+    painter.setPen(QPen(Qt.gray, 1))
+    painter.drawRect(at.x(), at.y(), d.width() - 1, d.height() - 1)
+    painter.end()
+    d.close()
+    shot.save(str(OUT / "gui-form.png"))
+    print("wrote", OUT / "gui-form.png")
     win.dirty = False
     win.ribbon.setCurrentIndex(0)
 
