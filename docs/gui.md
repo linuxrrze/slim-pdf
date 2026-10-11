@@ -30,9 +30,10 @@ guide show the English version.
   * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
   * *Help:* **Documentation** (`F1`, this guide online), **About Slim PDF**
     (version, and the libraries it is built on).
-  * Right of the tabs, the same on every tab: show or hide the *Pages*
-    panel; previous page, page number, next page (`PgUp`/`PgDown`, or type
-    the number); zoom out, *Fit* (fit width), zoom in (`Ctrl -`/`Ctrl +`).
+  * *View*, a group at the ribbon's right end, the same on every tab:
+    **Pages panel** (show or hide the thumbnails); **Previous**, the page
+    number, **Next** (`PgUp`/`PgDown`, or type the number); **Zoom in**,
+    **Fit** (fit width), **Zoom out** (`Ctrl +`/`Ctrl -`).
 
   **Open…** starts in the folder of the last file you opened, also after
   a restart (remembered in `gui.json` in the user state folder, e.g.

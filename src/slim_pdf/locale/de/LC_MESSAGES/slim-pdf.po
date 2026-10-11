@@ -1482,6 +1482,10 @@ msgid "Show or hide the page thumbnails on the left"
 msgstr "Die Seitenvorschau links zeigen oder ausblenden"
 
 #: src/slim_pdf/gui/app.py
+msgid "View"
+msgstr "Ansicht"
+
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Delete page {page}"
 msgstr "Seite {page} löschen"

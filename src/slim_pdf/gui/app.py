@@ -303,15 +303,19 @@ class MainWindow(QMainWindow):
         g.add(self.about_act)
 
         # Viewing, for every tab: the Pages panel, page navigation and zoom,
-        # next to the tabs
+        # at the ribbon's right end
         panel = self.pages_dock.toggleViewAction()
         panel.setIcon(ribbon.icon("layout-sidebar"))
         panel.setText(_("Pages panel"))
         panel.setToolTip(_("Show or hide the page thumbnails on the left"))
-        rb.set_view_controls([
-            [panel],
-            [self.prev_act, self.page_spin, self.page_count, self.next_act],
-            [self.zoom_out_act, self.fit_act, self.zoom_in_act],
+        spin = QWidget()  # the page number box with " / count"
+        row = QHBoxLayout(spin)
+        row.setContentsMargins(4, 0, 4, 0)
+        row.addWidget(self.page_spin)
+        row.addWidget(self.page_count)
+        rb.set_view_controls(_("View"), [panel], [
+            [self.prev_act, spin, self.next_act],
+            [self.zoom_in_act, self.fit_act, self.zoom_out_act],
         ])
         rb.refit()
         rb.currentChanged.connect(self._ribbon_tab_changed)

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, QRect, QRectF, QSize, Qt
+from PySide6.QtCore import QPoint, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QAction, QIcon, QIconEngine, QPainter, QPalette, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
@@ -20,8 +20,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QScrollArea,
     QSizePolicy,
+    QStackedWidget,
     QStyle,
-    QTabWidget,
+    QTabBar,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -139,14 +140,37 @@ class RibbonTab(QWidget):
         return g
 
 
-class Ribbon(QTabWidget):
-    """Tabs of groups. A narrow window scrolls a tab sideways rather than
-    growing to fit it."""
+class Ribbon(QWidget):
+    """Tabs of groups, with one group that stays whatever the tab (see
+    :meth:`set_view_controls`) at the right. A narrow window scrolls a tab
+    sideways rather than growing to fit it. Offers the parts of
+    QTabWidget's interface the window uses (count, tabText, currentIndex,
+    setCurrentIndex, currentChanged)."""
+
+    currentChanged = Signal(int)
 
     def __init__(self):
         super().__init__()
-        self.setDocumentMode(True)
-        self.setUsesScrollButtons(True)
+        self.bar = QTabBar()
+        self.bar.setDocumentMode(True)
+        self.bar.setUsesScrollButtons(True)
+        self.bar.setExpanding(False)
+        self.stack = QStackedWidget()
+        self.bar.currentChanged.connect(self._switch)
+        self.body = QHBoxLayout()
+        self.body.setContentsMargins(0, 0, 0, 0)
+        self.body.setSpacing(0)
+        self.body.addWidget(self.stack, 1)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+        lay.addWidget(self.bar)
+        lay.addLayout(self.body)
+        self.view_controls: RibbonGroup | None = None
+
+    def _switch(self, index: int) -> None:
+        self.stack.setCurrentIndex(index)
+        self.currentChanged.emit(index)
 
     def tab(self, title: str) -> RibbonTab:
         page = RibbonTab()
@@ -156,47 +180,54 @@ class Ribbon(QTabWidget):
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.addTab(scroll, title)
+        self.stack.addWidget(scroll)
+        self.bar.addTab(title)
         return page
 
-    def set_view_controls(self, groups: list[list]) -> QWidget:
-        """Controls that apply whatever the tab (actions as small icon
-        buttons, widgets as they are), in groups divided by lines, next to
-        the tab names."""
-        box = QWidget()
-        row = QHBoxLayout(box)
-        row.setContentsMargins(4, 0, 4, 0)
-        row.setSpacing(1)
-        for i, group in enumerate(groups):
-            if i:
-                line = QFrame()
-                line.setFrameShape(QFrame.VLine)
-                line.setFrameShadow(QFrame.Sunken)
-                row.addWidget(line)
-            for item in group:
+    def set_view_controls(self, title: str, large: list, columns: list[list]) -> RibbonGroup:
+        """A group that stays at the ribbon's right end on every tab: the
+        ``large`` actions as big buttons, then ``columns`` of small ones
+        (actions, or widgets such as a page number box)."""
+        group = RibbonGroup(title)
+        for action in large:
+            group.add(action)
+        for column in columns:
+            group._column = None  # each list is a column of its own
+            for item in column:
                 if isinstance(item, QAction):
-                    b = QToolButton()
-                    b.setDefaultAction(item)
-                    b.setAutoRaise(True)
-                    b.setFocusPolicy(Qt.TabFocus)
-                    b.setToolButtonStyle(Qt.ToolButtonIconOnly)
-                    b.setIconSize(QSize(SMALL_ICON, SMALL_ICON))
-                    row.addWidget(b)
+                    group.add(item, large=False)
                 else:
-                    row.addWidget(item)
-        self.setCornerWidget(box, Qt.TopRightCorner)
-        self.view_controls = box
-        return box
+                    group.add_widget(item)
+        line = QFrame()
+        line.setFrameShape(QFrame.VLine)
+        line.setFrameShadow(QFrame.Sunken)
+        self.body.addWidget(line)
+        self.body.addWidget(group)
+        self.view_controls = group
+        return group
+
+    # the QTabWidget-like part
+    def count(self) -> int:
+        return self.bar.count()
+
+    def tabText(self, index: int) -> str:  # noqa: N802 - Qt's name
+        return self.bar.tabText(index)
+
+    def currentIndex(self) -> int:  # noqa: N802 - Qt's name
+        return self.bar.currentIndex()
+
+    def setCurrentIndex(self, index: int) -> None:  # noqa: N802 - Qt's name
+        self.bar.setCurrentIndex(index)
 
     def tab_page(self, index: int) -> RibbonTab:
-        return self.widget(index).widget()
+        return self.stack.widget(index).widget()
 
     def refit(self) -> None:
-        """Once the buttons are in: room for the tallest tab (and a scroll
-        bar, for narrow windows)."""
-        bar = self.tabBar().sizeHint().height()
-        content = max((self.tab_page(i).sizeHint().height() for i in range(self.count())),
-                      default=0)
+        """Once the buttons are in: room for the tallest tab or the view
+        group (and a scroll bar, for narrow windows)."""
+        bar = self.bar.sizeHint().height()
+        heights = [self.tab_page(i).sizeHint().height() for i in range(self.count())]
+        if self.view_controls is not None:
+            heights.append(self.view_controls.sizeHint().height())
         scrollbar = self.style().pixelMetric(QStyle.PM_ScrollBarExtent)
-        self.setFixedHeight(bar + content + scrollbar + 4)
+        self.setFixedHeight(bar + max(heights, default=0) + scrollbar + 4)

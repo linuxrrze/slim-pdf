@@ -1537,12 +1537,16 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     assert window.menuWidget() is rb
     assert [rb.tabText(i) for i in range(rb.count())] == ["Home", "Edit", "Pages", "Help"]
     home = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
-    # viewing controls are next to the tabs, the same on every tab
+    # viewing controls are a group at the ribbon's right end, the same on every tab
     view = [b.defaultAction() for b in rb.view_controls.findChildren(QtWidgets.QToolButton)]
     assert view == [window.pages_dock.toggleViewAction(), window.prev_act, window.next_act,
-                    window.zoom_out_act, window.fit_act, window.zoom_in_act]
-    assert rb.cornerWidget() is rb.view_controls
+                    window.zoom_in_act, window.fit_act, window.zoom_out_act]
+    assert rb.view_controls.title.text() == "View"
     assert rb.view_controls.isAncestorOf(window.page_spin)
+    for i in range(rb.count()):
+        rb.setCurrentIndex(i)
+        assert rb.view_controls.isVisible()
+    rb.setCurrentIndex(0)
     for i in range(rb.count()):
         tab = [b.defaultAction() for b in rb.tab_page(i).findChildren(QtWidgets.QToolButton)]
         assert not set(tab) & set(view)  # not also in a tab

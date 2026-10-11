@@ -1448,6 +1448,10 @@ msgid "Show or hide the page thumbnails on the left"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
+msgid "View"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Delete page {page}"
 msgstr ""
