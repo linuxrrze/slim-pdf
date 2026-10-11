@@ -266,6 +266,23 @@ def main() -> None:
     d.close()
     shot.save(str(OUT / "gui-form.png"))
     print("wrote", OUT / "gui-form.png")
+
+    # adding text (done: dragged at the top right) and an image (being dragged)
+    win.statusBar().clearMessage()
+    win._insert = ("text", "Registered 2026-10-11\nAlice Example", 14.0, (0.0, 0.2, 0.65))
+    win.view.set_insert_mode(True)
+    vp = view.viewport()
+    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, view.mapFromScene(QPointF(380, 470)))
+    QTest.mouseMove(vp, view.mapFromScene(QPointF(560, 520)))
+    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, view.mapFromScene(QPointF(560, 520)))
+    win._insert = ("image", str(tmp / "certs/signature.png"), 3.0)
+    win.view.set_insert_mode(True)
+    win.statusBar().showMessage(win.tr("Drag a box for the image on the page, or click where "
+                                       "its centre should be. Esc cancels."))
+    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, view.mapFromScene(QPointF(380, 540)))
+    QTest.mouseMove(vp, view.mapFromScene(QPointF(560, 600)))
+    grab(win, "gui-insert.png")
+    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, view.mapFromScene(QPointF(560, 600)))
     win.dirty = False
     win.ribbon.setCurrentIndex(0)
 

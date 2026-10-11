@@ -24,6 +24,8 @@ share the same certificate profiles.
 * Stamps are drawn upright on rotated pages (`/Rotate`).
 * **Fill in forms** (text fields, check boxes, radio buttons, choices) in
   the GUI or with `pdfsigner form`, without breaking earlier signatures.
+* **Add text and images** (PNG/JPEG, or PDF as vector graphics) to pages in
+  the GUI: drag a box or click where they go.
 * **Page tools:** rotate, crop and delete pages (CLI and the GUI's page
   menu); split and merge on the command line.
 * **English and German** (GUI and command line), following the system
@@ -155,6 +157,7 @@ strings, run `python scripts/i18n.py update`, translate the new entries in
 | `test_systemstore.py`, `test_systemstore_native.py` | Windows store / macOS keychain: selection by thumbprint or subject, RSA and ECDSA signing through a fake backend; the native backends against a throwaway store (CI on Windows and macOS only). |
 | `test_pages.py` | Page specs; rotate and crop as incremental updates (encryption kept, signatures reported invalid afterwards); crop margins follow the screen on all four rotations; split/merge drop signed fields but keep empty ones; CLI refuses signed input without `--force`. |
 | `test_forms.py`, `test_gui_forms.py` | Listing and filling in every field kind (text, multi-line, check box, radio, drop-down, list box, child fields), the drawn appearances, refused values and characters, read-only and signature-locked fields, certified and encrypted documents, signatures staying valid; the GUI's form dialog, clicking a field on the page, undo, the warning before a signature would break; `pdfsigner form`. |
+| `test_insert.py`, `test_gui_insert.py` | Text and images added upright and in place on all four page rotations, wrapping, vector (PDF) images, encrypted documents, existing content and resources kept; in the GUI: dragging a box, clicking, `Esc`, the text dialog's checks, the warning on signed documents. |
 | `test_gui_pages.py` | GUI page tools: thumbnails, rotating selected pages, cropping by dragging, undo and save, the unsaved-changes prompt, warnings on signed documents, signing an edited document, split and merge dialogs. |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |

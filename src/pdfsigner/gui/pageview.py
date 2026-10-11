@@ -233,12 +233,15 @@ class PageView(QGraphicsView):
     (``placeModeChanged``). Outside place mode, a click (not a drag) on a
     field emits ``fieldActivated(name)``, on a form field
     ``formFieldActivated(name)``. In crop mode, dragging draws a rectangle;
-    ``cropSelected(page, display rect)`` is emitted on release.
+    ``cropSelected(page, display rect)`` is emitted on release. Insert mode
+    works the same way, for one rectangle (or a click: an empty rectangle at
+    that point), emitted as ``insertSelected``; then it ends.
     """
 
     targetChanged = Signal()
     pageChanged = Signal(int)
     cropSelected = Signal(int, QRectF)
+    insertSelected = Signal(int, QRectF)
     placeModeChanged = Signal(bool)
     fieldActivated = Signal(str)
     formFieldActivated = Signal(str)
@@ -281,6 +284,7 @@ class PageView(QGraphicsView):
 
         self.place_mode = False
         self.crop_mode = False
+        self.insert_mode = False
         self._crop_start: QPointF | None = None
         self._crop_item: QGraphicsRectItem | None = None
 
@@ -290,12 +294,13 @@ class PageView(QGraphicsView):
                      page: int = 0, form_fields=()) -> None:
         self.doc, self.fields, self.form_fields = doc, fields, list(form_fields)
         self.set_place_mode(False)
+        self.set_insert_mode(False)
         self.clear_target()
         self.page = min(page, len(doc) - 1) if doc is not None else 0
         self._render()
 
     def _update_mode(self) -> None:
-        clicking = self.place_mode or self.crop_mode
+        clicking = self.place_mode or self.crop_mode or self.insert_mode
         self.setDragMode(QGraphicsView.NoDrag if clicking else QGraphicsView.ScrollHandDrag)
         self.viewport().setCursor(Qt.CrossCursor if clicking else Qt.OpenHandCursor)
         for it in self._form_items:  # placing or cropping goes over them
@@ -313,6 +318,7 @@ class PageView(QGraphicsView):
         on = on and self.doc is not None
         if on:
             self.set_crop_mode(False)
+            self.set_insert_mode(False)
         changed = on != self.place_mode
         self.place_mode = on
         self._update_mode()
@@ -322,10 +328,20 @@ class PageView(QGraphicsView):
     def set_crop_mode(self, on: bool) -> None:
         if on:
             self.set_place_mode(False)
+            self.set_insert_mode(False)
         self.crop_mode = on
         self._cancel_crop_drag()
         if on:
             self.clear_target()
+        self._update_mode()
+
+    def set_insert_mode(self, on: bool) -> None:
+        on = on and self.doc is not None
+        if on:
+            self.set_place_mode(False)
+            self.set_crop_mode(False)
+        self.insert_mode = on
+        self._cancel_crop_drag()
         self._update_mode()
 
     def _cancel_crop_drag(self) -> None:
@@ -530,7 +546,7 @@ class PageView(QGraphicsView):
         if self.doc is None or event.button() != Qt.LeftButton:
             return super().mousePressEvent(event)
         pos = self.mapToScene(event.position().toPoint())
-        if not (self.crop_mode or self.place_mode):
+        if not (self.crop_mode or self.place_mode or self.insert_mode):
             # a click on a field activates it; a drag moves the page
             top = next(iter(self.items(event.position().toPoint())), None)
             at = event.position().toPoint()
@@ -541,13 +557,16 @@ class PageView(QGraphicsView):
             else:
                 self._field_press = None
             return super().mousePressEvent(event)  # drag the signature, or the page
-        if self.crop_mode:
+        if self.crop_mode or self.insert_mode:
+            if not self.page_rect().contains(pos) and self.insert_mode:
+                return
             self._cancel_crop_drag()
             self._crop_start = self._clamp(pos)
             self._crop_item = QGraphicsRectItem(QRectF(self._crop_start, self._crop_start))
-            pen = QPen(QColor(220, 40, 40), 0, Qt.DashLine)
-            self._crop_item.setPen(pen)
-            self._crop_item.setBrush(QBrush(QColor(220, 40, 40, 30)))
+            color = QColor(30, 90, 200) if self.insert_mode else QColor(220, 40, 40)
+            self._crop_item.setPen(QPen(color, 0, Qt.DashLine))
+            color.setAlpha(30)
+            self._crop_item.setBrush(QBrush(color))
             self._crop_item.setZValue(20)
             self.scene().addItem(self._crop_item)
             return
@@ -562,7 +581,7 @@ class PageView(QGraphicsView):
             self.place_at(pos)
 
     def mouseMoveEvent(self, event):
-        if self.crop_mode and self._crop_item is not None:
+        if (self.crop_mode or self.insert_mode) and self._crop_item is not None:
             end = self._clamp(self.mapToScene(event.position().toPoint()))
             self._crop_item.setRect(QRectF(self._crop_start, end).normalized())
             return
@@ -574,6 +593,13 @@ class PageView(QGraphicsView):
             self._cancel_crop_drag()
             if rect.width() >= 5 and rect.height() >= 5:
                 self.cropSelected.emit(self.page, rect)
+            return
+        if self.insert_mode and self._crop_item is not None:
+            rect = self._crop_item.rect()
+            if rect.width() < 5 or rect.height() < 5:  # a click
+                rect = QRectF(self._crop_start, self._crop_start)
+            self.set_insert_mode(False)
+            self.insertSelected.emit(self.page, rect)
             return
         press, self._field_press = self._field_press, None
         super().mouseReleaseEvent(event)

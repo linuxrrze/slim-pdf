@@ -613,6 +613,7 @@ msgid "--at keeps the image aspect ratio but the profile has no image"
 msgstr "--at behält das Seitenverhältnis des Bildes bei, aber das Profil hat kein Bild"
 
 #: src/pdfsigner/cli.py
+#: src/pdfsigner/insert.py
 #, python-brace-format
 msgid "no such file: {path}"
 msgstr "Datei nicht gefunden: {path}"
@@ -1332,6 +1333,7 @@ msgid "Show the certificate's signature image in the stamp"
 msgstr "Das Unterschriftsbild des Zertifikats im Stempel zeigen"
 
 #: src/pdfsigner/gui/app.py
+#: src/pdfsigner/insert.py
 msgid "Text"
 msgstr "Text"
 
@@ -1400,6 +1402,22 @@ msgid "Fill in the document's form fields (or click one on the page)"
 msgstr "Die Formularfelder des Dokuments ausfüllen (oder eines auf der Seite anklicken)"
 
 #: src/pdfsigner/gui/app.py
+msgid "Text…"
+msgstr "Text…"
+
+#: src/pdfsigner/gui/app.py
+msgid "Add text to the page"
+msgstr "Text auf die Seite setzen"
+
+#: src/pdfsigner/gui/app.py
+msgid "Image…"
+msgstr "Bild…"
+
+#: src/pdfsigner/gui/app.py
+msgid "Add an image (PNG, JPEG or PDF) to the page"
+msgstr "Ein Bild (PNG, JPEG oder PDF) auf die Seite setzen"
+
+#: src/pdfsigner/gui/app.py
 msgid "About PDF Signer"
 msgstr "Über PDF Signer"
 
@@ -1444,6 +1462,11 @@ msgstr "Bearbeiten"
 #: src/pdfsigner/gui/app.py
 msgid "Form"
 msgstr "Formular"
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Insert"
+msgstr "Einfügen"
 
 #: src/pdfsigner/gui/app.py
 msgid "Pages"
@@ -1743,6 +1766,55 @@ msgid "Filled in {n} field"
 msgid_plural "Filled in {n} fields"
 msgstr[0] "{n} Feld ausgefüllt"
 msgstr[1] "{n} Felder ausgefüllt"
+
+#: src/pdfsigner/gui/app.py
+msgid "Drag a box for the text on the page (it wraps at its width), or click where it should start. Esc cancels."
+msgstr "Einen Rahmen für den Text auf der Seite aufziehen (er wird an dessen Breite umbrochen) oder dort klicken, wo er beginnen soll. Esc bricht ab."
+
+#: src/pdfsigner/gui/app.py
+msgid "Add image"
+msgstr "Bild einfügen"
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Images"
+msgstr "Bilder"
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+#: src/pdfsigner/gui/settings.py
+msgid "All files"
+msgstr "Alle Dateien"
+
+#: src/pdfsigner/gui/app.py
+msgid "Drag a box for the image on the page, or click where its centre should be. Esc cancels."
+msgstr "Einen Rahmen für das Bild auf der Seite aufziehen oder dort klicken, wo seine Mitte sein soll. Esc bricht ab."
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Adding to a page will invalidate the signature(s) {names}.\n"
+"\n"
+"Edit pages before signing. Continue anyway?"
+msgstr ""
+"Das Hinzufügen zu einer Seite macht die Signatur(en) {names} ungültig.\n"
+"\n"
+"Seiten vor dem Signieren bearbeiten. Trotzdem fortfahren?"
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Added text to page {page}"
+msgstr "Text auf Seite {page} eingefügt"
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Added an image to page {page}"
+msgstr "Bild auf Seite {page} eingefügt"
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Add text"
+msgstr "Text einfügen"
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
@@ -2119,11 +2191,6 @@ msgid "~/certs/me.p12 (empty if stored in KeePass)"
 msgstr "~/certs/me.p12 (leer, wenn in KeePass gespeichert)"
 
 #: src/pdfsigner/gui/certdialog.py
-#: src/pdfsigner/gui/settings.py
-msgid "All files"
-msgstr "Alle Dateien"
-
-#: src/pdfsigner/gui/certdialog.py
 msgid "System certificate store (Windows / macOS)"
 msgstr "Zertifikatsspeicher des Systems (Windows / macOS)"
 
@@ -2196,20 +2263,12 @@ msgid "PNG with transparent background, or PDF (vector)"
 msgstr "PNG mit transparentem Hintergrund oder PDF (Vektor)"
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "Images"
-msgstr "Bilder"
-
-#: src/pdfsigner/gui/certdialog.py
 msgid "empty = image only"
 msgstr "leer = nur Bild"
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "One line per line on the stamp. Insert adds certificate attributes and the signing time; a line whose values are all empty is left out."
 msgstr "Eine Zeile pro Zeile auf dem Stempel. „Einfügen“ fügt Angaben aus dem Zertifikat und den Signaturzeitpunkt ein; eine Zeile, deren Werte alle leer sind, entfällt."
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "Insert"
-msgstr "Einfügen"
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "Stamp text"
@@ -2446,6 +2505,34 @@ msgstr "Geänderte Felder werden mit OK ausgefüllt; Rückgängig nimmt das zur�
 msgid "(none)"
 msgstr "(keine)"
 
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Black"
+msgstr "Schwarz"
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Blue"
+msgstr "Blau"
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Red"
+msgstr "Rot"
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Green"
+msgstr "Grün"
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Size"
+msgstr "Größe"
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Colour"
+msgstr "Farbe"
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Please enter the text to add."
+msgstr "Bitte den einzufügenden Text eingeben."
+
 #: src/pdfsigner/gui/pageview.py
 #, python-brace-format
 msgid "{name}: signed"
@@ -2508,6 +2595,19 @@ msgid ""
 msgstr ""
 "Die Konfiguration kann nicht gespeichert werden:\n"
 "{error}"
+
+#: src/pdfsigner/insert.py
+#, python-brace-format
+msgid "cannot read the image {path}: {error}"
+msgstr "das Bild {path} kann nicht gelesen werden: {error}"
+
+#: src/pdfsigner/insert.py
+msgid "there is no text to add"
+msgstr "es gibt keinen Text zum Einfügen"
+
+#: src/pdfsigner/insert.py
+msgid "the font size must be positive"
+msgstr "die Schriftgröße muss positiv sein"
 
 #: src/pdfsigner/pages.py
 #, python-brace-format

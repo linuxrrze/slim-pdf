@@ -46,3 +46,4 @@ pythonpath = ["tests"]
 "tests/test_gui_pages.py" = ["F811"]  # pytest fixtures imported from test_gui
 "tests/test_gui_background.py" = ["F811"]
 "tests/test_gui_forms.py" = ["F811"]
+"tests/test_gui_insert.py" = ["F811"]

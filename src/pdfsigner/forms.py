@@ -364,23 +364,11 @@ class _Painter:
             ops.append(f"q {bc} {_num(bw)} w {_num(bw / 2)} {_num(bw / 2)} "
                        f"{_num(width - bw)} {_num(height - bw)} re S Q")
         content = ("\n".join(ops) + "\n").encode() + body if ops else body
-        matrix = {0: [1, 0, 0, 1, 0, 0], 90: [0, 1, -1, 0, height, 0],
-                  180: [-1, 0, 0, -1, width, height], 270: [0, -1, 1, 0, 0, width]}[rot]
         resources = generic.DictionaryObject()
         if font is not None:
             resources[generic.pdf_name("/Font")] = generic.DictionaryObject(
                 {generic.pdf_name(font.name): font.ref})
-        stream = generic.StreamObject({
-            generic.pdf_name("/Type"): generic.pdf_name("/XObject"),
-            generic.pdf_name("/Subtype"): generic.pdf_name("/Form"),
-            generic.pdf_name("/BBox"): generic.ArrayObject(
-                generic.FloatObject(v) for v in (0, 0, width, height)),
-            generic.pdf_name("/Matrix"): generic.ArrayObject(
-                generic.NumberObject(v) if isinstance(v, int) else generic.FloatObject(v)
-                for v in matrix),
-            generic.pdf_name("/Resources"): resources,
-        }, stream_data=content)
-        return self.w.add_object(stream)
+        return appearance(self.w, width, height, rot, content, resources)
 
     @staticmethod
     def box(widget) -> tuple[float, float, int]:
@@ -400,6 +388,26 @@ class _Painter:
             return 0.0
         bs = _get(widget, "/BS")
         return float(_get(bs, "/W", 1)) if bs is not None else 1.0
+
+
+def appearance(w, width: float, height: float, rot: int, content: bytes,
+               resources: generic.DictionaryObject) -> generic.IndirectObject:
+    """An appearance stream (Form XObject) drawn in a ``width`` x ``height``
+    box that is turned by ``rot`` degrees counter-clockwise on the page:
+    upright on a page with /Rotate ``rot``, or as a widget's /MK /R says."""
+    matrix = {0: [1, 0, 0, 1, 0, 0], 90: [0, 1, -1, 0, height, 0],
+              180: [-1, 0, 0, -1, width, height], 270: [0, -1, 1, 0, 0, width]}[rot]
+    stream = generic.StreamObject({
+        generic.pdf_name("/Type"): generic.pdf_name("/XObject"),
+        generic.pdf_name("/Subtype"): generic.pdf_name("/Form"),
+        generic.pdf_name("/BBox"): generic.ArrayObject(
+            generic.FloatObject(v) for v in (0, 0, width, height)),
+        generic.pdf_name("/Matrix"): generic.ArrayObject(
+            generic.NumberObject(v) if isinstance(v, int) else generic.FloatObject(v)
+            for v in matrix),
+        generic.pdf_name("/Resources"): resources,
+    }, stream_data=content)
+    return w.add_object(stream)
 
 
 def _encode(text: str, field_name: str) -> bytes:

@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import certinfo, forms, i18n, pages, secretstore, systemstore, validation
+from .. import certinfo, forms, i18n, insert, pages, secretstore, systemstore, validation
 from ..config import Config, load_config
 from ..i18n import N_, _, ngettext
 from ..signing import (
@@ -59,6 +59,7 @@ from .screen import fit_to_screen, scrollable
 from .settings import SettingsDialog
 from .dialogs import ask_secret
 from .formdialog import FormDialog
+from .insertdialog import TextDialog
 from .document import PdfDocument, render_stamp
 from .pageview import PageView
 from .pagetools import PagesPanel
@@ -117,6 +118,9 @@ class MainWindow(QMainWindow):
         self.pdf_password: str | None = None
         self.info = None
         self.form_fields: list[forms.FormField] = []
+        # what Text…/Image… adds once a box is drawn: ("text", text, size,
+        # colour) or ("image", path, aspect ratio)
+        self._insert: tuple | None = None
         # The document is edited in memory (page tools); self.path is where it
         # came from or was last saved to.
         self.data: bytes | None = None
@@ -132,6 +136,7 @@ class MainWindow(QMainWindow):
         self.view.targetChanged.connect(self._update_target)
         self.view.pageChanged.connect(self._sync_page_spin)
         self.view.cropSelected.connect(self._crop_selected)
+        self.view.insertSelected.connect(self._insert_selected)
         self.view.placeModeChanged.connect(self._place_mode_changed)
         self.view.fieldActivated.connect(self._field_activated)
         self.view.formFieldActivated.connect(self.fill_form)
@@ -228,6 +233,11 @@ class MainWindow(QMainWindow):
                                  _("Fill in the document's form fields (or click one on "
                                    "the page)"), True)
 
+        self.insert_text_act = act(_("Text…"), self.insert_text, None, "text-plus",
+                                   _("Add text to the page"), True)
+        self.insert_image_act = act(_("Image…"), self.insert_image, None, "photo-plus",
+                                    _("Add an image (PNG, JPEG or PDF) to the page"), True)
+
         self.about_act = act(_("About PDF Signer"), self.about, None, "info-circle")
         self.about_act.setMenuRole(QAction.AboutRole)
         self.about_qt_act = act(_("About Qt"), QApplication.aboutQt, None, "info-square")
@@ -261,6 +271,9 @@ class MainWindow(QMainWindow):
         edit = rb.tab(_("Edit"))
         g = edit.group(_("Form"))
         g.add(self.fill_form_act)
+        g = edit.group(_("Insert"))
+        g.add(self.insert_text_act)
+        g.add(self.insert_image_act)
 
         pages_tab = rb.tab(_("Pages"))
         g = pages_tab.group(_("Rotate"))
@@ -337,7 +350,11 @@ class MainWindow(QMainWindow):
         self.pages_dock = dock
 
     def _escape(self) -> None:
-        if self.view.place_mode:
+        if self.view.insert_mode:
+            self.view.set_insert_mode(False)
+            self._insert = None
+            self.statusBar().showMessage(_(HINT))
+        elif self.view.place_mode:
             self.view.set_place_mode(False)
         elif self.view.crop_mode:
             self.crop_act.setChecked(False)
@@ -724,6 +741,96 @@ class MainWindow(QMainWindow):
             self, _("Existing signatures"), message.format(names=", ".join(broken)),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
 
+    # adding text and images ------------------------------------------------------
+
+    def insert_text(self) -> None:
+        if self.data is None:
+            return
+        last = self._insert if self._insert and self._insert[0] == "text" else None
+        dlg = TextDialog(self, *(last[1:] if last else ()))
+        if not self._exec_text(dlg):
+            return
+        self._insert = ("text", dlg.text, dlg.size, dlg.color)
+        self.view.set_insert_mode(True)
+        self.statusBar().showMessage(_(
+            "Drag a box for the text on the page (it wraps at its width), or click where "
+            "it should start. Esc cancels."))
+
+    def _exec_text(self, dlg: TextDialog) -> int:
+        return dlg.exec()  # a hook for the tests
+
+    def insert_image(self) -> None:
+        if self.data is None:
+            return
+        start = str(self.path.parent) if self.path else ""
+        path, _filter = QFileDialog.getOpenFileName(
+            self, _("Add image"), start,
+            _("Images") + " (*.png *.jpg *.jpeg *.gif *.bmp *.tif *.tiff *.webp *.pdf);;"
+            + _("All files") + " (*)")
+        if not path:
+            return
+        try:
+            aspect = insert.image_aspect(path)
+        except (SigningError, OSError, ValueError, ZeroDivisionError) as e:
+            QMessageBox.critical(self, _("Add image"), str(e))
+            return
+        self._insert = ("image", path, aspect)
+        self.view.set_insert_mode(True)
+        self.statusBar().showMessage(_(
+            "Drag a box for the image on the page, or click where its centre should be. "
+            "Esc cancels."))
+
+    def _insert_box(self, rect, what: tuple) -> tuple[float, float, float, float]:
+        """The display box (x, y, width, height) for what is being added: the
+        drawn rectangle (an image keeps its proportions inside it), or the
+        natural size at a click; kept on the page."""
+        pw, ph = self.doc.display_size(self.view.page)
+        kind = what[0]
+        if rect.width() < 5 or rect.height() < 5:  # a click
+            if kind == "text":
+                w, h = insert.text_size(what[1], what[2])
+                x, y = rect.x(), rect.y()
+            else:
+                w = min(IMAGE_WIDTH, pw / 2)
+                h = w / what[2]
+                x, y = rect.x() - w / 2, rect.y() - h / 2
+        else:
+            x, y, w, h = rect.x(), rect.y(), rect.width(), rect.height()
+            if kind == "image":  # fitted in, centred
+                aspect = what[2]
+                fw, fh = (h * aspect, h) if w / h > aspect else (w, w / aspect)
+                x, y, w, h = x + (w - fw) / 2, y + (h - fh) / 2, fw, fh
+        w, h = min(w, pw), min(h, ph)
+        return max(0.0, min(x, pw - w)), max(0.0, min(y, ph - h)), w, h
+
+    def _insert_selected(self, page: int, rect) -> None:
+        what = self._insert
+        # the text dialog offers the last text again
+        self._insert = what if what and what[0] == "text" else None
+        if what is None or self.data is None:
+            return
+        self.statusBar().showMessage(_(HINT))
+        x, y, w, h = self._insert_box(rect, what)
+        if not self._confirm_breaking(_(
+                "Adding to a page will invalidate the signature(s) {names}.\n\n"
+                "Edit pages before signing. Continue anyway?")):
+            return
+        box = self.doc.rect_to_pdf(page, x, y, w, h)
+        try:
+            if what[0] == "text":
+                new = insert.add_text(self.data, page, box, what[1], size=what[2], color=what[3],
+                                      password=self.pdf_password)
+                message = _("Added text to page {page}").format(page=page + 1)
+            else:
+                new = insert.add_image(self.data, page, box, what[1],
+                                       password=self.pdf_password)
+                message = _("Added an image to page {page}").format(page=page + 1)
+        except (SigningError, ValueError, OSError) as e:  # forms.FormError, pages.PageError
+            QMessageBox.critical(self, _("Add text") if what[0] == "text" else _("Add image"),
+                                 str(e))
+            return
+        self.apply_edit(new, message, page)
+
     def save(self) -> bool:
         if self.data is None or self.path is None:
             return False
@@ -1029,6 +1136,7 @@ class MainWindow(QMainWindow):
 ICON = Path(__file__).with_name("icon.png")
 HOMEPAGE = "https://github.com/linuxrrze/slim-pdf"
 DOCS_URL = HOMEPAGE + "/blob/main/docs/gui.md"
+IMAGE_WIDTH = 150  # points: an image added with a click
 STAMP_PREVIEW_PX = 240  # height of the placed stamp's preview, sharp enough when zoomed
 HARDWARE_TYPES = ("pkcs11", "system")
 TOKEN_HINT = N_("Signing… If your card reader asks for the PIN or your security key "

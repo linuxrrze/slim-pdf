@@ -23,7 +23,8 @@ guide show the English version.
     signature… / Sign…** (`Ctrl+S`), the certificate to sign with, the
     stamp options **Signature image** and **Text**, **Clear placement**
     (`Esc`), **Certificates…**; **Settings…**.
-  * *Edit:* **Fill in form…** (see [Filling in forms](#filling-in-forms)).
+  * *Edit:* **Fill in form…** (see [Filling in forms](#filling-in-forms));
+    **Text…** and **Image…** (see [Adding text and images](#adding-text-and-images)).
   * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
   * *View:* move between pages (`PgUp`/`PgDown`, or type the page number),
     zoom (`Ctrl +`/`Ctrl -`, *Fit* = fit width), show or hide the *Pages*
@@ -151,6 +152,25 @@ doesn't accept changes to radio buttons and other fields whose buttons are
 separate objects), pdfsigner asks first. Fill in forms, then sign.
 The same is possible on the command line with `pdfsigner form` (see
 [cli.md](cli.md#fill-in-forms-pdfsigner-form)).
+
+## Adding text and images
+
+![Adding text and an image](images/gui-insert.png)
+
+**Text…** (ribbon, *Edit* tab) asks for the text, its size and colour;
+**Image…** for a PNG, JPEG or other image file, or a PDF (its first page is
+added as vector graphics, e.g. a signature drawn in a vector program). Then:
+
+* **drag a box** on the page: text is wrapped at its width (and cut off at
+  its bottom); an image is fitted in, keeping its proportions;
+* or **click**: text starts there at its natural width; an image is centred
+  on the click, 150 points (about 5 cm) wide.
+
+`Esc` cancels. The text or image becomes part of the page, drawn upright
+also on rotated pages; **Undo** takes it back, **Save** writes it. Text
+must be in the Windows-1252 character set (Latin script, €). Like the page
+tools, this invalidates existing signatures, so pdfsigner asks first: add
+text and images, then sign.
 
 ## Page tools
 
@@ -298,7 +318,7 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | Wheel | Zoom in / out around the mouse pointer (out until the whole page fits) |
 | Left button + move | Move the page (or the placed signature, when on it) |
 | `Ctrl` + wheel | Resize the placed signature (over it); zoom elsewhere |
-| `Esc` | Cancel placing, remove the placed signature, or cancel cropping |
+| `Esc` | Cancel placing, remove the placed signature, or cancel cropping or adding text/an image |
 | `Ctrl+S` | Place signature, then sign |
 | `Ctrl+L` / `Ctrl+R` | Rotate the selected pages left / right |
 | `Delete` | Delete the selected pages (in the *Pages* panel) |

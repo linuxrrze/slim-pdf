@@ -592,6 +592,7 @@ msgid "--at keeps the image aspect ratio but the profile has no image"
 msgstr ""
 
 #: src/pdfsigner/cli.py
+#: src/pdfsigner/insert.py
 #, python-brace-format
 msgid "no such file: {path}"
 msgstr ""
@@ -1299,6 +1300,7 @@ msgid "Show the certificate's signature image in the stamp"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+#: src/pdfsigner/insert.py
 msgid "Text"
 msgstr ""
 
@@ -1367,6 +1369,22 @@ msgid "Fill in the document's form fields (or click one on the page)"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
+msgid "Text…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Add text to the page"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Image…"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Add an image (PNG, JPEG or PDF) to the page"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
 msgid "About PDF Signer"
 msgstr ""
 
@@ -1410,6 +1428,11 @@ msgstr ""
 
 #: src/pdfsigner/gui/app.py
 msgid "Form"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Insert"
 msgstr ""
 
 #: src/pdfsigner/gui/app.py
@@ -1683,6 +1706,52 @@ msgstr ""
 msgid "Filled in {n} field"
 msgid_plural "Filled in {n} fields"
 msgstr[0] ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Drag a box for the text on the page (it wraps at its width), or click where it should start. Esc cancels."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Add image"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+msgid "Images"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/certdialog.py
+#: src/pdfsigner/gui/settings.py
+msgid "All files"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+msgid "Drag a box for the image on the page, or click where its centre should be. Esc cancels."
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid ""
+"Adding to a page will invalidate the signature(s) {names}.\n"
+"\n"
+"Edit pages before signing. Continue anyway?"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Added text to page {page}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#, python-brace-format
+msgid "Added an image to page {page}"
+msgstr ""
+
+#: src/pdfsigner/gui/app.py
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Add text"
+msgstr ""
 
 #: src/pdfsigner/gui/app.py
 #, python-brace-format
@@ -2042,11 +2111,6 @@ msgid "~/certs/me.p12 (empty if stored in KeePass)"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-#: src/pdfsigner/gui/settings.py
-msgid "All files"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
 msgid "System certificate store (Windows / macOS)"
 msgstr ""
 
@@ -2119,19 +2183,11 @@ msgid "PNG with transparent background, or PDF (vector)"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
-msgid "Images"
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
 msgid "empty = image only"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
 msgid "One line per line on the stamp. Insert adds certificate attributes and the signing time; a line whose values are all empty is left out."
-msgstr ""
-
-#: src/pdfsigner/gui/certdialog.py
-msgid "Insert"
 msgstr ""
 
 #: src/pdfsigner/gui/certdialog.py
@@ -2363,6 +2419,34 @@ msgstr ""
 msgid "(none)"
 msgstr ""
 
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Black"
+msgstr ""
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Blue"
+msgstr ""
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Red"
+msgstr ""
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Green"
+msgstr ""
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Size"
+msgstr ""
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Colour"
+msgstr ""
+
+#: src/pdfsigner/gui/insertdialog.py
+msgid "Please enter the text to add."
+msgstr ""
+
 #: src/pdfsigner/gui/pageview.py
 #, python-brace-format
 msgid "{name}: signed"
@@ -2422,6 +2506,19 @@ msgstr ""
 msgid ""
 "Cannot save the configuration:\n"
 "{error}"
+msgstr ""
+
+#: src/pdfsigner/insert.py
+#, python-brace-format
+msgid "cannot read the image {path}: {error}"
+msgstr ""
+
+#: src/pdfsigner/insert.py
+msgid "there is no text to add"
+msgstr ""
+
+#: src/pdfsigner/insert.py
+msgid "the font size must be positive"
 msgstr ""
 
 #: src/pdfsigner/pages.py
