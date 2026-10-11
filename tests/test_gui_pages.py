@@ -173,19 +173,25 @@ def test_sign_edited_document(window, form_pdf, save_to, p12):
 
 
 def test_unsaved_changes_prompt(window, blank_pdf, tmp_path, monkeypatch):
+    """Opening another file keeps the edited one (in its own tab); closing
+    it asks first."""
     window.open(blank_pdf)
     window.rotate_pages(90)
+    edited = window.tab
     other = make_pdf(tmp_path / "other.pdf", pages=3)
-    opened = []
     monkeypatch.setattr(gui_app.QFileDialog, "getOpenFileName",
-                        staticmethod(lambda *a, **k: (opened.append(1) or str(other), "")))
+                        staticmethod(lambda *a, **k: (str(other), "")))
     boxes = Boxes(monkeypatch, gui_app, answer=QtWidgets.QMessageBox.Cancel)
     window.open_dialog()
-    assert boxes.kinds() == ["question"] and not opened and window.dirty
+    assert boxes.kinds() == [] and window.path == other and window.tabs.count() == 2
+    assert edited.dirty
 
+    assert not window.close_tab(window.tabs.indexOf(edited))  # Cancel
+    assert boxes.kinds() == ["question"] and window.tabs.count() == 2
+    assert window.tab is edited  # shown while asking
     boxes.answer = QtWidgets.QMessageBox.Discard
-    window.open_dialog()
-    assert window.path == other and not window.dirty
+    assert window.close_tab(window.tabs.indexOf(edited))
+    assert window.tabs.count() == 1 and window.path == other and not window.dirty
     assert inspect_pdf(blank_pdf).page_rotation == [0, 0]  # discarded
 
 

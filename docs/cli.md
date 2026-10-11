@@ -694,8 +694,8 @@ with exit code `3` unless you add `--force`.
 $ slim-pdf gui expense-claim.pdf
 ```
 
-Starts the graphical interface (same as `slim-pdf-gui`); see
-[gui.md](gui.md).
+Starts the graphical interface (same as `slim-pdf-gui`); every file given
+opens in a tab of its own. See [gui.md](gui.md).
 
 ---
 

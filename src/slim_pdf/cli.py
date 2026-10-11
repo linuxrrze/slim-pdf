@@ -694,7 +694,7 @@ def cmd_gui(cfg: Config, args) -> int:
         raise SigningError(_("the GUI needs PySide6: pip install 'slim-pdf[gui]' ({error})")
                            .format(error=e)) from None
 
-    return gui_main([args.file] if args.file else [], config_path=args.config)
+    return gui_main([str(f) for f in args.files], config_path=args.config)
 
 
 # --- main --------------------------------------------------------------------
@@ -847,7 +847,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_merge)
 
     p = sub.add_parser("gui", help=_("start the GUI"))
-    p.add_argument("file", nargs="?")
+    p.add_argument("files", nargs="*", metavar="FILE", help=_("PDFs to open, a tab each"))
     p.set_defaults(func=cmd_gui)
     return ap
 

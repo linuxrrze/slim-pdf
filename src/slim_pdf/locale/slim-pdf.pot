@@ -1031,6 +1031,10 @@ msgid "start the GUI"
 msgstr ""
 
 #: src/slim_pdf/cli.py
+msgid "PDFs to open, a tab each"
+msgstr ""
+
+#: src/slim_pdf/cli.py
 #: src/slim_pdf/gui/certdialog.py
 msgid "cancelled"
 msgstr ""
@@ -1252,6 +1256,11 @@ msgid "Slim PDF"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid " / {count} "
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
 msgid "Open…"
 msgstr ""
 
@@ -1269,6 +1278,22 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Undo"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Close"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Close this document (Ctrl+W)"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Next document"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Previous document"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1521,11 +1546,6 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
-msgid " / {count} "
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-#, python-brace-format
 msgid "Document is certified ({name}). {message}"
 msgstr ""
 
@@ -1761,6 +1781,12 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
+msgid "{n} signature: {counts}"
+msgid_plural "{n} signatures: {counts}"
+msgstr[0] ""
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
 msgid "Validation failed: {error}"
 msgstr ""
 
@@ -1781,12 +1807,6 @@ msgstr ""
 #: src/slim_pdf/gui/app.py
 msgid "then changed (allowed): see tooltip"
 msgstr ""
-
-#: src/slim_pdf/gui/app.py
-#, python-brace-format
-msgid "{n} signature: {counts}"
-msgid_plural "{n} signatures: {counts}"
-msgstr[0] ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Result"
@@ -2386,6 +2406,10 @@ msgstr ""
 #: src/slim_pdf/gui/dialogs.py
 #, python-brace-format
 msgid "{prompt}:"
+msgstr ""
+
+#: src/slim_pdf/gui/doctab.py
+msgid "No document"
 msgstr ""
 
 #: src/slim_pdf/gui/document.py

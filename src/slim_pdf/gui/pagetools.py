@@ -186,6 +186,10 @@ class PagesPanel(QListWidget):
         if not self._pending or self._doc is None:
             self._timer.stop()
 
+    @property
+    def document(self) -> PdfDocument | None:
+        return self._doc
+
     def finish_thumbnails(self) -> None:
         """Render all remaining thumbnails now (screenshots, tests)."""
         while self._pending and self._doc is not None:

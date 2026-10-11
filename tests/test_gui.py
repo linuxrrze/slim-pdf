@@ -91,7 +91,8 @@ def window(qapp, profile, p12_bob, secrets, save_to, tmp_path):
     win.show()
     QTest.qWaitForWindowExposed(win)
     yield win
-    win.dirty = False  # don't ask about unsaved edits
+    for i in range(win.tabs.count()):  # don't ask about unsaved edits
+        win.tabs.widget(i).dirty = False
     win.close()
 
 

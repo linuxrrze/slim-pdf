@@ -1059,6 +1059,10 @@ msgid "start the GUI"
 msgstr "die GUI starten"
 
 #: src/slim_pdf/cli.py
+msgid "PDFs to open, a tab each"
+msgstr "zu öffnende PDFs, jede in einem eigenen Tab"
+
+#: src/slim_pdf/cli.py
 #: src/slim_pdf/gui/certdialog.py
 msgid "cancelled"
 msgstr "abgebrochen"
@@ -1286,6 +1290,11 @@ msgid "Slim PDF"
 msgstr "Slim PDF"
 
 #: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid " / {count} "
+msgstr " / {count} "
+
+#: src/slim_pdf/gui/app.py
 msgid "Open…"
 msgstr "Öffnen…"
 
@@ -1304,6 +1313,22 @@ msgstr "Speichern unter…"
 #: src/slim_pdf/gui/app.py
 msgid "Undo"
 msgstr "Rückgängig"
+
+#: src/slim_pdf/gui/app.py
+msgid "Close"
+msgstr "Schließen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Close this document (Ctrl+W)"
+msgstr "Dieses Dokument schließen (Strg+W)"
+
+#: src/slim_pdf/gui/app.py
+msgid "Next document"
+msgstr "Nächstes Dokument"
+
+#: src/slim_pdf/gui/app.py
+msgid "Previous document"
+msgstr "Vorheriges Dokument"
 
 #: src/slim_pdf/gui/app.py
 msgid "Cancel"
@@ -1555,11 +1580,6 @@ msgid ""
 msgstr ""
 "{path} kann nicht geöffnet werden:\n"
 "{error}"
-
-#: src/slim_pdf/gui/app.py
-#, python-brace-format
-msgid " / {count} "
-msgstr " / {count} "
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
@@ -1825,6 +1845,13 @@ msgstr "Änderungen an {name} speichern?"
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
+msgid "{n} signature: {counts}"
+msgid_plural "{n} signatures: {counts}"
+msgstr[0] "{n} Signatur: {counts}"
+msgstr[1] "{n} Signaturen: {counts}"
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
 msgid "Validation failed: {error}"
 msgstr "Prüfung fehlgeschlagen: {error}"
 
@@ -1849,13 +1876,6 @@ msgstr ""
 #: src/slim_pdf/gui/app.py
 msgid "then changed (allowed): see tooltip"
 msgstr "danach geändert (erlaubt): siehe Tooltip"
-
-#: src/slim_pdf/gui/app.py
-#, python-brace-format
-msgid "{n} signature: {counts}"
-msgid_plural "{n} signatures: {counts}"
-msgstr[0] "{n} Signatur: {counts}"
-msgstr[1] "{n} Signaturen: {counts}"
 
 #: src/slim_pdf/gui/app.py
 msgid "Result"
@@ -2474,6 +2494,10 @@ msgstr "Passwort"
 #, python-brace-format
 msgid "{prompt}:"
 msgstr "{prompt}:"
+
+#: src/slim_pdf/gui/doctab.py
+msgid "No document"
+msgstr "Kein Dokument"
 
 #: src/slim_pdf/gui/document.py
 msgid "coordinate conversion failed"

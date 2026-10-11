@@ -1,7 +1,7 @@
 # GUI guide
 
 ```bash
-slim-pdf gui [file.pdf]         # or: slim-pdf-gui [file.pdf]
+slim-pdf gui [file.pdf ...]     # or: slim-pdf-gui [file.pdf ...]
 ```
 
 The GUI uses the same certificate profiles as the CLI (see [cli.md](cli.md)).
@@ -19,7 +19,8 @@ guide show the English version.
 ![Main window with a document open](images/gui-overview.png)
 
 * **Ribbon** (top), in four tabs:
-  * *Home:* **Open…** (`Ctrl+O`), **Save**, **Save as…**, **Undo**;
+  * *Home:* **Open…** (`Ctrl+O`), **Save**, **Save as…**, **Undo**,
+    **Close** (`Ctrl+W`);
     **Place signature… / Sign…** (`Ctrl+S`) and **Remove signature box**
     (`Esc`); the signature's settings: **Sign with** (the certificate),
     **Stamp shows** *Image* and/or *Text*; **Settings…** (also for the
@@ -39,6 +40,14 @@ guide show the English version.
   a restart (remembered in `gui.json` in the user state folder, e.g.
   `~/.local/state/slim-pdf/` on Linux).
 
+* **Documents:** every PDF you open gets a tab of its own (the tab bar
+  appears with the second one); `Ctrl+Tab` / `Ctrl+Shift+Tab` switch
+  between them. Each keeps its page, zoom, unsaved edits and Undo; the
+  ribbon and the panels act on the current one. Opening a file that is
+  already open shows its tab (and reads it again, unless it has unsaved
+  edits). **Close** or the tab's ×  closes a document, asking first if it
+  has unsaved edits; so does closing the window, for each of them.
+  `slim-pdf gui a.pdf b.pdf` opens both.
 * **Page:** the mouse wheel zooms in and out around the mouse pointer (out
   only until the whole page fits the view);
   press and hold the left mouse button and move to move the page. Prepared
@@ -345,7 +354,9 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 
 | Key | Action |
 |---|---|
-| `Ctrl+O` | Open PDF |
+| `Ctrl+O` | Open PDF (in a tab of its own) |
+| `Ctrl+W` | Close the current document |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Next / previous document |
 | `PgUp` / `PgDown` | Previous / next page |
 | `Ctrl +` / `Ctrl -` | Zoom in / out |
 | Wheel | Zoom in / out around the mouse pointer (out until the whole page fits) |

@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QStackedWidget,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -63,6 +64,7 @@ from .settings import SettingsDialog
 from .dialogs import ask_secret
 from .formpanel import FormPanel
 from .insertdialog import TextDialog
+from .doctab import DocumentTab
 from .document import PdfDocument, render_stamp
 from .pageview import FormItem, PageView
 from .pagetools import PagesPanel
@@ -113,49 +115,161 @@ def _status_count(status: str, n: int) -> str:
     return ngettext("{n} invalid", "{n} invalid", n).format(n=n)
 
 
+def _tab_attr(name: str) -> property:
+    """An attribute of the current document tab, as if it were the window's."""
+    return property(lambda self: getattr(self.tab, name),
+                    lambda self, value: setattr(self.tab, name, value))
+
+
 class MainWindow(QMainWindow):
+    """Documents are tabs (DocumentTab, each with its own page view); the
+    ribbon and the panels act on the current one. ``doc``, ``path``,
+    ``data``, ``view``, ... are the current tab's."""
+
+    doc = _tab_attr("doc")
+    path = _tab_attr("path")
+    pdf_password = _tab_attr("pdf_password")
+    info = _tab_attr("info")
+    form_fields = _tab_attr("form_fields")
+    data = _tab_attr("data")  # edited in memory (page tools); path: where it came from
+    dirty = _tab_attr("dirty")
+    undo_stack = _tab_attr("undo_stack")
+    reports = _tab_attr("reports")
+
     def __init__(self, config: Config):
         super().__init__()
         self.config = config
-        self.doc: PdfDocument | None = None
-        self.path: Path | None = None
-        self.pdf_password: str | None = None
-        self.info = None
-        self.form_fields: list[forms.FormField] = []
         # what Text…/Image… adds once a box is drawn: ("text", text, size,
         # colour) or ("image", path, aspect ratio)
         self._insert: tuple | None = None
-        # The document is edited in memory (page tools); self.path is where it
-        # came from or was last saved to.
-        self.data: bytes | None = None
-        self.dirty = False
-        self.undo_stack: list[bytes] = []
 
         self.setWindowTitle(_("Slim PDF"))
         fit_to_screen(self, 1100, 900)
-        self.view = PageView()
-        self.view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.view.customContextMenuRequested.connect(
-            lambda pos: self._show_page_menu(self.view.mapToGlobal(pos)))
-        self.view.targetChanged.connect(self._update_target)
-        self.view.pageChanged.connect(self._sync_page_spin)
-        self.view.cropSelected.connect(self._crop_selected)
-        self.view.insertSelected.connect(self._insert_selected)
-        self.view.placeModeChanged.connect(self._place_mode_changed)
-        self.view.fieldActivated.connect(self._field_activated)
-        self.view.formFieldActivated.connect(self.form_field_clicked)
-        self.view.textEdited.connect(lambda name, text: self.fill_form({name: text}))
-        self.view.formFieldStep.connect(self.step_form_field)
-        self.setCentralWidget(self.view)
+        self.tabs = QTabWidget()
+        self.tabs.setDocumentMode(True)
+        self.tabs.setTabsClosable(True)
+        self.tabs.setMovable(True)
+        self.tabs.setTabBarAutoHide(True)  # one document: no tab bar
+        self.tabs.tabCloseRequested.connect(self.close_tab)
+        self.setCentralWidget(self.tabs)
+        self._new_tab()
 
         self._build_actions()
         self._build_sign_panel()
         self._build_pages_panel()
         self._build_ribbon()
+        self.tabs.currentChanged.connect(self._tab_changed)
         self._update_page_actions()
         self.statusBar().showMessage(_(HINT))
         self._reload_certs()
         self._update_target()
+
+    # document tabs --------------------------------------------------------------
+
+    @property
+    def tab(self) -> DocumentTab:
+        return self.tabs.currentWidget()
+
+    @property
+    def view(self) -> PageView:
+        return self.tab.view
+
+    def _new_tab(self) -> DocumentTab:
+        """An empty tab, made the current one."""
+        view = PageView()
+        tab = DocumentTab(view)
+
+        def mine(handler):  # only what happens in the current tab's view
+            return lambda *args: handler(*args) if self.tab is tab else None
+
+        view.setContextMenuPolicy(Qt.CustomContextMenu)
+        view.customContextMenuRequested.connect(
+            mine(lambda pos: self._show_page_menu(view.mapToGlobal(pos))))
+        view.targetChanged.connect(mine(self._update_target))
+        view.pageChanged.connect(mine(self._sync_page_spin))
+        view.pageChanged.connect(mine(lambda page: self.thumbs.show_page(page)))
+        view.cropSelected.connect(mine(self._crop_selected))
+        view.insertSelected.connect(mine(self._insert_selected))
+        view.placeModeChanged.connect(mine(self._place_mode_changed))
+        view.fieldActivated.connect(mine(self._field_activated))
+        view.formFieldActivated.connect(mine(self.form_field_clicked))
+        view.formFieldStep.connect(mine(self.step_form_field))
+        # text typed on the page may arrive after another tab was chosen: it
+        # still belongs to this tab's document
+        view.textEdited.connect(lambda name, text: self._in_tab(
+            tab, lambda: self.fill_form({name: text})))
+        self.tabs.addTab(tab, tab.title())
+        self.tabs.setCurrentWidget(tab)
+        return tab
+
+    def _in_tab(self, tab: DocumentTab, work) -> None:
+        """Run ``work`` with ``tab`` as the current tab."""
+        if self.tabs.indexOf(tab) < 0:
+            return  # closed meanwhile
+        previous = self.tab
+        if previous is not tab:
+            self.tabs.setCurrentWidget(tab)
+        work()
+        if previous is not tab and self.tabs.indexOf(previous) >= 0:
+            self.tabs.setCurrentWidget(previous)
+
+    def _tab_changed(self, _index: int) -> None:
+        if self.tabs.currentWidget() is None:  # the last one is being closed
+            return
+        for i in range(self.tabs.count()):  # modes belong to the tab they began in
+            other = self.tabs.widget(i)
+            if other is not self.tab:
+                other.view.set_place_mode(False)
+                other.view.set_crop_mode(False)
+                other.view.set_insert_mode(False)
+        self._insert = None
+        self.crop_act.setChecked(False)
+        self._sync_panels()
+        self.statusBar().showMessage(self.tab.status or _(HINT))
+        self._update_target()
+
+    def close_tab(self, index: int) -> bool:
+        """Close the document in tab ``index`` (asking about unsaved edits);
+        the last one closed leaves an empty tab."""
+        tab = self.tabs.widget(index)
+        if tab is None:
+            return False
+        self.tabs.setCurrentWidget(tab)
+        if not self._maybe_save():
+            return False
+        self.tabs.removeTab(self.tabs.indexOf(tab))
+        tab.close_document()
+        tab.deleteLater()
+        if self.tabs.count() == 0:
+            self._new_tab()
+            self._sync_panels()
+            self.statusBar().showMessage(_(HINT))
+        return True
+
+    def close_current(self) -> bool:
+        return self.close_tab(self.tabs.currentIndex())
+
+    def _step_tab(self, step: int) -> None:
+        if self.tabs.count() > 1:
+            self.tabs.setCurrentIndex((self.tabs.currentIndex() + step) % self.tabs.count())
+
+    def _sync_panels(self) -> None:
+        """The panels, page box and title for the current tab's document."""
+        doc, page = self.doc, self.view.page
+        count = len(doc) if doc is not None else 0
+        self.page_spin.blockSignals(True)
+        self.page_spin.setMaximum(max(count, 1))
+        self.page_spin.setValue(page + 1)
+        self.page_spin.blockSignals(False)
+        self.page_count.setText(_(" / {count} ").format(count=count))
+        self.form_panel.set_fields(self.form_fields, self._option_labels(),
+                                   has_document=doc is not None)
+        self._fill_fields()
+        self._fill_signatures()
+        if self.thumbs.document is not doc:  # (already set while opening)
+            self.thumbs.set_document(doc, page)
+        self._update_title()
+        self._update_page_actions()
 
     # ribbon -------------------------------------------------------------------
 
@@ -184,6 +298,12 @@ class MainWindow(QMainWindow):
                                page=True)
         self.undo_act = act(_("Undo"), self.undo, QKeySequence.Undo, "arrow-back-up",
                             page=True)
+        self.close_act = act(_("Close"), self.close_current, QKeySequence.Close, "file-x",
+                             _("Close this document (Ctrl+W)"), True)
+        self.next_tab_act = act(_("Next document"), lambda: self._step_tab(1),
+                                QKeySequence.NextChild)
+        self.prev_tab_act = act(_("Previous document"), lambda: self._step_tab(-1),
+                                QKeySequence.PreviousChild)
         # Esc cancels whatever is going on (placing, cropping, adding); not
         # in the ribbon, which has the specific "remove" below
         self.escape_act = act(_("Cancel"), self._escape, Qt.Key_Escape)
@@ -260,6 +380,7 @@ class MainWindow(QMainWindow):
         g.add(self.save_act)
         g.add(self.save_as_act, large=False)
         g.add(self.undo_act, large=False)
+        g.add(self.close_act, large=False)
         g = home.group(_("Sign"))
         g.add(self.sign_act)
         g.add(self.clear_act, large=False)
@@ -356,11 +477,10 @@ class MainWindow(QMainWindow):
 
     def _build_pages_panel(self) -> None:
         self.thumbs = PagesPanel()
-        self.thumbs.pageActivated.connect(self.view.go_to)
+        self.thumbs.pageActivated.connect(lambda page: self.view.go_to(page))
         self.thumbs.menuRequested.connect(self._show_page_menu)
         self.thumbs.deleteRequested.connect(self.delete_pages)  # Delete key on thumbnails
         self.thumbs.moveRequested.connect(self.move_pages)  # drag and drop, Alt+Up/Down
-        self.view.pageChanged.connect(self.thumbs.show_page)
         dock = QDockWidget(_("Pages"))
         dock.setWidget(self.thumbs)
         dock.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetClosable)
@@ -420,14 +540,13 @@ class MainWindow(QMainWindow):
         self.sigs_list.itemClicked.connect(self._signature_clicked)
         self.sigs_list.itemDoubleClicked.connect(self.show_signature_details)
         lay.addWidget(self.sigs_list, 1)
-        self.reports: list[validation.SignatureReport] = []
 
         # The right-hand panel shows the tools of the ribbon tab in use:
         # signing on Home, the form on Edit, nothing (more room) elsewhere.
         self.sign_panel = scrollable(panel)  # scrolls on small screens, below the ribbon
         self.form_panel = FormPanel()
         self.form_panel.applyRequested.connect(self.fill_form)
-        self.form_panel.fieldFocused.connect(self.view.highlight_form_field)
+        self.form_panel.fieldFocused.connect(lambda name: self.view.highlight_form_field(name))
         self.side_stack = QStackedWidget()
         self.side_stack.addWidget(self.sign_panel)
         self.side_stack.addWidget(self.form_panel)
@@ -512,8 +631,7 @@ class MainWindow(QMainWindow):
     # documents ----------------------------------------------------------------
 
     def open_dialog(self) -> None:
-        if not self._maybe_save():
-            return
+        """Open… : the file in a tab of its own."""
         # where the last file came from, also in an earlier session
         start = state.last_folder() or (str(self.path.parent) if self.path else "")
         path, _filter = QFileDialog.getOpenFileName(self, _("Open PDF"), start,
@@ -521,13 +639,29 @@ class MainWindow(QMainWindow):
         if path:
             self.open(Path(path))
 
-    def open(self, path: Path, password: str | None = None, *, page: int = 0) -> bool:
+    def open(self, path: Path, password: str | None = None, *, page: int = 0,
+             new_tab: bool = True) -> bool:
+        """Show the PDF at ``path``: in a new tab (the empty one, if the
+        current tab is), or with ``new_tab=False`` in place of the current
+        tab's document. A file that is open already gets its tab shown, and
+        read again unless it has unsaved edits."""
+        path = Path(path)
+        if new_tab:
+            for i in range(self.tabs.count()):
+                other = self.tabs.widget(i)
+                if other.data is not None and other.path is not None \
+                        and other.path.resolve() == path.resolve():
+                    self.tabs.setCurrentIndex(i)
+                    if other.dirty:
+                        return True
+                    new_tab = False  # read again, in its tab
+                    break
         try:
-            data = Path(path).read_bytes()
+            data = path.read_bytes()
             info = inspect_pdf(data, password)
         except PasswordError:  # required, or the one given was wrong
             pw = ask_secret(self, _("Password for {name}").format(name=path.name))
-            return pw is not None and self.open(path, pw, page=page)
+            return pw is not None and self.open(path, pw, page=page, new_tab=new_tab)
         except SigningError as e:
             QMessageBox.critical(self, _("Open"), str(e))
             return False
@@ -536,16 +670,17 @@ class MainWindow(QMainWindow):
                                  _("Cannot open {path}:\n{error}").format(path=path, error=e))
             return False
 
-        self.path, self.pdf_password = Path(path), password
+        if new_tab and self.data is not None:
+            self._new_tab()
+        self.path, self.pdf_password = path, password
         state.remember_folder(self.path.parent)
         self.undo_stack = []
         self._show(data, info, page, dirty=False)
         return True
 
     def _show(self, data: bytes, info, page: int, *, dirty: bool) -> None:
-        """Display ``data`` (already inspected as ``info``)."""
-        if self.doc is not None:
-            self.doc.close()
+        """Display ``data`` (already inspected as ``info``) in the current tab."""
+        self.tab.close_document()
         self.data, self.info, self.dirty = data, info, dirty
         self.doc = PdfDocument(data, self.pdf_password)
         try:
@@ -554,26 +689,22 @@ class MainWindow(QMainWindow):
             self.form_fields = []
         page = min(page, len(self.doc) - 1)
         self.view.set_document(self.doc, info.fields, page, self.form_fields)
-        self.form_panel.set_fields(self.form_fields, self._option_labels())
-        self.page_spin.blockSignals(True)
-        self.page_spin.setMaximum(len(self.doc))
-        self.page_spin.setValue(page + 1)
-        self.page_spin.blockSignals(False)
-        self.page_count.setText(_(" / {count} ").format(count=len(self.doc)))
-        self._fill_fields()
-        self.thumbs.set_document(self.doc, page)
-        self._update_title()
+        self.thumbs.set_document(self.doc, page)  # not the closed one, while validating
         message = self._verify() or _(HINT)
         if info.certification is not None:
             message = _("Document is certified ({name}). {message}").format(
                 name=info.certification.name, message=message)
+        self.tab.status = message
+        self._sync_panels()
         self.statusBar().showMessage(message)
-        self._update_page_actions()
 
     def _update_title(self) -> None:
         name = self.path.name if self.path else _("Slim PDF")
         self.setWindowTitle(_("{modified}{name} – Slim PDF").format(
             modified="*" if self.dirty else "", name=name))
+        index = self.tabs.indexOf(self.tab)
+        self.tabs.setTabText(index, self.tab.title())
+        self.tabs.setTabToolTip(index, str(self.path) if self.path else "")
 
     def _update_page_actions(self) -> None:
         has_doc = self.data is not None
@@ -996,23 +1127,46 @@ class MainWindow(QMainWindow):
         return answer == QMessageBox.Discard
 
     def closeEvent(self, event) -> None:
-        if self._maybe_save():
-            event.accept()
-        else:
-            event.ignore()
+        for i in range(self.tabs.count()):  # every document with unsaved edits
+            if self.tabs.widget(i).dirty:
+                self.tabs.setCurrentIndex(i)
+                if not self._maybe_save():
+                    event.ignore()
+                    return
+        for i in range(self.tabs.count()):
+            self.tabs.widget(i).close_document()
+        event.accept()
 
     def _verify(self) -> str:
-        """Validate the signatures and fill the list; returns a short summary."""
-        self.sigs_list.clear()
-        self.reports = []
+        """Validate the current document's signatures and fill the list;
+        returns a short summary."""
+        tab = self.tab
+        tab.reports, tab.verify_error = [], ""
         try:
             data, trust, password = self.data, self.config.trust, self.pdf_password
             # in a thread: a missing intermediate certificate may be downloaded
-            self.reports = background.run(self, lambda ask: validation.verify_pdf(
+            tab.reports = background.run(self, lambda ask: validation.verify_pdf(
                 data, trust=trust, password=password))
         except Exception as e:  # never block opening a document
-            self.sigs_list.addItem(_("Validation failed: {error}").format(error=e))
+            tab.verify_error = str(e)
+        self._fill_signatures()
+        if not tab.reports:
             return ""
+        counts = {s: sum(r.status == s for r in self.reports)
+                  for s in (validation.VALID, validation.UNTRUSTED, validation.INVALID,
+                            validation.UNSUPPORTED)}
+        parts = [_status_count(s, n) for s, n in counts.items() if n]
+        n = len(self.reports)
+        return ngettext("{n} signature: {counts}", "{n} signatures: {counts}", n).format(
+            n=n, counts=", ".join(parts))
+
+    def _fill_signatures(self) -> None:
+        """The Signatures list for the current document."""
+        self.sigs_list.clear()
+        if self.tab.verify_error:
+            self.sigs_list.addItem(_("Validation failed: {error}").format(
+                error=self.tab.verify_error))
+            return
         for r in self.reports:
             when = r.timestamp or r.signed_at
             signer = printable(r.signer.removeprefix("Common Name: "))
@@ -1030,15 +1184,6 @@ class MainWindow(QMainWindow):
             item.setData(Qt.UserRole, r.field)
             item.setToolTip("\n".join(map(printable, [r.coverage, *r.problems])))
             self.sigs_list.addItem(item)
-        if not self.reports:
-            return ""
-        counts = {s: sum(r.status == s for r in self.reports)
-                  for s in (validation.VALID, validation.UNTRUSTED, validation.INVALID,
-                            validation.UNSUPPORTED)}
-        parts = [_status_count(s, n) for s, n in counts.items() if n]
-        n = len(self.reports)
-        return ngettext("{n} signature: {counts}", "{n} signatures: {counts}", n).format(
-            n=n, counts=", ".join(parts))
 
     def _signature_clicked(self, item: QListWidgetItem) -> None:
         f = self.info.field(item.data(Qt.UserRole)) if self.info else None
@@ -1244,7 +1389,7 @@ class MainWindow(QMainWindow):
                 QGuiApplication.restoreOverrideCursor()
 
         self._remember_certificate(profile.name, pem_text)
-        self.open(out, self.pdf_password, page=self.view.page)
+        self.open(out, self.pdf_password, page=self.view.page, new_tab=False)
         self.statusBar().showMessage(
             _("Signed '{field}' → {file}. You can add further signatures.").format(
                 field=name, file=out.name), 15000)
@@ -1350,12 +1495,13 @@ def main(argv: list[str] | None = None, config_path: Path | None = None) -> int:
     win = MainWindow(config)
     win.show()
     files = [a for a in argv if not a.startswith("-")]
-    opened = win.open(Path(files[0])) if files else True
+    opened = all([win.open(Path(f)) for f in files])  # a tab each
     try:
         if "--smoke-test" in argv:
             app.processEvents()
+            shown = not files or win.doc is not None
             win.close()
-            return 0 if opened and (not files or win.doc is not None) else 1
+            return 0 if opened and shown else 1
         return app.exec()
     finally:
         if dog is not None:
