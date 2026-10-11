@@ -42,7 +42,9 @@ guide show the English version.
   `~/.local/state/slim-pdf/` on Linux).
 
 * **Documents:** every PDF you open gets a tab of its own (the tab bar
-  appears with the second one); `Ctrl+Tab` / `Ctrl+Shift+Tab` switch
+  appears with the second one). **Open…** takes several files at once
+  (`Ctrl`/`Shift`-click them), and PDFs dragged onto the window from a file
+  manager open as well; `Ctrl+Tab` / `Ctrl+Shift+Tab` switch
   between them. Each keeps its page, zoom, unsaved edits and Undo; the
   ribbon and the panels act on the current one. Opening a file that is
   already open shows its tab (and reads it again, unless it has unsaved

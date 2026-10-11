@@ -179,8 +179,8 @@ def test_unsaved_changes_prompt(window, blank_pdf, tmp_path, monkeypatch):
     window.rotate_pages(90)
     edited = window.tab
     other = make_pdf(tmp_path / "other.pdf", pages=3)
-    monkeypatch.setattr(gui_app.QFileDialog, "getOpenFileName",
-                        staticmethod(lambda *a, **k: (str(other), "")))
+    monkeypatch.setattr(gui_app.QFileDialog, "getOpenFileNames",
+                        staticmethod(lambda *a, **k: ([str(other)], "")))
     boxes = Boxes(monkeypatch, gui_app, answer=QtWidgets.QMessageBox.Cancel)
     window.open_dialog()
     assert boxes.kinds() == [] and window.path == other and window.tabs.count() == 2

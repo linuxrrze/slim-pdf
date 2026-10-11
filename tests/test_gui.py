@@ -1702,9 +1702,9 @@ def test_open_starts_in_the_last_folder(qapp, profile, tmp_path, monkeypatch):
     folder.mkdir()
     pdf = make_pdf(folder / "a.pdf", pages=1)
     asked = []
-    monkeypatch.setattr(gui_app.QFileDialog, "getOpenFileName",
+    monkeypatch.setattr(gui_app.QFileDialog, "getOpenFileNames",
                         staticmethod(lambda parent, caption, start, filt: (asked.append(start)
-                                                                           or ("", ""))))
+                                                                           or ([], ""))))
     first = gui_app.MainWindow(Config(certs={"alice": profile}, default="alice"))
     first.open(pdf)
     first.close()

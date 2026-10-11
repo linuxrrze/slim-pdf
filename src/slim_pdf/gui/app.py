@@ -154,6 +154,7 @@ class MainWindow(QMainWindow):
         self.tabs.setTabBarAutoHide(True)  # one document: no tab bar
         self.tabs.tabCloseRequested.connect(self.close_tab)
         self.setCentralWidget(self.tabs)
+        self.setAcceptDrops(True)  # PDF files from a file manager
         self._new_tab()
 
         self._build_actions()
@@ -650,13 +651,38 @@ class MainWindow(QMainWindow):
     # documents ----------------------------------------------------------------
 
     def open_dialog(self) -> None:
-        """Open… : the file in a tab of its own."""
+        """Open… : one or more files (Ctrl/Shift-click), a tab each."""
         # where the last file came from, also in an earlier session
         start = state.last_folder() or (str(self.path.parent) if self.path else "")
-        path, _filter = QFileDialog.getOpenFileName(self, _("Open PDF"), start,
-                                                    _("PDF") + " (*.pdf)")
-        if path:
-            self.open(Path(path))
+        paths, _filter = QFileDialog.getOpenFileNames(self, _("Open PDF"), start,
+                                                      _("PDF") + " (*.pdf)")
+        self.open_files([Path(p) for p in paths])
+
+    def open_files(self, paths: list[Path]) -> int:
+        """Open each of ``paths`` in a tab; returns how many opened."""
+        return sum(bool(self.open(p)) for p in paths)
+
+    # PDFs dragged onto the window from a file manager open too
+    @staticmethod
+    def _dropped_pdfs(event) -> list[Path]:
+        urls = event.mimeData().urls() if event.mimeData().hasUrls() else []
+        return [Path(u.toLocalFile()) for u in urls
+                if u.isLocalFile() and u.toLocalFile().lower().endswith(".pdf")]
+
+    def dragEnterEvent(self, event) -> None:
+        if self._dropped_pdfs(event):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event) -> None:
+        paths = self._dropped_pdfs(event)
+        if not paths:
+            event.ignore()
+            return
+        event.acceptProposedAction()
+        # after the drop has finished (password prompts, error boxes)
+        QTimer.singleShot(0, lambda: self.open_files(paths))
 
     def open(self, path: Path, password: str | None = None, *, page: int = 0,
              new_tab: bool = True) -> bool:

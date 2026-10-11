@@ -105,3 +105,41 @@ def test_command_line_opens_every_file(qapp, tmp_path, monkeypatch):
     monkeypatch.setenv("SLIM_PDF_CONFIG", str(tmp_path / "c.toml"))
     assert gui_app.main(["--smoke-test", str(a), str(b)]) == 0
     assert made[0].tabs.count() == 2
+
+
+def test_open_several_files_at_once(window, tmp_path, monkeypatch):
+    files = [make_pdf(tmp_path / f"{n}.pdf", pages=1) for n in "abc"]
+    monkeypatch.setattr(gui_app.QFileDialog, "getOpenFileNames",
+                        staticmethod(lambda *a, **k: ([str(f) for f in files], "")))
+    window.open_act.trigger()
+    assert [window.tabs.tabText(i) for i in range(window.tabs.count())] == [
+        "a.pdf", "b.pdf", "c.pdf"]
+    assert window.path == files[-1]  # the last one is shown
+
+
+def test_drop_pdf_files_onto_the_window(window, tmp_path, qapp):
+    """PDFs dragged from a file manager open (other files are refused)."""
+    from PySide6.QtCore import QMimeData, QPointF, Qt, QUrl
+    from PySide6.QtGui import QDragEnterEvent, QDropEvent
+
+    a = make_pdf(tmp_path / "a.pdf", pages=1)
+    b = make_pdf(tmp_path / "b.pdf", pages=2)
+    text = tmp_path / "notes.txt"
+    text.write_text("x")
+    mime = QMimeData()
+    mime.setUrls([QUrl.fromLocalFile(str(p)) for p in (a, text, b)])
+    enter = QDragEnterEvent(QPointF(50, 50), Qt.CopyAction, mime, Qt.LeftButton,
+                            Qt.NoModifier)
+    window.dragEnterEvent(enter)
+    assert enter.isAccepted()
+    window.dropEvent(QDropEvent(QPointF(50, 50), Qt.CopyAction, mime, Qt.LeftButton,
+                                Qt.NoModifier))
+    qapp.processEvents()
+    assert [window.tabs.tabText(i) for i in range(window.tabs.count())] == ["a.pdf", "b.pdf"]
+
+    only_text = QMimeData()
+    only_text.setUrls([QUrl.fromLocalFile(str(text))])
+    enter = QDragEnterEvent(QPointF(50, 50), Qt.CopyAction, only_text,
+                            Qt.LeftButton, Qt.NoModifier)
+    window.dragEnterEvent(enter)
+    assert not enter.isAccepted()
