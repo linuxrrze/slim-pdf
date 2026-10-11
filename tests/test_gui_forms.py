@@ -217,3 +217,41 @@ def test_editing_in_the_panel_shows_the_field_on_the_page(window, tmp_path, qapp
     assert window.view.active_form_field == "size"
     window.show_tab(gui_app.HOME_TAB)
     assert not any(i.active for i in window.view.scene().items() if isinstance(i, FormItem))
+
+
+def test_tab_moves_on_while_typing_on_the_page(window, fill_pdf, qapp):
+    """Tab fills in the field and goes to the next one: text fields are
+    typed into on the page again, the others get the cursor in the panel;
+    Shift+Tab goes back, and the end wraps round to the start."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    window.open(fill_pdf)
+    qapp.processEvents()
+    click_field(window, "name")
+    QTest.keyClicks(window.view.inline_editor, "Ann")
+    QTest.keyClick(window.view.inline_editor, Qt.Key_Tab)
+    qapp.processEvents()
+    assert values(window)["name"] == "Ann"
+    editor = window.view.inline_editor  # now over the address field
+    assert editor is not None and window.view.active_form_field == "address"
+    QTest.keyClicks(editor, "Street")
+    QTest.keyClick(editor, Qt.Key_Tab)
+    qapp.processEvents()
+    assert values(window)["address"] == "Street"
+    assert window.view.inline_editor is None  # a check box: the panel has it
+    assert window.focusWidget() is window.form_panel.editors["agree"]
+    assert window.view.active_form_field == "agree"
+    QTest.keyClick(window.focusWidget(), Qt.Key_Space)  # toggles it
+    assert values(window)["agree"] is True
+
+    click_field(window, "person.first")  # the last fillable field
+    QTest.keyClick(window.view.inline_editor, Qt.Key_Tab)
+    qapp.processEvents()
+    assert window.view.active_form_field == "name"  # round to the first
+    QTest.keyClick(window.view.inline_editor, Qt.Key_Backtab, Qt.ShiftModifier)
+    qapp.processEvents()
+    assert window.view.active_form_field == "person.first"
+    QTest.keyClick(window.view.inline_editor, Qt.Key_Backtab, Qt.ShiftModifier)
+    qapp.processEvents()
+    assert window.focusWidget() is window.form_panel.editors["colour"]  # "fixed" is skipped

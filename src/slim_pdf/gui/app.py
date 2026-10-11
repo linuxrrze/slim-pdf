@@ -145,6 +145,7 @@ class MainWindow(QMainWindow):
         self.view.fieldActivated.connect(self._field_activated)
         self.view.formFieldActivated.connect(self.form_field_clicked)
         self.view.textEdited.connect(lambda name, text: self.fill_form({name: text}))
+        self.view.formFieldStep.connect(self.step_form_field)
         self.setCentralWidget(self.view)
 
         self._build_actions()
@@ -798,6 +799,25 @@ class MainWindow(QMainWindow):
             chosen = self._exec_choice_menu(menu, self.view.viewport().mapToGlobal(at))
             if chosen is not None:
                 self.fill_form({name: chosen.data()})
+
+    def step_form_field(self, name: str, step: int) -> None:
+        """Tab (+1) / Shift+Tab (-1) out of a field edited on the page: on to
+        the next/previous field that can be filled in, in form order (round
+        the end). A text field is typed into on the page again; for the
+        other kinds the keyboard goes to the form panel (Space toggles,
+        arrows choose), which marks the field on the page."""
+        fillable = [f for f in self.form_fields if f.fillable]
+        names = [f.name for f in fillable]
+        if not names:
+            return
+        i = names.index(name) if name in names else -1
+        f = fillable[(i + step) % len(fillable)]
+        self.show_tab(EDIT_TAB)
+        if f.kind == forms.TEXT and f.page is not None:
+            self.view.highlight_form_field(f.name)  # turns to its page
+            self.view.edit_text(f.name, str(f.value), f.multiline, f.max_len)
+        else:
+            self.form_panel.focus(f.name)
 
     def _exec_choice_menu(self, menu: QMenu, global_pos):
         return menu.exec(global_pos)  # a hook for the tests

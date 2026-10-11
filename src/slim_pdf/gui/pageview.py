@@ -9,7 +9,7 @@ from __future__ import annotations
 from PIL.ImageQt import ImageQt
 import math
 
-from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -238,13 +238,29 @@ class FormItem(QGraphicsRectItem):
         super().hoverLeaveEvent(event)
 
 
+def _tab_step(event) -> int:
+    """+1 for Tab, -1 for Shift+Tab (Backtab), else 0."""
+    if event.type() != QEvent.KeyPress:
+        return 0
+    if event.key() == Qt.Key_Backtab or (event.key() == Qt.Key_Tab
+                                         and event.modifiers() & Qt.ShiftModifier):
+        return -1
+    return 1 if event.key() == Qt.Key_Tab else 0
+
+
 class _InlineLine(QLineEdit):
     """One-line editor over a text field: Enter or leaving it fills it in,
-    Esc cancels."""
+    Esc cancels, Tab/Shift+Tab fill it in and go to the next/previous field."""
 
     def __init__(self, view: PageView):
         super().__init__(view.viewport())
         self.view = view
+
+    def event(self, event):
+        if step := _tab_step(event):  # before Qt moves the focus itself
+            self.view.finish_text_edit(True, focus_view=True, step=step)
+            return True
+        return super().event(event)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
@@ -259,13 +275,20 @@ class _InlineLine(QLineEdit):
 
 
 class _InlineText(QPlainTextEdit):
-    """Multi-line editor over a text field: Ctrl+Enter, Tab or leaving it
-    fills it in, Esc cancels; Enter starts a new line."""
+    """Multi-line editor over a text field: Ctrl+Enter or leaving it fills
+    it in, Esc cancels, Tab/Shift+Tab fill it in and go to the next/previous
+    field; Enter starts a new line."""
 
     def __init__(self, view: PageView):
         super().__init__(view.viewport())
         self.view = view
         self.setTabChangesFocus(True)
+
+    def event(self, event):
+        if step := _tab_step(event):
+            self.view.finish_text_edit(True, focus_view=True, step=step)
+            return True
+        return super().event(event)
 
     def text(self) -> str:
         return self.toPlainText()
@@ -309,6 +332,7 @@ class PageView(QGraphicsView):
     fieldActivated = Signal(str)
     formFieldActivated = Signal(str, str)
     textEdited = Signal(str, str)
+    formFieldStep = Signal(str, int)  # Tab/Shift+Tab in an editor: (field, +1/-1)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -439,10 +463,11 @@ class PageView(QGraphicsView):
         height = max(r.height(), editor.fontMetrics().height() * lines + 8)
         editor.setGeometry(r.x(), r.y(), max(r.width(), 60), height)
 
-    def finish_text_edit(self, commit: bool, focus_view: bool = False) -> None:
+    def finish_text_edit(self, commit: bool, focus_view: bool = False, step: int = 0) -> None:
         """Close the editor of ``edit_text``; with ``commit``, report the text
-        (if it changed). Reported later, from the event loop: filling it in
-        rebuilds the page this editor sits on."""
+        (if it changed), then with ``step`` ask for the next (+1) or previous
+        (-1) field. Reported later, from the event loop, in that order:
+        filling it in rebuilds the page this editor sits on."""
         if self._inline is None:
             return
         name, _item, editor, old, _multiline = self._inline
@@ -452,8 +477,16 @@ class PageView(QGraphicsView):
         editor.deleteLater()
         if focus_view:
             self.setFocus()
-        if commit and text != old:
-            QTimer.singleShot(0, lambda: self.textEdited.emit(name, text))
+        changed = commit and text != old
+
+        def report():  # one call, so that the text is filled in before moving on
+            if changed:
+                self.textEdited.emit(name, text)
+            if step:
+                self.formFieldStep.emit(name, step)
+
+        if changed or step:
+            QTimer.singleShot(0, report)
 
     def highlight_form_field(self, name: str | None) -> None:
         """Mark the form field ``name`` (None: none) and show it: its page,

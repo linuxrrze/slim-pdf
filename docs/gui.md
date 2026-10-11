@@ -158,7 +158,10 @@ undone with **Undo** (and written with **Save**) like a page edit.
 
 * **On the page:** a click on a text field opens an editor over it:
   `Enter` (`Ctrl+Enter` in a multi-line field) or a click elsewhere fills
-  it in, `Esc` cancels. A click toggles a check box or chooses a radio
+  it in, `Esc` cancels. `Tab` / `Shift+Tab` fill it in and go on to the
+  next / previous field (in the form's order, turning the page if needed):
+  a text field is typed into on the page again, other fields get the cursor
+  in the side panel (`Space` toggles a check box, arrow keys choose). A click toggles a check box or chooses a radio
   button; a drop-down or list box offers its choices in a menu.
 * **In the side panel:** every field with its value: text fields, check
   boxes, radio buttons (labelled with the text printed next to them on the
@@ -345,6 +348,7 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | Left button + move | Move the page (or the placed signature, when on it) |
 | `Ctrl` + wheel | Resize the placed signature (over it); zoom elsewhere |
 | `Esc` | Cancel placing, remove the placed signature, or cancel cropping or adding text/an image |
+| `Tab` / `Shift+Tab` | While typing into a form field on the page: fill it in, go to the next / previous field |
 | `Ctrl+S` | Place signature, then sign |
 | `Ctrl+L` / `Ctrl+R` | Rotate the selected pages left / right |
 | `Delete` | Delete the selected pages (in the *Pages* panel) |
