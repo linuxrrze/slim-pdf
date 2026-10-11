@@ -1411,18 +1411,6 @@ msgid "Stamp shows:"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "View"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-msgid "Pages panel"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-msgid "Show or hide the page thumbnails on the left"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
 msgid "Options"
 msgstr ""
 
@@ -1440,14 +1428,6 @@ msgid "Pages"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Navigate"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
-msgid "Zoom"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
 msgid "Rotate"
 msgstr ""
 
@@ -1457,6 +1437,14 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Help"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Pages panel"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Show or hide the page thumbnails on the left"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py

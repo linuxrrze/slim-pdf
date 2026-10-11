@@ -1537,9 +1537,15 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     assert window.menuWidget() is rb
     assert [rb.tabText(i) for i in range(rb.count())] == ["Home", "Edit", "Pages", "Help"]
     home = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
-    # the Pages panel is shown or hidden from Home
-    assert window.pages_dock.toggleViewAction() in home
-    assert window.pages_dock.toggleViewAction().text() == "Pages panel"
+    # viewing controls are next to the tabs, the same on every tab
+    view = [b.defaultAction() for b in rb.view_controls.findChildren(QtWidgets.QToolButton)]
+    assert view == [window.pages_dock.toggleViewAction(), window.prev_act, window.next_act,
+                    window.zoom_out_act, window.fit_act, window.zoom_in_act]
+    assert rb.cornerWidget() is rb.view_controls
+    assert rb.view_controls.isAncestorOf(window.page_spin)
+    for i in range(rb.count()):
+        tab = [b.defaultAction() for b in rb.tab_page(i).findChildren(QtWidgets.QToolButton)]
+        assert not set(tab) & set(view)  # not also in a tab
     assert window.open_act in home and window.sign_act in home
     # everything the sign panel had as controls is in the ribbon now
     assert window.settings_act in home and window.clear_act in home
@@ -1581,8 +1587,9 @@ def test_ribbon_icons_render_in_the_palette_colour(window, qapp):
     from slim_pdf.gui import ribbon
 
     rb = window.ribbon
-    for i in range(rb.count()):
-        for b in rb.tab_page(i).findChildren(QtWidgets.QToolButton):
+    pages = [rb.tab_page(i) for i in range(rb.count())] + [rb.view_controls]
+    for page in pages:
+        for b in page.findChildren(QtWidgets.QToolButton):
             assert not b.defaultAction().icon().isNull(), b.defaultAction().text()
 
     def colours(icon, mode=gui_app.QIcon.Normal):

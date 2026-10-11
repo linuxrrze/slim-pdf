@@ -22,16 +22,17 @@ guide show the English version.
   * *Home:* **Open…** (`Ctrl+O`), **Save**, **Save as…**, **Undo**;
     **Place signature… / Sign…** (`Ctrl+S`) and **Remove signature box**
     (`Esc`); the signature's settings: **Sign with** (the certificate),
-    **Stamp shows** *Image* and/or *Text*; **Pages panel** (show or hide the
-    thumbnails); **Settings…** (also for the certificates).
+    **Stamp shows** *Image* and/or *Text*; **Settings…** (also for the
+    certificates).
   * *Edit:* **Text…** and **Image…** (see
     [Adding text and images](#adding-text-and-images)); the form is in the
     side panel (see [Filling in forms](#filling-in-forms)).
-  * *Pages:* move between pages (`PgUp`/`PgDown`, or type the page number),
-    zoom (`Ctrl +`/`Ctrl -`, *Fit* = fit width); rotate, crop and delete
-    pages (see [Page tools](#page-tools)).
+  * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
   * *Help:* **Documentation** (`F1`, this guide online), **About Slim PDF**
     (version, and the libraries it is built on).
+  * Right of the tabs, the same on every tab: show or hide the *Pages*
+    panel; previous page, page number, next page (`PgUp`/`PgDown`, or type
+    the number); zoom out, *Fit* (fit width), zoom in (`Ctrl -`/`Ctrl +`).
 
   **Open…** starts in the folder of the last file you opened, also after
   a restart (remembered in `gui.json` in the user state folder, e.g.

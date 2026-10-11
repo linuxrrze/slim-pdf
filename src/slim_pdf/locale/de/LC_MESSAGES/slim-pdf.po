@@ -1445,18 +1445,6 @@ msgid "Stamp shows:"
 msgstr "Stempel zeigt:"
 
 #: src/slim_pdf/gui/app.py
-msgid "View"
-msgstr "Ansicht"
-
-#: src/slim_pdf/gui/app.py
-msgid "Pages panel"
-msgstr "Seitenleiste"
-
-#: src/slim_pdf/gui/app.py
-msgid "Show or hide the page thumbnails on the left"
-msgstr "Die Seitenvorschau links zeigen oder ausblenden"
-
-#: src/slim_pdf/gui/app.py
 msgid "Options"
 msgstr "Optionen"
 
@@ -1474,14 +1462,6 @@ msgid "Pages"
 msgstr "Seiten"
 
 #: src/slim_pdf/gui/app.py
-msgid "Navigate"
-msgstr "Blättern"
-
-#: src/slim_pdf/gui/app.py
-msgid "Zoom"
-msgstr "Zoom"
-
-#: src/slim_pdf/gui/app.py
 msgid "Rotate"
 msgstr "Drehen"
 
@@ -1492,6 +1472,14 @@ msgstr "Zuschneiden"
 #: src/slim_pdf/gui/app.py
 msgid "Help"
 msgstr "Hilfe"
+
+#: src/slim_pdf/gui/app.py
+msgid "Pages panel"
+msgstr "Seitenleiste"
+
+#: src/slim_pdf/gui/app.py
+msgid "Show or hide the page thumbnails on the left"
+msgstr "Die Seitenvorschau links zeigen oder ausblenden"
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format

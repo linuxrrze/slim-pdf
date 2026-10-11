@@ -279,12 +279,6 @@ class MainWindow(QMainWindow):
         row.addStretch()
         fl.addRow(_("Stamp shows:"), stamp)
         g.add_widget(form)
-        g = home.group(_("View"))
-        panel = self.pages_dock.toggleViewAction()
-        panel.setIcon(ribbon.icon("layout-sidebar"))
-        panel.setText(_("Pages panel"))
-        panel.setToolTip(_("Show or hide the page thumbnails on the left"))
-        g.add(panel)
         g = home.group(_("Options"))
         g.add(self.settings_act)
 
@@ -293,21 +287,7 @@ class MainWindow(QMainWindow):
         g.add(self.insert_text_act)
         g.add(self.insert_image_act)
 
-        # pages: looking at them and changing them, in one tab
         pages_tab = rb.tab(_("Pages"))
-        g = pages_tab.group(_("Navigate"))
-        g.add(self.prev_act, large=False)
-        spin = QWidget()
-        row = QHBoxLayout(spin)
-        row.setContentsMargins(4, 0, 4, 0)
-        row.addWidget(self.page_spin)
-        row.addWidget(self.page_count)
-        g.add_widget(spin)
-        g.add(self.next_act, large=False)
-        g = pages_tab.group(_("Zoom"))
-        g.add(self.zoom_in_act, large=False)
-        g.add(self.fit_act, large=False)
-        g.add(self.zoom_out_act, large=False)
         g = pages_tab.group(_("Rotate"))
         g.add(self.rotate_left_act)
         g.add(self.rotate_right_act)
@@ -322,6 +302,17 @@ class MainWindow(QMainWindow):
         g.add(self.docs_act)
         g.add(self.about_act)
 
+        # Viewing, for every tab: the Pages panel, page navigation and zoom,
+        # next to the tabs
+        panel = self.pages_dock.toggleViewAction()
+        panel.setIcon(ribbon.icon("layout-sidebar"))
+        panel.setText(_("Pages panel"))
+        panel.setToolTip(_("Show or hide the page thumbnails on the left"))
+        rb.set_view_controls([
+            [panel],
+            [self.prev_act, self.page_spin, self.page_count, self.next_act],
+            [self.zoom_out_act, self.fit_act, self.zoom_in_act],
+        ])
         rb.refit()
         rb.currentChanged.connect(self._ribbon_tab_changed)
         self.setMenuWidget(rb)  # where the menu bar would be

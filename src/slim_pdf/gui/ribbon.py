@@ -160,6 +160,35 @@ class Ribbon(QTabWidget):
         self.addTab(scroll, title)
         return page
 
+    def set_view_controls(self, groups: list[list]) -> QWidget:
+        """Controls that apply whatever the tab (actions as small icon
+        buttons, widgets as they are), in groups divided by lines, next to
+        the tab names."""
+        box = QWidget()
+        row = QHBoxLayout(box)
+        row.setContentsMargins(4, 0, 4, 0)
+        row.setSpacing(1)
+        for i, group in enumerate(groups):
+            if i:
+                line = QFrame()
+                line.setFrameShape(QFrame.VLine)
+                line.setFrameShadow(QFrame.Sunken)
+                row.addWidget(line)
+            for item in group:
+                if isinstance(item, QAction):
+                    b = QToolButton()
+                    b.setDefaultAction(item)
+                    b.setAutoRaise(True)
+                    b.setFocusPolicy(Qt.TabFocus)
+                    b.setToolButtonStyle(Qt.ToolButtonIconOnly)
+                    b.setIconSize(QSize(SMALL_ICON, SMALL_ICON))
+                    row.addWidget(b)
+                else:
+                    row.addWidget(item)
+        self.setCornerWidget(box, Qt.TopRightCorner)
+        self.view_controls = box
+        return box
+
     def tab_page(self, index: int) -> RibbonTab:
         return self.widget(index).widget()
 
