@@ -42,7 +42,7 @@ def test_fill_in_and_undo(window, fill_pdf):
     e["name"].setText("Ann Example")
     e["address"].setPlainText("Street 1\nTown")
     e["agree"].setChecked(True)
-    e["size"].setCurrentIndex(e["size"].findData("L"))
+    e["size"].buttons["L"].setChecked(True)
     e["country"].setCurrentIndex(e["country"].findText("France"))
     assert panel.apply_btn.isEnabled()
     panel.apply_btn.click()
@@ -110,7 +110,7 @@ def test_signatures_are_checked_first(window, fill_pdf, profile, tmp_path, monke
     assert boxes.kinds() == [] and values(window)["name"] == "Ann"
     assert "then changed" in window.sigs_list.item(0).text()
 
-    panel.editors["size"].setCurrentIndex(panel.editors["size"].findData("S"))
+    panel.editors["size"].buttons["S"].setChecked(True)
     panel.apply_btn.click()
     assert boxes.kinds() == ["warning"] and "Signer" in boxes.text()
     assert values(window)["size"] == ""  # not filled in
@@ -122,3 +122,29 @@ def test_signing_shows_the_sign_panel(window, blank_pdf):
     window.sign_act.trigger()  # Ctrl+S from another tab: placing starts on Home
     assert window.ribbon.currentIndex() == gui_app.HOME_TAB and window.view.place_mode
     assert window.side_stack.currentWidget() is window.sign_panel
+
+
+def test_radio_buttons_are_labelled_with_the_page_text(window, tmp_path, qapp):
+    """Radio buttons show the words printed next to them on the page, not
+    their state names."""
+    from PySide6.QtCore import QMarginsF, QPointF
+    from PySide6.QtGui import QFont, QPageLayout, QPageSize, QPainter, QPdfWriter
+
+    from conftest import add_form_fields
+
+    base = tmp_path / "base.pdf"
+    w = QPdfWriter(str(base))
+    w.setResolution(72)
+    w.setPageLayout(QPageLayout(QPageSize(QPageSize.A4), QPageLayout.Portrait,
+                                QMarginsF(0, 0, 0, 0)))
+    p = QPainter(w)
+    p.setFont(QFont("Liberation Sans", 9))
+    # the size buttons are at x 50..64 and 80..94, y 620..634 (from the bottom)
+    p.drawText(QPointF(66, 842 - 623), "Sm")
+    p.drawText(QPointF(96, 842 - 623), "Large")
+    p.end()
+    window.open(add_form_fields(base, tmp_path / "form.pdf"))
+    size = window.form_panel.editors["size"]
+    assert {s: b.text() for s, b in size.buttons.items()} == {"S": "Sm", "L": "Large"}
+    agree = window.form_panel.editors["agree"]
+    assert isinstance(agree, QtWidgets.QCheckBox)  # a real check box stays one

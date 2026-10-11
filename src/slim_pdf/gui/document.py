@@ -111,6 +111,16 @@ class PdfDocument:
             self._pages[index] = self._pdf[index]
         return self._pages[index]
 
+    def text_in(self, index: int, box) -> str:
+        """The page's text inside ``box`` (PDF user space), one line."""
+        page = self.page(index)
+        textpage = page.get_textpage()
+        try:
+            text = textpage.get_text_bounded(*box)
+        finally:
+            textpage.close()
+        return " ".join(text.split())
+
     def close(self) -> None:
         for page in self._pages.values():
             page.close()

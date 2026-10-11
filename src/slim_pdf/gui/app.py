@@ -554,7 +554,7 @@ class MainWindow(QMainWindow):
             self.form_fields = []
         page = min(page, len(self.doc) - 1)
         self.view.set_document(self.doc, info.fields, page, self.form_fields)
-        self.form_panel.set_fields(self.form_fields)
+        self.form_panel.set_fields(self.form_fields, self._option_labels())
         self.page_spin.blockSignals(True)
         self.page_spin.setMaximum(len(self.doc))
         self.page_spin.setValue(page + 1)
@@ -737,6 +737,32 @@ class MainWindow(QMainWindow):
             self.thumbs.item(row).setSelected(True)
 
     # forms ----------------------------------------------------------------------
+
+    def _option_labels(self) -> dict[tuple[str, str], str]:
+        """Labels for radio buttons, whose state names ("Choice1",
+        "Checkbox_2") rarely mean anything: the text printed to the right of
+        each button, up to the next form field on that line."""
+        labels = {}
+        widgets = [(f, w) for f in self.form_fields for w in f.widgets if w.page is not None]
+        for f in self.form_fields:
+            if f.kind != forms.RADIO:
+                continue
+            for w in f.widgets:
+                if w.page is None or not w.state:
+                    continue
+                x1, y1, x2, y2 = w.rect
+                right = x2 + RADIO_LABEL_WIDTH
+                for _f, other in widgets:  # stop at the next field on the same line
+                    ox1, oy1, _ox2, oy2 = other.rect
+                    if other.page == w.page and ox1 > x2 and oy1 < y2 and oy2 > y1:
+                        right = min(right, ox1)
+                try:
+                    text = self.doc.text_in(w.page, (x2 + 1, y1 - 2, right - 1, y2 + 2))
+                except Exception:  # noqa: BLE001 - labels are a nicety
+                    text = ""
+                if text:
+                    labels[(f.name, w.state)] = text[:40]
+        return labels
 
     def show_form_field(self, name: str) -> None:
         """A form field clicked on the page: the form panel, cursor in it."""
@@ -1187,6 +1213,7 @@ class MainWindow(QMainWindow):
 ICON = Path(__file__).with_name("icon.png")
 HOMEPAGE = "https://github.com/linuxrrze/slim-pdf"
 DOCS_URL = HOMEPAGE + "/blob/main/docs/gui.md"
+RADIO_LABEL_WIDTH = 100  # points to the right of a radio button searched for its label
 IMAGE_WIDTH = 150  # points: an image added with a click
 STAMP_PREVIEW_PX = 240  # height of the placed stamp's preview, sharp enough when zoomed
 HARDWARE_TYPES = ("pkcs11", "system")

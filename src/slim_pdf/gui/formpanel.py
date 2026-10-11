@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QFormLayout,
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPlainTextEdit,
     QPushButton,
+    QRadioButton,
     QVBoxLayout,
     QWidget,
 )
@@ -21,6 +23,42 @@ from .. import forms
 from ..i18n import _
 from ..signing import printable
 from .screen import scrollable
+
+
+class RadioGroup(QWidget):
+    """A radio button field: one button per choice, in a row (wrapping into
+    a column when there are many). ``value`` is the chosen state, or ""."""
+
+    def __init__(self, options: list[tuple[str, str]], value: str, changed):
+        super().__init__()
+        lay = (QHBoxLayout if len(options) <= 3 else QVBoxLayout)(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        self.group = QButtonGroup(self)
+        self.buttons: dict[str, QRadioButton] = {}
+        for state, label in options:
+            b = QRadioButton(label)
+            b.setChecked(state == value)
+            self.group.addButton(b)
+            self.buttons[state] = b
+            lay.addWidget(b)
+        if isinstance(lay, QHBoxLayout):
+            lay.addStretch()
+        self.group.buttonToggled.connect(lambda *_a: changed())
+
+    @property
+    def value(self) -> str:
+        return next((s for s, b in self.buttons.items() if b.isChecked()), "")
+
+    def set_value(self, value: str) -> None:
+        self.group.setExclusive(False)  # so that none can be checked
+        for state, b in self.buttons.items():
+            b.setChecked(state == value)
+        self.group.setExclusive(True)
+
+    def setFocus(self) -> None:  # noqa: N802 - Qt's name
+        target = self.buttons.get(self.value) or next(iter(self.buttons.values()), None)
+        if target is not None:
+            target.setFocus()
 
 
 class FormPanel(QWidget):
@@ -32,6 +70,7 @@ class FormPanel(QWidget):
         super().__init__(parent)
         self.fields: list[forms.FormField] = []
         self.editors: dict[str, QWidget] = {}
+        self.labels: dict[tuple[str, str], str] = {}
 
         self.hint = QLabel()
         self.hint.setWordWrap(True)
@@ -62,9 +101,13 @@ class FormPanel(QWidget):
         lay.addLayout(buttons)
         self.set_fields([], has_document=False)
 
-    def set_fields(self, fields: list[forms.FormField], has_document: bool = True) -> None:
-        """Editors for ``fields`` with their current values."""
+    def set_fields(self, fields: list[forms.FormField], labels=None,
+                   has_document: bool = True) -> None:
+        """Editors for ``fields`` with their current values; ``labels`` names
+        radio buttons: {(field name, state): label}."""
         self.fields = list(fields)
+        if labels is not None:
+            self.labels = labels
         while self.form_layout.rowCount():
             self.form_layout.removeRow(0)
         self.editors = {}
@@ -91,7 +134,7 @@ class FormPanel(QWidget):
         self._update_buttons()
 
     def discard(self) -> None:
-        self.set_fields(self.fields)
+        self.set_fields(self.fields, self.labels)
 
     def focus(self, name: str) -> None:
         editor = self.editors.get(name)
@@ -106,7 +149,11 @@ class FormPanel(QWidget):
             w.setChecked(bool(f.value))
             w.toggled.connect(changed)
             return w
-        if f.kind in (forms.RADIO, forms.CHOICE):
+        if f.kind == forms.RADIO:
+            options = [(state, self.labels.get((f.name, state), state))
+                       for state, _label in f.options]
+            return RadioGroup(options, str(f.value), changed)
+        if f.kind == forms.CHOICE:
             w = QComboBox()
             w.addItem(_("(none)"), "")
             for value, label in f.options:
@@ -138,6 +185,8 @@ class FormPanel(QWidget):
         w = self.editors[f.name]
         if isinstance(w, QCheckBox):
             return w.isChecked()
+        if isinstance(w, RadioGroup):
+            return w.value
         if isinstance(w, QComboBox):
             if w.isEditable():
                 text = w.currentText()

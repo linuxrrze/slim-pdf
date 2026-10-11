@@ -151,8 +151,8 @@ The tooltip shows what the signature covers. Extra trusted roots come from
 ![Filling in a form](images/gui-form.png)
 
 On the *Edit* tab, the side panel lists the document's form fields with
-their values: text fields, check boxes, radio buttons (as a list of their
-choices), drop-downs and list boxes. A click on a form field on the page
+their values: text fields, check boxes, radio buttons (labelled with the
+text printed next to them on the page), drop-downs and list boxes. A click on a form field on the page
 switches there and puts the cursor in that field. Read-only fields and
 fields locked by a signature are greyed out. **Apply** (or `Enter` in a
 one-line field) fills in the fields you changed, **Discard** goes back to
