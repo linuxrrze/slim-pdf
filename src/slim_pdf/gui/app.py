@@ -8,7 +8,7 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
-from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTranslator, QUrl, qVersion
+from PySide6.QtCore import QLibraryInfo, QLocale, QSize, Qt, QTranslator, QUrl, qVersion
 from PySide6.QtGui import (
     QAction,
     QColor,
@@ -21,9 +21,11 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDockWidget,
     QFileDialog,
+    QFormLayout,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -34,6 +36,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -178,21 +181,27 @@ class MainWindow(QMainWindow):
                                page=True)
         self.undo_act = act(_("Undo"), self.undo, QKeySequence.Undo, "arrow-back-up",
                             page=True)
-        self.clear_act = act(_("Clear placement"), self._escape, Qt.Key_Escape, "eraser")
+        # Esc cancels whatever is going on (placing, cropping, adding); not
+        # in the ribbon, which has the specific "remove" below
+        self.escape_act = act(_("Cancel"), self._escape, Qt.Key_Escape)
+        self.clear_act = act(_("Remove signature box"), self.clear_target, None, "eraser",
+                             _("Remove the signature box placed on the page, or deselect "
+                               "the chosen field (Esc)"))
         self.settings_act = act(_("Settings…"), self.settings_dialog, QKeySequence.Preferences,
                                 "settings")
-        self.manage_act = act(_("Certificates…"), self.manage_certs, None, "certificate",
-                              _("Manage your certificates (in the settings)"))
+        self.manage_act = act(_("Manage certificates…"), self.manage_certs, None,
+                              "certificate", _("Add, edit or remove certificates (in the "
+                                               "settings)"))
         # what the stamp shows; the certificate is picked in the ribbon's combo box
         self.cert_combo = QComboBox()
         self.cert_combo.setToolTip(_("The certificate to sign with"))
         self.cert_combo.setMinimumContentsLength(14)
         self.cert_combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
         self.cert_combo.currentIndexChanged.connect(self._cert_changed)
-        self.image_check = act(_("Signature image"), None, None, "photo",
-                               _("Show the certificate's signature image in the stamp"))
+        self.image_check = act(_("Image"), None, None, "photo",
+                               _("The stamp shows the certificate's signature image"))
         self.text_check = act(_("Text"), None, None, "typography",
-                              _("Show the signer's name and the date in the stamp"))
+                              _("The stamp shows the signer's name and the date"))
         for a in (self.image_check, self.text_check):
             a.setCheckable(True)
             a.setChecked(True)
@@ -257,12 +266,29 @@ class MainWindow(QMainWindow):
         g = home.group(_("Sign"))
         g.add(self.sign_act)
         g.add(self.clear_act, large=False)
-        g = home.group(_("Certificate"))
-        g.add_widget(self.cert_combo)
-        g.add(self.manage_act, large=False)
-        g = home.group(_("Stamp"))
-        g.add(self.image_check, large=False)
-        g.add(self.text_check, large=False)
+        # the signature's settings as a little form, so each says what it is
+        g = home.group(_("Signature"))
+        form = QWidget()
+        fl = QFormLayout(form)
+        fl.setContentsMargins(4, 0, 4, 0)
+        fl.setVerticalSpacing(2)
+        fl.addRow(_("Sign with:"), self.cert_combo)
+        stamp = QWidget()
+        row = QHBoxLayout(stamp)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.image_box = self._check_box(self.image_check)
+        self.text_box = self._check_box(self.text_check)
+        row.addWidget(self.image_box)
+        row.addWidget(self.text_box)
+        row.addStretch()
+        fl.addRow(_("Stamp shows:"), stamp)
+        manage = QToolButton()
+        manage.setDefaultAction(self.manage_act)
+        manage.setAutoRaise(True)
+        manage.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        manage.setIconSize(QSize(ribbon.SMALL_ICON, ribbon.SMALL_ICON))
+        fl.addRow("", manage)
+        g.add_widget(form)
         g = home.group(_("Options"))
         g.add(self.settings_act)
 
@@ -309,6 +335,16 @@ class MainWindow(QMainWindow):
 
         rb.refit()
         self.setMenuWidget(rb)  # where the menu bar would be
+
+    @staticmethod
+    def _check_box(action: QAction) -> QCheckBox:
+        """A check box showing (and setting) a checkable action."""
+        box = QCheckBox(action.text())
+        box.setToolTip(action.toolTip())
+        box.setChecked(action.isChecked())
+        box.toggled.connect(action.setChecked)
+        action.toggled.connect(box.setChecked)
+        return box
 
     def page_menu(self) -> QMenu:
         """The pages' context menu, for the selected pages (or the current one)."""
@@ -359,6 +395,11 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(_(HINT))
         else:
             self.view.clear_target()
+
+    def clear_target(self) -> None:
+        """No signature box, no chosen field, not placing one."""
+        self.view.set_place_mode(False)
+        self.view.clear_target()
 
     def _build_sign_panel(self) -> None:
         panel = QWidget()
@@ -1025,11 +1066,18 @@ class MainWindow(QMainWindow):
         # without a target, the button starts placing one; with one, it signs
         text = _("Sign…") if target else _("Place signature…")
         self.sign_act.setText(text)
+        self.sign_act.setToolTip(
+            _("Sign the document at the chosen place") if target
+            else _("Then click on the page where the signature should go, or on an empty "
+                   "signature field"))
         self.sign_btn.setText(text)
         self.sign_act.setEnabled(bool(self.doc and self.current_profile()))
+        self.clear_act.setEnabled(bool(target) or self.view.place_mode)
 
     def _place_mode_changed(self, on: bool) -> None:
         self.sign_btn.setDown(on)
+        self.clear_act.setEnabled(on or self.view.placement_box() is not None
+                                  or self.view.selected_field is not None)
         self.statusBar().showMessage(_(PLACE_HINT) if on else _(HINT))
 
     # signing ------------------------------------------------------------------

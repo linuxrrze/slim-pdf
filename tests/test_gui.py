@@ -291,6 +291,20 @@ def test_escape_clears_target(window, blank_pdf):
     assert not window.view.place_mode and window.view.placement is None
 
 
+def test_remove_signature_box_only_when_there_is_one(window, blank_pdf):
+    window.open(blank_pdf)
+    assert not window.clear_act.isEnabled()  # nothing placed or chosen
+    window.sign()  # placing mode: the button cancels it
+    assert window.clear_act.isEnabled()
+    window.clear_act.trigger()
+    assert not window.view.place_mode and not window.clear_act.isEnabled()
+    place(window.view, 200, 300)
+    assert window.clear_act.isEnabled() and "Sign the document" in window.sign_act.toolTip()
+    window.clear_act.trigger()
+    assert window.view.placement is None and not window.clear_act.isEnabled()
+    assert "click on the page" in window.sign_act.toolTip()
+
+
 def test_default_is_zoom_and_move(window, blank_pdf, qapp):
     """Without Place signature…, a click places nothing, the wheel zooms
     around the mouse and dragging moves the page."""
@@ -1519,8 +1533,17 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     home = [b.defaultAction() for b in rb.tab_page(0).findChildren(QtWidgets.QToolButton)]
     assert window.open_act in home and window.sign_act in home
     # everything the sign panel had as controls is in the ribbon now
-    assert window.image_check in home and window.text_check in home
-    assert window.manage_act in home
+    assert window.manage_act in home and window.clear_act in home
+    page = rb.tab_page(0)
+    labels = [lbl.text() for lbl in page.findChildren(QtWidgets.QLabel)]
+    assert "Sign with:" in labels and "Stamp shows:" in labels
+    assert page.isAncestorOf(window.image_box) and page.isAncestorOf(window.text_box)
+    window.image_box.setChecked(False)  # the check box is the action
+    assert not window.image_check.isChecked()
+    window.text_check.setChecked(False)
+    assert not window.text_box.isChecked()
+    window.image_check.setChecked(True)
+    window.text_check.setChecked(True)
     assert rb.tab_page(0).isAncestorOf(window.cert_combo)
     assert not window.save_act.isEnabled()  # no document yet
 

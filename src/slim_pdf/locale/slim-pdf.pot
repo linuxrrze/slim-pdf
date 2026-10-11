@@ -1272,7 +1272,15 @@ msgid "Undo"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Clear placement"
+msgid "Cancel"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Remove signature box"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Remove the signature box placed on the page, or deselect the chosen field (Esc)"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1280,11 +1288,11 @@ msgid "Settings…"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Certificates…"
+msgid "Manage certificates…"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Manage your certificates (in the settings)"
+msgid "Add, edit or remove certificates (in the settings)"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1292,12 +1300,11 @@ msgid "The certificate to sign with"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/certdialog.py
-msgid "Signature image"
+msgid "Image"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Show the certificate's signature image in the stamp"
+msgid "The stamp shows the certificate's signature image"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1306,7 +1313,7 @@ msgid "Text"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Show the signer's name and the date in the stamp"
+msgid "The stamp shows the signer's name and the date"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1407,12 +1414,16 @@ msgid "Sign"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/certdialog.py
-msgid "Certificate"
+#: src/slim_pdf/gui/pageview.py
+msgid "Signature"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Stamp"
+msgid "Sign with:"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Stamp shows:"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1818,11 +1829,6 @@ msgid "Covers"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/pageview.py
-msgid "Signature"
-msgstr ""
-
-#: src/slim_pdf/gui/app.py
 msgid "Problem"
 msgstr ""
 
@@ -1873,6 +1879,14 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Place signature…"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Sign the document at the chosen place"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Then click on the page where the signature should go, or on an empty signature field"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1992,6 +2006,10 @@ msgstr ""
 
 #: src/slim_pdf/gui/certdialog.py
 msgid "Right of the image"
+msgstr ""
+
+#: src/slim_pdf/gui/certdialog.py
+msgid "Certificate"
 msgstr ""
 
 #: src/slim_pdf/gui/certdialog.py
@@ -2172,6 +2190,10 @@ msgstr ""
 
 #: src/slim_pdf/gui/certdialog.py
 msgid "PNG with transparent background, or PDF (vector)"
+msgstr ""
+
+#: src/slim_pdf/gui/certdialog.py
+msgid "Signature image"
 msgstr ""
 
 #: src/slim_pdf/gui/certdialog.py

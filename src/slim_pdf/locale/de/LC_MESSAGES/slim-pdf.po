@@ -1306,33 +1306,40 @@ msgid "Undo"
 msgstr "Rückgängig"
 
 #: src/slim_pdf/gui/app.py
-msgid "Clear placement"
-msgstr "Platzierung entfernen"
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Remove signature box"
+msgstr "Signaturfeld entfernen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Remove the signature box placed on the page, or deselect the chosen field (Esc)"
+msgstr "Das auf der Seite platzierte Signaturfeld entfernen oder die Auswahl des Feldes aufheben (Esc)"
 
 #: src/slim_pdf/gui/app.py
 msgid "Settings…"
 msgstr "Einstellungen…"
 
 #: src/slim_pdf/gui/app.py
-msgid "Certificates…"
-msgstr "Zertifikate…"
+msgid "Manage certificates…"
+msgstr "Zertifikate verwalten…"
 
 #: src/slim_pdf/gui/app.py
-msgid "Manage your certificates (in the settings)"
-msgstr "Zertifikate verwalten (in den Einstellungen)"
+msgid "Add, edit or remove certificates (in the settings)"
+msgstr "Zertifikate hinzufügen, bearbeiten oder entfernen (in den Einstellungen)"
 
 #: src/slim_pdf/gui/app.py
 msgid "The certificate to sign with"
 msgstr "Das Zertifikat zum Signieren"
 
 #: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/certdialog.py
-msgid "Signature image"
-msgstr "Signaturbild"
+msgid "Image"
+msgstr "Bild"
 
 #: src/slim_pdf/gui/app.py
-msgid "Show the certificate's signature image in the stamp"
-msgstr "Das Unterschriftsbild des Zertifikats im Stempel zeigen"
+msgid "The stamp shows the certificate's signature image"
+msgstr "Der Stempel zeigt das Unterschriftsbild des Zertifikats"
 
 #: src/slim_pdf/gui/app.py
 #: src/slim_pdf/insert.py
@@ -1340,8 +1347,8 @@ msgid "Text"
 msgstr "Text"
 
 #: src/slim_pdf/gui/app.py
-msgid "Show the signer's name and the date in the stamp"
-msgstr "Name des Unterzeichners und Datum im Stempel zeigen"
+msgid "The stamp shows the signer's name and the date"
+msgstr "Der Stempel zeigt Name des Unterzeichners und Datum"
 
 #: src/slim_pdf/gui/app.py
 msgid "Previous"
@@ -1441,13 +1448,17 @@ msgid "Sign"
 msgstr "Signieren"
 
 #: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/certdialog.py
-msgid "Certificate"
-msgstr "Zertifikat"
+#: src/slim_pdf/gui/pageview.py
+msgid "Signature"
+msgstr "Signatur"
 
 #: src/slim_pdf/gui/app.py
-msgid "Stamp"
-msgstr "Stempel"
+msgid "Sign with:"
+msgstr "Signieren mit:"
+
+#: src/slim_pdf/gui/app.py
+msgid "Stamp shows:"
+msgstr "Stempel zeigt:"
 
 #: src/slim_pdf/gui/app.py
 msgid "Options"
@@ -1887,11 +1898,6 @@ msgid "Covers"
 msgstr "Umfang"
 
 #: src/slim_pdf/gui/app.py
-#: src/slim_pdf/gui/pageview.py
-msgid "Signature"
-msgstr "Signatur"
-
-#: src/slim_pdf/gui/app.py
 msgid "Problem"
 msgstr "Problem"
 
@@ -1947,6 +1953,14 @@ msgstr "Noch keins: „Signatur platzieren…“ drücken oder unten ein leeres 
 #: src/slim_pdf/gui/app.py
 msgid "Place signature…"
 msgstr "Signatur platzieren…"
+
+#: src/slim_pdf/gui/app.py
+msgid "Sign the document at the chosen place"
+msgstr "Das Dokument an der gewählten Stelle signieren"
+
+#: src/slim_pdf/gui/app.py
+msgid "Then click on the page where the signature should go, or on an empty signature field"
+msgstr "Danach auf die Seite klicken, wo die Signatur hin soll, oder auf ein leeres Signaturfeld"
 
 #: src/slim_pdf/gui/app.py
 msgid "Cannot sign"
@@ -2072,6 +2086,10 @@ msgstr "Links vom Bild"
 #: src/slim_pdf/gui/certdialog.py
 msgid "Right of the image"
 msgstr "Rechts vom Bild"
+
+#: src/slim_pdf/gui/certdialog.py
+msgid "Certificate"
+msgstr "Zertifikat"
 
 #: src/slim_pdf/gui/certdialog.py
 msgid "The certificate hasn't been read yet. Save the profile or use the test in its editor; both read it from the key."
@@ -2254,6 +2272,10 @@ msgstr "Darstellung"
 #: src/slim_pdf/gui/certdialog.py
 msgid "PNG with transparent background, or PDF (vector)"
 msgstr "PNG mit transparentem Hintergrund oder PDF (Vektor)"
+
+#: src/slim_pdf/gui/certdialog.py
+msgid "Signature image"
+msgstr "Signaturbild"
 
 #: src/slim_pdf/gui/certdialog.py
 msgid "empty = image only"

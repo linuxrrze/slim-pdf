@@ -19,10 +19,11 @@ guide show the English version.
 ![Main window with a document open](images/gui-overview.png)
 
 * **Ribbon** (top), in four tabs:
-  * *Home:* **Open…** (`Ctrl+O`), **Save**, **Save as…**, **Undo**; **Place
-    signature… / Sign…** (`Ctrl+S`), the certificate to sign with, the
-    stamp options **Signature image** and **Text**, **Clear placement**
-    (`Esc`), **Certificates…**; **Settings…**.
+  * *Home:* **Open…** (`Ctrl+O`), **Save**, **Save as…**, **Undo**;
+    **Place signature… / Sign…** (`Ctrl+S`) and **Remove signature box**
+    (`Esc`); the signature's settings: **Sign with** (the certificate),
+    **Stamp shows** *Image* and/or *Text*, **Manage certificates…**;
+    **Settings…**.
   * *Edit:* **Fill in form…** (see [Filling in forms](#filling-in-forms));
     **Text…** and **Image…** (see [Adding text and images](#adding-text-and-images)).
   * *Pages:* rotate, crop and delete pages (see [Page tools](#page-tools)).
@@ -56,7 +57,7 @@ guide show the English version.
 
 ![Placing a signature freely](images/gui-place.png)
 
-1. Pick a certificate in the ribbon (*Home* tab, *Sign* group).
+1. Pick a certificate under *Sign with* in the ribbon (*Home* tab).
 2. Press **Place signature…** (`Ctrl+S`), then **click** where the signature
    should go. A preview of the signature image appears centred on the click,
    and the page is back to zooming and moving. `Esc` cancels instead.
@@ -66,7 +67,7 @@ guide show the English version.
 5. The panel shows the exact position and size in PDF points, and the button
    now reads **Sign…**.
 
-`Esc` (or *Clear placement*) removes the preview. A placement stays on its
+`Esc` (or *Remove signature box*) removes the preview. A placement stays on its
 page while you browse other pages.
 
 ## Signing a prepared field
@@ -108,8 +109,8 @@ fields doesn't.
 Documents certified as "no changes allowed" can't be signed again; the status
 bar points this out when you open one.
 
-The *Signature image* and *Text* buttons in the ribbon switch the stamp to
-image only or text only for the next signature.
+*Stamp shows: Image / Text* in the ribbon switch the stamp to image only or
+text only for the next signature.
 
 ## Checking signatures
 
@@ -133,7 +134,7 @@ see now is not exactly what was signed. The tooltip says which changes.
 Click a signature to jump to its page. Double-click it (or click the signed
 field on the page) for its details: the verdict, time, what it covers and
 any problems, then the signer's certificate in the same form as
-*Certificates…* → *Details…* shows your own, and pyHanko's full report behind *Full report…*.
+*Manage certificates…* → *Details…* shows your own, and pyHanko's full report behind *Full report…*.
 The tooltip shows what the signature covers. Extra trusted roots come from
 *Settings…* (or `trust = [...]` in the config file, see
 [cli.md](cli.md#check-signatures-slim-pdf-verify)).
@@ -232,7 +233,7 @@ profiles; **OK** saves them, **Cancel** discards them.
 
 ## Managing certificates
 
-**Certificates…** (ribbon, *Home* tab) opens the settings on their
+**Manage certificates…** (ribbon, *Home* tab) opens the settings on their
 *Certificates* tab. It edits the same config file as `slim-pdf certs`. It
 lists the profiles with their type, the certificate's expiry date (red when
 less than 30 days are left) and where the key is:
