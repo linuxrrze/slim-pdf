@@ -331,12 +331,20 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 If the desktop reports that Slim PDF is not responding, Slim PDF notes
 where it hung: when the window doesn't react for 4 seconds, the program
 state (the stack of every thread) goes to `freezes.log`, followed by a line
-with the time and how long the freeze lasted. The file is in
+with the time and how long the freeze lasted. Shorter stalls (from 1 second)
+get a line without the stacks, and every start adds a line with the
+version, the process ID and the Qt platform (`xcb` for X11/XWayland,
+`wayland`), so you can tell the file is the right one. The file is in
 
 * Linux: `~/.local/state/slim-pdf/log/`
 * macOS: `~/Library/Logs/slim-pdf/`
 * Windows: `%LOCALAPPDATA%\slim-pdf\Logs\`
 
 (*Help → About Slim PDF* shows the exact path; `SLIM_PDF_LOG_DIR`
-overrides it). It contains file names of Slim PDF's own code, no document
+overrides it). Versions from before the rename wrote to a `pdfsigner`
+folder instead.
+
+If the desktop reports a hang but the log shows no freeze or stall at that
+time, Slim PDF itself kept running: the desktop's check didn't get an
+answer for another reason. It contains file names of Slim PDF's own code, no document
 contents or passphrases. Please attach it when reporting a hang.

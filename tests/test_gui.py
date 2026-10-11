@@ -1585,3 +1585,22 @@ def test_watchdog_logs_where_the_gui_hangs(qapp, tmp_path, monkeypatch):
         dog.stop()
     log = (tmp_path / "freezes.log").read_text()
     assert "hang_here" in log and "did not respond for" in log
+    assert "started slim-pdf" in log and "Qt platform" in log
+
+
+def test_watchdog_notes_short_stalls(qapp, tmp_path):
+    """Stalls too short for stacks still get a line."""
+    import time
+
+    from slim_pdf.gui import watchdog
+
+    dog = watchdog.Watchdog(path=tmp_path / "freezes.log")
+    try:
+        dog.last = time.monotonic() - 2.0  # the last beat was 2 s ago
+        dog.beat()
+        dog.beat()  # right after: nothing to note
+    finally:
+        dog.stop()
+    lines = (tmp_path / "freezes.log").read_text().splitlines()
+    assert len(lines) == 2 and "started" in lines[0]
+    assert "the GUI was busy for 1.5 s" in lines[1]

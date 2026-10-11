@@ -5,12 +5,18 @@ stacks of all threads are written to a log file.
 faulthandler does the writing from its own C thread, so it works even when
 the GUI thread is stuck in native code that holds the GIL. The GUI thread
 re-arms it twice a second; a freeze is a missed re-arm. Once the GUI thread
-runs again, a line with the time and the freeze's length is added.
+runs again, a line with the time and the freeze's length is added; shorter
+stalls (from SLOW_SECONDS) get such a line, too, without stacks.
+
+Every start adds a line (version, process, Qt platform, session type), so a
+log without freezes still shows that it was written by the running program.
 """
 
 from __future__ import annotations
 
 import faulthandler
+import os
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +27,7 @@ from PySide6.QtCore import QObject, QTimer
 from .. import environ
 
 STALL_SECONDS = 4
+SLOW_SECONDS = 1.0
 BEAT_MS = 500
 MAX_LOG_BYTES = 1_000_000  # start afresh beyond this
 
@@ -39,6 +46,8 @@ class Watchdog(QObject):
         # stays open: faulthandler writes to its descriptor, without Python
         self.file = open(self.path, "w" if big else "a", encoding="utf-8")  # noqa: SIM115
         self.last = time.monotonic()
+        self.file.write(f"=== {datetime.now():%Y-%m-%d %H:%M:%S}: started {self.who()}\n")
+        self.file.flush()
         self.timer = QTimer(self)
         self.timer.setInterval(BEAT_MS)
         self.timer.timeout.connect(self.beat)
@@ -54,7 +63,29 @@ class Watchdog(QObject):
                             f"for {gap:.1f} s (stacks above, taken after "
                             f"{STALL_SECONDS} s)\n\n")
             self.file.flush()
+        elif gap >= SLOW_SECONDS + BEAT_MS / 1000:
+            self.file.write(f"=== {datetime.now():%Y-%m-%d %H:%M:%S}: the GUI was busy for "
+                            f"{gap - BEAT_MS / 1000:.1f} s\n")
+            self.file.flush()
         faulthandler.dump_traceback_later(STALL_SECONDS, file=self.file)
+
+    @staticmethod
+    def who() -> str:
+        from importlib import metadata
+
+        from PySide6.QtGui import QGuiApplication
+
+        try:
+            version = metadata.version("slim-pdf")
+        except metadata.PackageNotFoundError:
+            version = "?"
+        platform = QGuiApplication.platformName() if QGuiApplication.instance() else "?"
+        session = os.environ.get("XDG_SESSION_TYPE", "")
+        desktop = os.environ.get("XDG_CURRENT_DESKTOP", "")
+        return (f"slim-pdf {version}, pid {os.getpid()}, Python {sys.version.split()[0]}, "
+                f"Qt platform {platform}"
+                + (f", session {session}" if session else "")
+                + (f", desktop {desktop}" if desktop else ""))
 
     def stop(self) -> None:
         self.timer.stop()
