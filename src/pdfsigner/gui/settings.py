@@ -1,6 +1,5 @@
-"""Program settings (the config file's top-level keys): language and trust roots.
-
-Certificate profiles have their own dialog (certdialog.CertManagerDialog).
+"""Program settings: language and trust roots (the config file's top-level
+keys) on the General tab, the certificate profiles on the Certificates tab.
 """
 
 from __future__ import annotations
@@ -22,7 +21,9 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QTabWidget,
     QVBoxLayout,
+    QWidget,
 )
 
 from .. import i18n
@@ -30,16 +31,23 @@ from ..config import Config, default_config_path
 from ..i18n import _
 from ..signing import SigningError
 from ..validation import load_trust_roots
+from .certdialog import CertManager
 from .screen import ElidedLabel, fit_to_screen
 
 
 class SettingsDialog(QDialog):
-    """Edits a copy of the config; ``config`` holds the result after OK."""
+    """Edits a copy of the config; ``config`` holds the result after OK.
 
-    def __init__(self, config: Config, parent=None):
+    The General tab's changes are saved by OK. The Certificates tab saves
+    each change at once (as ``pdfsigner certs`` does), so ``certs.changed``
+    means ``config`` holds new profiles even after Cancel."""
+
+    GENERAL, CERTIFICATES = 0, 1
+
+    def __init__(self, config: Config, parent=None, tab: int = GENERAL):
         super().__init__(parent)
         self.setWindowTitle(_("Settings"))
-        fit_to_screen(self, 620, 420)
+        fit_to_screen(self, 720, 460)
         self.config = copy.deepcopy(config)
         self.language_changed = False
 
@@ -89,9 +97,20 @@ class SettingsDialog(QDialog):
         box.accepted.connect(self._save)
         box.rejected.connect(self.reject)
 
-        lay = QVBoxLayout(self)
+        general_tab = QWidget()
+        lay = QVBoxLayout(general_tab)
         lay.addLayout(general)
         lay.addWidget(trust_box, 1)
+        # the same config object: profile changes are saved with the other
+        # settings as they were (language and trust are taken over by OK)
+        self.certs = CertManager(self.config)
+        self.tabs = QTabWidget()
+        self.tabs.addTab(general_tab, _("General"))
+        self.tabs.addTab(self.certs, _("Certificates"))
+        self.tabs.setCurrentIndex(tab)
+
+        lay = QVBoxLayout(self)
+        lay.addWidget(self.tabs, 1)
         lay.addWidget(where)
         lay.addWidget(box)
 
@@ -132,13 +151,15 @@ class SettingsDialog(QDialog):
 
     def _save(self) -> None:
         language = self.language_combo.currentData()
-        self.language_changed = language != self.config.language
+        old = self.config.language, self.config.trust
         self.config.language = language
         self.config.trust = self.trust_paths()
         try:
             self.config.save()
         except OSError as e:
+            self.config.language, self.config.trust = old  # as in the file
             QMessageBox.critical(self, _("Settings"),
                                  _("Cannot save the configuration:\n{error}").format(error=e))
             return
+        self.language_changed = language != old[0]
         self.accept()

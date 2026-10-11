@@ -1901,11 +1901,6 @@ msgid "KeePass: {entry}"
 msgstr "KeePass: {entry}"
 
 #: src/pdfsigner/gui/certdialog.py
-#: src/pdfsigner/gui/settings.py
-msgid "Certificates"
-msgstr "Zertifikate"
-
-#: src/pdfsigner/gui/certdialog.py
 msgid "Name"
 msgstr "Name"
 
@@ -1940,14 +1935,18 @@ msgid "The certificate's details, without a PIN"
 msgstr "Die Angaben des Zertifikats, ohne PIN"
 
 #: src/pdfsigner/gui/certdialog.py
-#, python-brace-format
-msgid "Config file: {path}"
-msgstr "Konfigurationsdatei: {path}"
+msgid "Changes to certificates are saved right away."
+msgstr "Änderungen an Zertifikaten werden sofort gespeichert."
 
 #: src/pdfsigner/gui/certdialog.py
 #, python-brace-format
 msgid "{name}  (default)"
 msgstr "{name}  (Standard)"
+
+#: src/pdfsigner/gui/certdialog.py
+#: src/pdfsigner/gui/settings.py
+msgid "Certificates"
+msgstr "Zertifikate"
 
 #: src/pdfsigner/gui/certdialog.py
 #, python-brace-format
@@ -2322,6 +2321,10 @@ msgstr "Signaturen mit diesen Zertifikaten oder mit von ihnen ausgestellten Zert
 #, python-brace-format
 msgid "Configuration file: {path}"
 msgstr "Konfigurationsdatei: {path}"
+
+#: src/pdfsigner/gui/settings.py
+msgid "General"
+msgstr "Allgemein"
 
 #: src/pdfsigner/gui/settings.py
 msgid "Trusted certificates"

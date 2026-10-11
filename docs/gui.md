@@ -122,8 +122,8 @@ see now is not exactly what was signed. The tooltip says which changes.
 
 Click a signature to jump to its page. Double-click it (or click the signed
 field on the page) for its details: the verdict, time, what it covers and
-any problems, then the signer's certificate in the same form as *Manage…* →
-*Details…* shows your own, and pyHanko's full report behind *Full report…*.
+any problems, then the signer's certificate in the same form as
+*Certificates…* → *Details…* shows your own, and pyHanko's full report behind *Full report…*.
 The tooltip shows what the signature covers. Extra trusted roots come from
 *Settings…* (or `trust = [...]` in the config file, see
 [cli.md](cli.md#check-signatures-pdfsigner-verify)).
@@ -166,7 +166,8 @@ command line (see [cli.md](cli.md#page-tools-rotate-crop-delete-split-merge)).
 
 ## Settings
 
-**Settings…** on the ribbon's *Home* tab edits what applies to all profiles:
+**Settings…** on the ribbon's *Home* tab has two tabs. *General* is what
+applies to all profiles:
 
 * **Language:** system default, English or Deutsch.
 * **Additional trusted certificates:** your organisation's CA, or colleagues'
@@ -176,13 +177,16 @@ command line (see [cli.md](cli.md#page-tools-rotate-crop-delete-split-merge)).
   open document is checked again when you press OK.
 
 Both are stored in the config file (`language`, `trust`), together with the
-profiles.
+profiles; **OK** saves them, **Cancel** discards them.
+
+*Certificates* holds the certificate profiles (see below).
 
 ## Managing certificates
 
-*Manage…* opens the certificate manager. It edits the same config file as
-`pdfsigner certs`. It lists the profiles with their type, the certificate's
-expiry date (red when less than 30 days are left) and where the key is:
+**Certificates…** (ribbon, *Home* tab) opens the settings on their
+*Certificates* tab. It edits the same config file as `pdfsigner certs`. It
+lists the profiles with their type, the certificate's expiry date (red when
+less than 30 days are left) and where the key is:
 
 ![Certificate manager](images/gui-certs.png)
 
@@ -193,8 +197,8 @@ expiry date (red when less than 30 days are left) and where the key is:
   validity, key type, key usage and fingerprints. No PIN is needed.
 
 Every change is written to the config file right away: the editor's **Save**
-for one profile, *Remove* and *Make default* immediately. **Cancel** in the
-editor discards its changes.
+for one profile, *Remove* and *Make default* immediately; the settings'
+**Cancel** doesn't undo them. **Cancel** in the editor discards its changes.
 
 In the editor, the name is set when the profile is created and can't be
 changed afterwards. **Test: unlock and show certificate** unlocks the key and

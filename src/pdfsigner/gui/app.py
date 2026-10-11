@@ -54,7 +54,7 @@ from ..signing import (
     stamp_size,
 )
 from . import background, ribbon, watchdog
-from .certdialog import CertManagerDialog, details_dialog
+from .certdialog import details_dialog
 from .screen import fit_to_screen, scrollable
 from .settings import SettingsDialog
 from .dialogs import ask_secret
@@ -415,12 +415,16 @@ class MainWindow(QMainWindow):
     def open_docs(self) -> None:
         QDesktopServices.openUrl(QUrl(DOCS_URL))
 
-    def settings_dialog(self) -> None:
-        dlg = SettingsDialog(self.config, self)
-        if not dlg.exec():
+    def settings_dialog(self, tab: int = SettingsDialog.GENERAL) -> None:
+        dlg = SettingsDialog(self.config, self, tab)
+        accepted = dlg.exec()
+        if not (accepted or dlg.certs.changed):
             return
+        # after Cancel, dlg.config is the old settings with the saved profiles
         trust_changed = dlg.config.trust != self.config.trust
         self.config = dlg.config
+        if dlg.certs.changed:
+            self._reload_certs()
         if trust_changed and self.data is not None:
             self.statusBar().showMessage(self._verify() or _(HINT))
         if dlg.language_changed:
@@ -428,11 +432,7 @@ class MainWindow(QMainWindow):
                                     _("The new language is used after restarting PDF Signer."))
 
     def manage_certs(self) -> None:
-        dlg = CertManagerDialog(self.config, self)
-        dlg.exec()
-        if dlg.changed:  # changes are saved as they are made
-            self.config = dlg.config
-            self._reload_certs()
+        self.settings_dialog(SettingsDialog.CERTIFICATES)
 
     # documents ----------------------------------------------------------------
 

@@ -45,7 +45,7 @@ from ..certinfo import STAMP_FIELDS
 from ..signing import SigningError, describe_signer, open_signer
 from . import background
 from .dialogs import ask_secret
-from .screen import ElidedLabel, fit_to_screen, scrollable
+from .screen import fit_to_screen, scrollable
 from .document import render_stamp
 
 SECRET_LABELS = {
@@ -181,15 +181,14 @@ def _path_row(edit: QLineEdit, caption: str, filt: str, field: QWidget | None = 
     return w
 
 
-class CertManagerDialog(QDialog):
-    """The list of certificate profiles. Profiles are edited in
-    :class:`CertEditDialog`; every change is saved to the config file at once."""
+class CertManager(QWidget):
+    """The list of certificate profiles (the Settings dialog's Certificates
+    tab). Profiles are edited in :class:`CertEditDialog`; every change is
+    saved to the config file at once. Works on ``config`` itself."""
 
     def __init__(self, config: Config, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(_("Certificates"))
-        fit_to_screen(self, 720, 400)
-        self.config = copy.deepcopy(config)
+        self.config = config
         self.changed = False  # the config file was written
 
         self.list = QTreeWidget()
@@ -220,15 +219,12 @@ class CertManagerDialog(QDialog):
         main = QHBoxLayout()
         main.addWidget(self.list, 1)
         main.addLayout(side)
-        buttons = QDialogButtonBox(QDialogButtonBox.Close)
-        buttons.rejected.connect(self.reject)
         outer = QVBoxLayout(self)
         outer.addLayout(main)
-        hint = ElidedLabel(_("Config file: {path}").format(path=self.config.path))
-        hint.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        hint = QLabel(_("Changes to certificates are saved right away."))
+        hint.setWordWrap(True)
         hint.setStyleSheet("color: gray")
         outer.addWidget(hint)
-        outer.addWidget(buttons)
 
         self._refresh_list()
 

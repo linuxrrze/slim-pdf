@@ -13,7 +13,7 @@ from pyhanko.sign import fields  # noqa: E402
 from pdfsigner.config import CertProfile, Config, load_config  # noqa: E402
 from pdfsigner.gui import app as gui_app  # noqa: E402
 from pdfsigner.gui import certdialog  # noqa: E402
-from pdfsigner.gui.certdialog import CertEditDialog, CertManagerDialog  # noqa: E402
+from pdfsigner.gui.certdialog import CertEditDialog, CertManager  # noqa: E402
 from pdfsigner.gui.pageview import FieldItem, SignatureItem  # noqa: E402
 from pdfsigner.signing import inspect_pdf  # noqa: E402
 
@@ -665,7 +665,7 @@ def certs_cfg(tmp_path, p12, sig_image):
 
 @pytest.fixture
 def manager(qapp, certs_cfg):
-    d = CertManagerDialog(certs_cfg)
+    d = CertManager(certs_cfg)
     d.show()
     yield d
     d.close()
@@ -741,7 +741,7 @@ def test_manager_lists_profiles(manager, p12):
 
 
 def test_manager_empty(qapp, tmp_path):
-    d = CertManagerDialog(Config(path=tmp_path / "config.toml"))
+    d = CertManager(Config(path=tmp_path / "config.toml"))
     assert rows(d) == [] and d.current() is None
     assert not d.edit_btn.isEnabled() and not d.remove_btn.isEnabled()
     assert not d.default_btn.isEnabled() and d.add_btn.isEnabled()
@@ -868,16 +868,29 @@ def test_dialog_store_keyring(open_editor, monkeypatch, mem_keyring):
 
 
 def test_manage_updates_main_window(window, monkeypatch, tmp_path):
-    def fake_exec(self):
-        self.config.certs["new"] = CertProfile(name="new", path="x.p12")
-        self.changed = True
-        return 0  # closed
+    """Certificates… opens the settings on their Certificates tab; profiles
+    are saved as they change, so they stay even when the dialog is cancelled."""
+    from pdfsigner.gui import settings as gui_settings
 
-    monkeypatch.setattr(CertManagerDialog, "exec", fake_exec)
-    window.manage_certs()
+    window.config.path = tmp_path / "config.toml"
+    seen = []
+
+    def fake_exec(self):
+        seen.append(self.tabs.currentWidget())
+        self.config.certs["new"] = CertProfile(name="new", path="x.p12")
+        self.certs._write()
+        self.language_combo.setCurrentIndex(self.language_combo.findData("de"))
+        return 0  # cancelled
+
+    monkeypatch.setattr(gui_settings.SettingsDialog, "exec", fake_exec)
+    window.manage_act.trigger()
+    assert [type(w) for w in seen] == [CertManager]
     names = [window.cert_combo.itemData(i) for i in range(window.cert_combo.count())]
     assert names == ["alice", "bob", "new"]
     assert window.cert_combo.currentData() == "alice"  # selection kept
+    saved = load_config(tmp_path / "config.toml")
+    assert "new" in saved.certs and saved.language == ""  # the cancelled language isn't
+    assert window.config.language == ""
 
 
 def wheel(view, scene_pos, delta, modifiers=Qt.ControlModifier):
@@ -1352,8 +1365,8 @@ def test_windows_fit_small_screens(qapp, p12, lang, tmp_path, monkeypatch):
     cfg.put(CertProfile(name="w", path=str(p12[0]), secret="keepassxc", keepass_db="d.kdbx",
                         keepass_entry="e"))
     avail = qapp.primaryScreen().availableGeometry()
-    windows = [gui_app.MainWindow(cfg), CertManagerDialog(cfg), CertEditDialog(cfg, "w"),
-               SettingsDialog(cfg)]
+    windows = [gui_app.MainWindow(cfg), CertEditDialog(cfg, "w"), SettingsDialog(cfg),
+               SettingsDialog(cfg, tab=SettingsDialog.CERTIFICATES)]
     try:
         for w in windows:
             w.show()

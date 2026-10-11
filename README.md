@@ -81,7 +81,7 @@ pdfsigner certs edit work --stamp-text ''   # image only, no text
 ```
 
 Profiles live in `config.toml` in the config directory above (or
-`$PDFSIGNER_CONFIG`, or `--config`). The GUI's *Manage…* dialog edits the same file. Example:
+`$PDFSIGNER_CONFIG`, or `--config`). The GUI's *Settings…* dialog edits the same file. Example:
 
 ```toml
 default = "work"

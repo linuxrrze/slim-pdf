@@ -702,8 +702,8 @@ pdfsigner --config ./signing.toml sign report.pdf
 
 ## Config file format
 
-`pdfsigner certs` and the GUI's *Manage…* and *Settings…* dialogs write
-this file. You can also edit it by hand:
+`pdfsigner certs` and the GUI's *Settings…* dialog (with its *Certificates* tab)
+write this file. You can also edit it by hand:
 
 ```toml
 default = "work"
