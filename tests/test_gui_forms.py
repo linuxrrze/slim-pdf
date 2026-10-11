@@ -180,22 +180,16 @@ def test_signing_shows_the_sign_panel(window, blank_pdf):
 def test_radio_buttons_are_labelled_with_the_page_text(window, tmp_path, qapp):
     """Radio buttons show the words printed next to them on the page, not
     their state names."""
-    from PySide6.QtCore import QMarginsF, QPointF
-    from PySide6.QtGui import QFont, QPageLayout, QPageSize, QPainter, QPdfWriter
+    from conftest import add_form_fields, make_pdf
+    from slim_pdf import insert
 
-    from conftest import add_form_fields
-
-    base = tmp_path / "base.pdf"
-    w = QPdfWriter(str(base))
-    w.setResolution(72)
-    w.setPageLayout(QPageLayout(QPageSize(QPageSize.A4), QPageLayout.Portrait,
-                                QMarginsF(0, 0, 0, 0)))
-    p = QPainter(w)
-    p.setFont(QFont("Liberation Sans", 9))
-    # the size buttons are at x 50..64 and 80..94, y 620..634 (from the bottom)
-    p.drawText(QPointF(66, 842 - 623), "Sm")
-    p.drawText(QPointF(96, 842 - 623), "Large")
-    p.end()
+    # text that reads back the same everywhere (Qt's PDF writer may draw
+    # text as shapes, e.g. with a substituted font on Windows); the size
+    # buttons are at x 50..64 and 80..94, y 620..634
+    base = make_pdf(tmp_path / "base.pdf", pages=1)
+    data = insert.add_text(base.read_bytes(), 0, (64, 618, 80, 636), "Sm", size=7)
+    data = insert.add_text(data, 0, (94, 618, 140, 636), "Large", size=9)
+    base.write_bytes(data)
     window.open(add_form_fields(base, tmp_path / "form.pdf"))
     size = window.form_panel.editors["size"]
     assert {s: b.text() for s, b in size.buttons.items()} == {"S": "Sm", "L": "Large"}
