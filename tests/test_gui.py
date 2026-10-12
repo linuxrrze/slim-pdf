@@ -1769,8 +1769,8 @@ def test_ribbon_has_room_for_a_scroll_bar_only_when_it_scrolls(window, qapp):
     qapp.processEvents()
     page = rb.stack.currentWidget()
     assert rb.scrolls() and page.horizontalScrollBar().isVisible()
-    assert rb.height() == wide + rb.style().pixelMetric(QtWidgets.QStyle.PM_ScrollBarExtent)
-    assert page.viewport().height() >= page.widget().minimumSizeHint().height()
+    assert rb.height() == wide + rb.scrollbar_height()
+    assert page.viewport().height() >= page.widget().minimumSizeHint().height()  # whole
     window.resize(1600, 900)
     qapp.processEvents()
     assert rb.height() == wide

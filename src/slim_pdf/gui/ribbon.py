@@ -272,13 +272,20 @@ class Ribbon(QWidget):
         return any(a is not None and a.width() < a.widget().minimumSizeHint().width()
                    for a in areas)
 
+    def scrollbar_height(self) -> int:
+        """What a horizontal scroll bar takes: its own size, which can be
+        more than the style's nominal one (macOS)."""
+        bars = [a.horizontalScrollBar() for a in (self.stack.currentWidget(), self._view_scroll)
+                if a is not None]
+        return max([self.style().pixelMetric(QStyle.PM_ScrollBarExtent)]
+                   + [b.sizeHint().height() for b in bars])
+
     def _update_height(self) -> None:
         """The scroll bar's room only while there is one: a wide window
         has no empty strip under the buttons."""
         if not self._height:
             return
-        scrollbar = self.style().pixelMetric(QStyle.PM_ScrollBarExtent)
-        height = self._height + (scrollbar if self.scrolls() else 0)
+        height = self._height + (self.scrollbar_height() if self.scrolls() else 0)
         if height != self.height():
             self.setFixedHeight(height)
 
