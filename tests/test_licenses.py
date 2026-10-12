@@ -1,6 +1,7 @@
 """The project's license, and the third-party notices the installers carry
 (packaging/third_party_licenses.py)."""
 
+import importlib.util
 import runpy
 import tomllib
 from pathlib import Path
@@ -19,10 +20,10 @@ def test_project_is_gpl3_or_later():
 def test_third_party_notices_cover_the_bundle(tmp_path):
     tpl = runpy.run_path(str(ROOT / "packaging" / "third_party_licenses.py"))
     names = {d.metadata["Name"].lower() for d in tpl["bundled"]()}
-    # dependencies with their extras, and the bootloader; not slim-pdf itself
-    # or test/build tools
-    assert {"pyhanko", "pypdf", "pyside6", "pypdfium2", "pykeepass", "keyring",
-            "pyinstaller"} <= names
+    # dependencies with their extras, and the bootloader (when PyInstaller is
+    # installed: in the release build); not slim-pdf itself or test/build tools
+    assert {"pyhanko", "pypdf", "pyside6", "pypdfium2", "pykeepass", "keyring"} <= names
+    assert ("pyinstaller" in names) == (importlib.util.find_spec("PyInstaller") is not None)
     assert not names & {"slim-pdf", "pytest", "setuptools", "pyinstaller-hooks-contrib"}
     text = tpl["write"](tmp_path / "THIRD-PARTY-LICENSES.txt").read_text(encoding="utf-8")
     assert "GNU General Public License, version 3\nor later" in text
