@@ -22,7 +22,13 @@ hidden = (
     + collect_submodules("pyhanko")
     + collect_submodules("pyhanko_certvalidator")
     + ["pkcs11", "pkcs11._pkcs11", "pykeepass", "pypdf"]
+    + collect_submodules("slim_pdf.ocr")  # the engines are imported when needed
 )
+# text recognition: the system's own engine, through its Python bindings
+if sys.platform == "win32":
+    hidden += collect_submodules("winrt")
+elif sys.platform == "darwin":
+    hidden += ["objc", "Foundation", "Vision", "Quartz", "CoreML"]
 datas = (
     collect_data_files("certifi")
     + collect_data_files("pyhanko")

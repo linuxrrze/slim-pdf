@@ -1,4 +1,5 @@
-"""Smoke-test a frozen build: sign, verify and edit with the bundled CLI, start the GUI.
+"""Smoke-test a frozen build: sign, verify, edit and recognize text with the
+bundled CLI, start the GUI.
 
     python packaging/smoke_test.py "dist/Slim PDF/slim-pdf" "dist/Slim PDF/Slim PDF"
 
@@ -49,6 +50,18 @@ def make_files(d: Path) -> tuple[Path, Path, Path]:
     return p12, pem, pdf
 
 
+def make_scan(d: Path) -> Path:
+    """A page that is only a picture of a line of text, like a scan."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    image = Image.new("L", (1654, 2339), 255)  # A4 at 200 dpi
+    ImageDraw.Draw(image).text((150, 200), "Slim PDF smoke test", fill=0,
+                               font=ImageFont.load_default(size=80))
+    scan = d / "scan.pdf"
+    image.save(scan, format="PDF", resolution=200)
+    return scan
+
+
 def main() -> int:
     cli, gui = Path(sys.argv[1]), Path(sys.argv[2])
     failures = 0
@@ -86,6 +99,17 @@ def main() -> int:
         run("split", pdf, "--every", "2", "-o", d / "part{n}.pdf")
         run("merge", "-o", d / "merged.pdf", d / "part2.pdf", f"{d / 'part1.pdf'}@1")
         run("form", pdf)  # no fields: lists none
+        # text recognition: the system's engine must be in the bundle (Linux
+        # builds only check it when Tesseract is installed)
+        engines = run("ocr", "--list-engines").stdout
+        if sys.platform in ("win32", "darwin") or "*" in engines:
+            recognized = d / "recognized.pdf"
+            run("ocr", make_scan(d), "--lang", "en", "-o", recognized)
+            text = (pdfium.PdfDocument(str(recognized))[0].get_textpage().get_text_range()
+                    if recognized.exists() else "")
+            if "smoke" not in text.lower():
+                failures += 1
+                print(f"[FAIL] recognized text: {text!r}\n{engines}")
         if sys.platform in ("win32", "darwin"):
             run("certs", "system")
 

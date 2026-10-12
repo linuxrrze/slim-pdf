@@ -10,7 +10,10 @@ tag `v*` (or manually via *Run workflow*) and attaches them to the release:
 | `Slim-PDF-<version>-macos-x86_64.dmg` | macOS on Intel. Built with cryptography 48.x, the last release with Intel macOS wheels. |
 
 Each bundle contains the GUI and the `slim-pdf` command line tool with all
-optional features (PKCS#11, keyring, KeePass, page tools). On macOS the CLI
+optional features (PKCS#11, keyring, KeePass, page tools, text recognition).
+Text recognition uses the system's own engine (Apple Vision, Windows OCR),
+so no OCR models are bundled; on Windows, each language needs its OCR
+component installed in Windows. On macOS the CLI
 is at `/Applications/Slim PDF.app/Contents/MacOS/slim-pdf`; link it into
 your PATH if you want it:
 
@@ -19,7 +22,8 @@ ln -s "/Applications/Slim PDF.app/Contents/MacOS/slim-pdf" /usr/local/bin/slim-p
 ```
 
 Before packaging, the workflow runs `smoke_test.py` against the frozen
-binaries (sign, verify, page tools, GUI start), then installs/mounts the
+binaries (sign, verify, page tools, text recognition on a picture of a line
+of text, GUI start), then installs/mounts the
 finished installer and runs the CLI from there.
 
 ## Building locally
