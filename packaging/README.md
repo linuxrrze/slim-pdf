@@ -63,8 +63,9 @@ Every bundle carries slim-pdf's `LICENSE` (GPL-3.0-or-later) and a
 with `third_party_licenses.py`: name, version and license of each bundled
 package (the dependencies with all extras as installed in the build
 environment, the PyInstaller bootloader and Python itself), followed by the
-license files each package ships. PySide6 and shiboken6 ship none; for them
-the LGPL-3.0 text in `licenses/` is added. Qt's libraries are separate files
+license files each package ships. PySide6 and shiboken6 don't ship the
+LGPL text (nothing on Linux and macOS, only a note on Qt's commercial license
+on Windows), so the LGPL-3.0 text in `licenses/` is added. Qt's libraries are separate files
 in the bundle (a folder build, not a single executable), so they can be
 replaced as the LGPL requires. The About box links to the file; the smoke
 test checks that both files are there. To look at it without building:

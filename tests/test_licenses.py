@@ -28,6 +28,19 @@ def test_third_party_notices_cover_the_bundle(tmp_path):
     text = tpl["write"](tmp_path / "THIRD-PARTY-LICENSES.txt").read_text(encoding="utf-8")
     assert "GNU General Public License, version 3\nor later" in text
     assert "Python Software Foundation" in text  # Python's own license
-    # PySide6 ships no license file: the LGPL text is added
-    assert "GNU LESSER GENERAL PUBLIC LICENSE" in text
+    # PySide6 ships no LGPL text (none on Linux, a commercial-license note on
+    # Windows): it is added, once
+    assert text.count("GNU LESSER GENERAL PUBLIC LICENSE") == 1
     assert "pykeepass" in text and "GNU GENERAL PUBLIC LICENSE" in text
+
+
+def test_lgpl_text_added_when_the_package_has_only_another_file(monkeypatch, tmp_path):
+    """PySide6's Windows wheels ship LicenseRef-Qt-Commercial.txt only."""
+    tpl = runpy.run_path(str(ROOT / "packaging" / "third_party_licenses.py"))
+    render = tpl["render"]
+    monkeypatch.setitem(render.__globals__, "license_files", lambda dist: (
+        [("licenses/LicenseRef-Qt-Commercial.txt", "Licensees holding valid commercial Qt")]
+        if dist.metadata["Name"].lower().startswith(("pyside6", "shiboken6")) else []))
+    text = render()
+    assert "commercial Qt" in text
+    assert text.count("GNU LESSER GENERAL PUBLIC LICENSE") == 1

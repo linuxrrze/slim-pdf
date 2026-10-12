@@ -25,8 +25,11 @@ ROOT_DIST = "slim-pdf"
 EXTRAS = ("all",)
 # in the bundle without being a dependency: the bootloader that starts it
 ALSO_BUNDLED = ("pyinstaller",)
-# packages that ship no license file: the text their license expression names
-SHARED_TEXTS = {"LGPL-3.0": HERE / "licenses" / "LGPL-3.0.txt"}
+# licenses whose text a package may not ship (PySide6 and shiboken6 ship none
+# on Linux, only a note on Qt's commercial license on Windows): SPDX id ->
+# (full text, its title, to see whether a package's own files have it)
+SHARED_TEXTS = {"LGPL-3.0": (HERE / "licenses" / "LGPL-3.0.txt",
+                             "GNU LESSER GENERAL PUBLIC LICENSE")}
 LICENSE_FILE = re.compile(r"(^|/)(LICEN[CS]E|COPYING|NOTICE)[^/]*$", re.IGNORECASE)
 QT_THIRD_PARTY = "https://doc.qt.io/qt-6/licenses-used-in-qt.html"
 RULE = "=" * 78
@@ -137,14 +140,16 @@ def render() -> str:
         files = license_files(dist)
         for fname, text in files:
             parts += [f"--- {fname} ---", "", text.rstrip(), ""]
-        if not files:
-            refs = [spdx for spdx in SHARED_TEXTS if spdx in lic]
-            shared.update(refs)
-            parts += [f"(No license file in the package; see the {', '.join(refs)} text below.)"
-                      if refs else "(No license file in the package; see its homepage.)", ""]
+        refs = [spdx for spdx, (_path, title) in SHARED_TEXTS.items()
+                if spdx in lic and not any(title in text for _f, text in files)]
+        shared.update(refs)
+        if refs:
+            parts += [f"(The {', '.join(refs)} text is at the end of this file.)", ""]
+        elif not files:
+            parts += ["(No license file in the package; see its homepage.)", ""]
     for spdx in sorted(shared):
         parts += [RULE, f"{spdx} (full text)", RULE, "",
-                  SHARED_TEXTS[spdx].read_text(encoding="utf-8").rstrip(), ""]
+                  SHARED_TEXTS[spdx][0].read_text(encoding="utf-8").rstrip(), ""]
     return "\n".join(parts) + "\n"
 
 
