@@ -1753,3 +1753,24 @@ def test_check_again_and_details_buttons(window, form_pdf, p12, tmp_path, monkey
     assert len(shown) == 1
     window.open(form_pdf)  # no signatures: nothing to show
     assert not window.details_act.isEnabled()
+
+
+def test_ribbon_has_room_for_a_scroll_bar_only_when_it_scrolls(window, qapp):
+    """No empty strip under the buttons in a wide window; a narrow one gets
+    the scroll bar's room, and the buttons stay whole."""
+    rb = window.ribbon
+    rb.setCurrentIndex(2)  # Pages: the widest tab
+    window.resize(1600, 900)
+    qapp.processEvents()
+    wide = rb.height()
+    assert not rb.scrolls()
+    assert not rb.stack.currentWidget().horizontalScrollBar().isVisible()
+    window.resize(500, 900)
+    qapp.processEvents()
+    page = rb.stack.currentWidget()
+    assert rb.scrolls() and page.horizontalScrollBar().isVisible()
+    assert rb.height() == wide + rb.style().pixelMetric(QtWidgets.QStyle.PM_ScrollBarExtent)
+    assert page.viewport().height() >= page.widget().minimumSizeHint().height()
+    window.resize(1600, 900)
+    qapp.processEvents()
+    assert rb.height() == wide

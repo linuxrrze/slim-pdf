@@ -198,9 +198,12 @@ class Ribbon(QWidget):
         lay.addWidget(self.bar)
         lay.addLayout(self.body)
         self.view_controls: RibbonGroup | None = None
+        self._view_scroll: _SideScroll | None = None
+        self._height = 0  # without a scroll bar (refit)
 
     def _switch(self, index: int) -> None:
         self.stack.setCurrentIndex(index)
+        self._update_height()  # another tab may need a scroll bar, or not
         self.currentChanged.emit(index)
 
     def tab(self, title: str) -> RibbonTab:
@@ -231,7 +234,8 @@ class Ribbon(QWidget):
         line.setFrameShape(QFrame.VLine)
         line.setFrameShadow(QFrame.Sunken)
         self.body.addWidget(line)
-        self.body.addWidget(_SideScroll(group))  # narrow windows: scrolls, like a tab
+        self._view_scroll = _SideScroll(group)  # narrow windows: scrolls, like a tab
+        self.body.addWidget(self._view_scroll)
         self.view_controls = group
         return group
 
@@ -253,10 +257,31 @@ class Ribbon(QWidget):
 
     def refit(self) -> None:
         """Once the buttons are in: room for the tallest tab or the view
-        group (and a scroll bar, for narrow windows)."""
+        group, plus a scroll bar while one is shown (see _update_height)."""
         bar = self.bar.sizeHint().height()
         heights = [self.tab_page(i).sizeHint().height() for i in range(self.count())]
         if self.view_controls is not None:
             heights.append(self.view_controls.sizeHint().height())
+        self._height = bar + max(heights, default=0) + 2
+        self._update_height()
+
+    def scrolls(self) -> bool:
+        """Whether the current tab or the view group is too wide for its
+        place, so it scrolls sideways (with a scroll bar)."""
+        areas = [self.stack.currentWidget(), self._view_scroll]
+        return any(a is not None and a.width() < a.widget().minimumSizeHint().width()
+                   for a in areas)
+
+    def _update_height(self) -> None:
+        """The scroll bar's room only while there is one: a wide window
+        has no empty strip under the buttons."""
+        if not self._height:
+            return
         scrollbar = self.style().pixelMetric(QStyle.PM_ScrollBarExtent)
-        self.setFixedHeight(bar + max(heights, default=0) + scrollbar + 4)
+        height = self._height + (scrollbar if self.scrolls() else 0)
+        if height != self.height():
+            self.setFixedHeight(height)
+
+    def resizeEvent(self, event):  # noqa: N802 - Qt's name
+        super().resizeEvent(event)
+        self._update_height()
