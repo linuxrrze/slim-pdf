@@ -85,6 +85,8 @@ pip install -e ".[all]"
   [docs/secret-storage.md](docs/secret-storage.md#6-windows-certificate-store--macos-keychain-type--system)).
 * On Windows a PDF can't be overwritten while another program (e.g.
   Acrobat) has it open. slim-pdf then reports this instead of signing.
+* Windows and macOS are tested automatically only, not yet by hand (see
+  [Known gaps](#known-gaps--next-steps)); feedback is welcome.
 
 ## Certificates
 
@@ -214,3 +216,11 @@ Screenshots are regenerated with
 * **Windows certificate store / macOS keychain** signing is tested in CI with
   software keys only, not yet with smartcards. On macOS, smartcard
   identities come from a separate keychain query that has never seen a card.
+* **Windows and macOS have not been tried by hand yet.** Development and
+  manual testing happen on Linux; on Windows and macOS only the automated
+  tests run (CI, headless). Not yet seen on a real desktop there: text
+  recognition with the system's engines (Apple Vision, Windows OCR), the
+  continuous page view, the ribbon and panels with the system's fonts and
+  styles, and the installers. **Feedback is welcome**: what works, what
+  doesn't, screenshots — please open an
+  [issue](https://github.com/linuxrrze/slim-pdf/issues).
