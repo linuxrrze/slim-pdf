@@ -1330,8 +1330,8 @@ msgid "{field}: {value!r} is not one of its choices"
 msgstr "{field}: {value!r} ist keine der Auswahlmöglichkeiten"
 
 #: src/slim_pdf/gui/app.py
-msgid "Wheel: zoom, drag: move the page. Click an empty field to sign it, or use Place signature…; a placed signature is moved by dragging and resized at its corner or with Ctrl+wheel."
-msgstr "Mausrad: zoomen, Ziehen: Seite verschieben. Klick auf ein leeres Feld signiert es, oder „Signatur platzieren…“ verwenden; eine platzierte Signatur wird durch Ziehen verschoben und an ihrer Ecke oder mit Strg+Mausrad in der Größe geändert."
+msgid "Wheel: scroll, Ctrl+wheel: zoom, drag: move the page. Click an empty field to sign it, or use Place signature…; a placed signature is moved by dragging and resized at its corner or with Ctrl+wheel."
+msgstr "Mausrad: blättern, Strg+Mausrad: zoomen, Ziehen: Seite verschieben. Klick auf ein leeres Feld signiert es, oder „Signatur platzieren…“ verwenden; eine platzierte Signatur wird durch Ziehen verschoben und an ihrer Ecke oder mit Strg+Mausrad in der Größe geändert."
 
 #: src/slim_pdf/gui/app.py
 msgid "Click where the signature should go, or on an empty (dashed) field. Esc cancels."

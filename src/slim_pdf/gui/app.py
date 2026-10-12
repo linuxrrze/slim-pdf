@@ -97,9 +97,9 @@ def _dot(color: str) -> QIcon:
     return QIcon(pm)
 
 
-HINT = N_("Wheel: zoom, drag: move the page. Click an empty field to sign it, or use "
-          "Place signature…; a placed signature is moved by dragging and resized at its "
-          "corner or with Ctrl+wheel.")
+HINT = N_("Wheel: scroll, Ctrl+wheel: zoom, drag: move the page. Click an empty field to "
+          "sign it, or use Place signature…; a placed signature is moved by dragging and "
+          "resized at its corner or with Ctrl+wheel.")
 PLACE_HINT = N_("Click where the signature should go, or on an empty (dashed) field. "
                 "Esc cancels.")
 

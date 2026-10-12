@@ -305,8 +305,8 @@ def test_remove_signature_box_only_when_there_is_one(window, blank_pdf):
 
 
 def test_default_is_zoom_and_move(window, blank_pdf, qapp):
-    """Without Place signature…, a click places nothing, the wheel zooms
-    around the mouse and dragging moves the page."""
+    """Without Place signature…, a click places nothing, the wheel scrolls,
+    Ctrl+wheel zooms around the mouse and dragging moves the page."""
     window.open(blank_pdf)
     view = window.view
     assert view.dragMode() == QtWidgets.QGraphicsView.ScrollHandDrag
@@ -317,12 +317,18 @@ def test_default_is_zoom_and_move(window, blank_pdf, qapp):
     qapp.processEvents()
     under = view.map_from_page(300, 400)
     zoom = view.zoom
-    wheel(view, (300, 400), 120, Qt.NoModifier)
+    wheel(view, (300, 400), 120)  # Ctrl+wheel
     assert view.zoom == pytest.approx(zoom * 1.15)
     after = view.map_from_page(300, 400)  # the point under the mouse stays
     assert abs(after.x() - under.x()) <= 2 and abs(after.y() - under.y()) <= 2
-    wheel(view, (300, 400), -120, Qt.NoModifier)
+    wheel(view, (300, 400), -120)
     assert view.zoom == pytest.approx(zoom)
+    bar = view.verticalScrollBar()
+    top = bar.value()
+    wheel(view, (300, 400), -120, Qt.NoModifier)  # the wheel alone scrolls down
+    assert bar.value() > top and view.zoom == pytest.approx(zoom)
+    wheel(view, (300, 400), 120, Qt.NoModifier)
+    assert bar.value() == top
 
     view.set_zoom(3.0)
     qapp.processEvents()
@@ -339,7 +345,7 @@ def test_zoom_out_stops_when_the_page_fits(window, blank_pdf, qapp):
     view = window.view
     qapp.processEvents()
     for _ in range(30):
-        wheel(view, (300, 400), -120, Qt.NoModifier)
+        wheel(view, (300, 400), -120)
     view.set_zoom(view.zoom / 1.2)  # toolbar "−"
     qapp.processEvents()
     assert view.zoom == pytest.approx(view.min_zoom())

@@ -57,12 +57,13 @@ guide show the English version.
   has unsaved edits; so does closing the window, for each of them.
   `slim-pdf gui a.pdf b.pdf` opens both.
 * **Pages:** shown one below the other; scroll through them with the
-  scroll bar, `PgUp`/`PgDown`, or by pressing the left mouse button on an
+  mouse wheel, the scroll bar, `PgUp`/`PgDown`, or by pressing the left mouse button on an
   empty spot and moving. The page in the middle of the view is the current
   one (its number is in the *View* group, its thumbnail marked); the
   page tools and **Recognize text** act on it unless pages are selected in
-  the *Pages* panel. The mouse wheel zooms in and out around the mouse
-  pointer (out only until a whole page fits the view). Over text, the
+  the *Pages* panel. The mouse wheel scrolls; `Ctrl` + wheel zooms in and
+  out around the mouse pointer (out only until a whole page fits the
+  view). Over text, the
   pointer is a text cursor: dragging there selects text (see
   [Finding and copying text](#finding-and-copying-text)). Prepared
   signature fields appear as boxes:
@@ -436,14 +437,14 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Next / previous document |
 | `PgUp` / `PgDown` | Previous / next page (scrolls to its top) |
 | `Ctrl +` / `Ctrl -` | Zoom in / out |
-| Wheel | Zoom in / out around the mouse pointer (out until a whole page fits) |
+| Wheel | Scroll through the pages |
 | Left button + move | Move the pages (or the placed signature, when on it); over text: select it, also over several pages |
 | `Shift` + click | Extend the selected text to here |
 | Double-click | Select the word under the mouse |
 | `Ctrl+A` | Select all text of the document (in the pages) |
 | `Ctrl+F` | Find text in the document |
 | `F3` / `Shift+F3` | Next / previous match (`Enter` / `Shift+Enter` in the find bar) |
-| `Ctrl` + wheel | Resize the placed signature (over it); zoom elsewhere |
+| `Ctrl` + wheel | Zoom in / out around the mouse pointer (out until a whole page fits); over the placed signature: resize it |
 | `Esc` | Cancel placing, remove the placed signature, cancel cropping or adding text/an image, or deselect text; in the find bar: close it |
 | `Tab` / `Shift+Tab` | While typing into a form field on the page: fill it in, go to the next / previous field |
 | `Ctrl+S` | Place signature, then sign |

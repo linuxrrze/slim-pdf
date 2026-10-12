@@ -378,7 +378,8 @@ class PageView(QGraphicsView):
     signing target changes, ``pageChanged`` when another page comes to the
     middle.
 
-    By default the wheel zooms and dragging moves the pages (a placed
+    By default the wheel scrolls, Ctrl+wheel zooms and dragging moves the
+    pages (a placed
     signature is dragged itself). In place mode, one click places the
     signature or picks an empty field, then the view is back to the default
     (``placeModeChanged``). Outside place mode, a click (not a drag) on a
@@ -1068,11 +1069,13 @@ class PageView(QGraphicsView):
         self._update_visible()
 
     def wheelEvent(self, event):
+        """The wheel scrolls; Ctrl+wheel zooms around the mouse, or resizes
+        the placed signature when over it."""
         steps = event.angleDelta().y() / 120  # touchpads send fractions of a notch
-        if not steps:
+        if not event.modifiers() & Qt.ControlModifier or not steps:
             return super().wheelEvent(event)
         item = self.itemAt(event.position().toPoint())
-        if event.modifiers() & Qt.ControlModifier and isinstance(item, SignatureItem):
+        if isinstance(item, SignatureItem):
             item.scale_by(1.1 ** steps)
         else:
             self.zoom_at(event.position(), self.zoom * WHEEL_ZOOM ** steps)
