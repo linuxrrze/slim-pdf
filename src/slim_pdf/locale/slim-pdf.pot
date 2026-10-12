@@ -856,6 +856,7 @@ msgid "merged {files} ({pages}) -> {path}"
 msgstr ""
 
 #: src/slim_pdf/cli.py
+#: src/slim_pdf/gui/__init__.py
 #, python-brace-format
 msgid "the GUI needs PySide6: pip install 'slim-pdf[gui]' ({error})"
 msgstr ""
@@ -1115,6 +1116,7 @@ msgid "error: {message} (use --force to sign anyway)"
 msgstr ""
 
 #: src/slim_pdf/cli.py
+#: src/slim_pdf/gui/__init__.py
 #, python-brace-format
 msgid "error: {message}"
 msgstr ""

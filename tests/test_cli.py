@@ -380,3 +380,16 @@ def test_form_guards_signatures(fill_pdf, profile, tmp_path, capsys, cfg_path):
     assert run("form", signed, "-o", tmp_path / "b.pdf", "--set", "size=S") == 3
     assert "'Signer'" in capsys.readouterr().err and not (tmp_path / "b.pdf").exists()
     assert run("form", signed, "-o", tmp_path / "b.pdf", "--set", "size=S", "--force") == 0
+
+
+def test_gui_without_pyside_says_what_to_install(monkeypatch, capsys, cfg_path):
+    """Installed without the gui extra: a hint, not a traceback."""
+    import sys
+
+    from slim_pdf import gui
+
+    monkeypatch.setitem(sys.modules, "slim_pdf.gui.app", None)  # import fails
+    assert gui.main([]) == 1
+    assert "pip install 'slim-pdf[gui]'" in capsys.readouterr().err
+    assert cli.main(["gui"]) == 1
+    assert "pip install 'slim-pdf[gui]'" in capsys.readouterr().err

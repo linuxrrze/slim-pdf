@@ -38,8 +38,8 @@ slim-pdf = "slim_pdf.cli:main"
 pdfsigner = "slim_pdf.cli:main"  # the old name, still working
 
 [project.gui-scripts]
-slim-pdf-gui = "slim_pdf.gui.app:main"
-pdfsigner-gui = "slim_pdf.gui.app:main"
+slim-pdf-gui = "slim_pdf.gui:main"
+pdfsigner-gui = "slim_pdf.gui:main"
 
 [build-system]
 requires = ["setuptools>=68"]
