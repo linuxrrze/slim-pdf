@@ -69,6 +69,13 @@ def icon(name: str) -> QIcon:
     return QIcon(SvgIcon((ICON_DIR / f"{name}.svg").read_bytes()))
 
 
+# a small checkable button that is on: a pressed-looking box
+CHECKED_STYLE = ("QToolButton { padding: 1px 3px; border: 1px solid transparent; }"
+                 "QToolButton:checked { background: palette(midlight);"
+                 " border: 1px solid palette(mid); border-radius: 3px; }"
+                 "QToolButton:hover { border: 1px solid palette(mid); border-radius: 3px; }")
+
+
 class RibbonGroup(QFrame):
     """Buttons in a row (large) or stacked in columns of three (small),
     with the group's name underneath."""
@@ -104,6 +111,8 @@ class RibbonGroup(QFrame):
         else:
             btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
             btn.setIconSize(QSize(SMALL_ICON, SMALL_ICON))
+            if action.isCheckable():  # small flat buttons don't show "on" by themselves
+                btn.setStyleSheet(CHECKED_STYLE)
             self._small(btn)
         return btn
 
@@ -208,13 +217,11 @@ class Ribbon(QWidget):
         self.bar.addTab(title)
         return page
 
-    def set_view_controls(self, title: str, large: list, columns: list[list]) -> RibbonGroup:
-        """A group that stays at the ribbon's right end on every tab: the
-        ``large`` actions as big buttons, then ``columns`` of small ones
-        (actions, or widgets such as a page number box)."""
+    def set_view_controls(self, title: str, columns: list[list]) -> RibbonGroup:
+        """A group that stays at the ribbon's right end on every tab:
+        ``columns`` of small buttons, text beside the icon (actions, or
+        widgets such as a page number box)."""
         group = RibbonGroup(title)
-        for action in large:
-            group.add(action)
         for column in columns:
             group._column = None  # each list is a column of its own
             for item in column:
