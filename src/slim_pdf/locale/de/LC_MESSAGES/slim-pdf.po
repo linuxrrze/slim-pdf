@@ -1552,8 +1552,36 @@ msgid "Copy pages"
 msgstr "Seiten kopieren"
 
 #: src/slim_pdf/gui/app.py
-msgid "Copy the selected pages (or the current one), to paste them into this or another document"
-msgstr "Die ausgewählten Seiten (oder die aktuelle) kopieren, um sie in dieses oder ein anderes Dokument einzufügen"
+msgid "Copy the selected pages (or the current one), to paste them into this or another document (Ctrl+C when no text is selected)"
+msgstr "Die ausgewählten Seiten (oder die aktuelle) kopieren, um sie in dieses oder ein anderes Dokument einzufügen (Strg+C, wenn kein Text ausgewählt ist)"
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy"
+msgstr "Kopieren"
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy text"
+msgstr "Text kopieren"
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy the text selected on the page (Ctrl+C); select it by dragging over it, a word by double-clicking, the page's text with Ctrl+A"
+msgstr "Den auf der Seite ausgewählten Text kopieren (Strg+C); auswählen durch Ziehen darüber, ein Wort per Doppelklick, den Text der Seite mit Strg+A"
+
+#: src/slim_pdf/gui/app.py
+msgid "Find…"
+msgstr "Suchen…"
+
+#: src/slim_pdf/gui/app.py
+msgid "Search the document's text (Ctrl+F)"
+msgstr "Im Text des Dokuments suchen (Strg+F)"
+
+#: src/slim_pdf/gui/app.py
+msgid "Find next"
+msgstr "Weitersuchen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Find previous"
+msgstr "Rückwärts suchen"
 
 #: src/slim_pdf/gui/app.py
 msgid "Cut pages"
@@ -2037,6 +2065,13 @@ msgstr "Bild auf Seite {page} eingefügt"
 #: src/slim_pdf/gui/insertdialog.py
 msgid "Add text"
 msgstr "Text einfügen"
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid "Copied {n} character"
+msgid_plural "Copied {n} characters"
+msgstr[0] "{n} Zeichen kopiert"
+msgstr[1] "{n} Zeichen kopiert"
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
@@ -2740,6 +2775,39 @@ msgstr "Kein Dokument"
 #: src/slim_pdf/gui/document.py
 msgid "coordinate conversion failed"
 msgstr "Koordinatenumrechnung fehlgeschlagen"
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Find in document"
+msgstr "Im Dokument suchen"
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Match case"
+msgstr "Groß-/Kleinschreibung beachten"
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Previous match (Shift+F3)"
+msgstr "Vorheriger Treffer (Umschalt+F3)"
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Next match (F3, Enter)"
+msgstr "Nächster Treffer (F3, Eingabe)"
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Close the find bar (Esc)"
+msgstr "Suchleiste schließen (Esc)"
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Find:"
+msgstr "Suchen:"
+
+#: src/slim_pdf/gui/findbar.py
+msgid "No matches"
+msgstr "Keine Treffer"
+
+#: src/slim_pdf/gui/findbar.py
+#, python-brace-format
+msgid "{current} of {total}"
+msgstr "{current} von {total}"
 
 #: src/slim_pdf/gui/formpanel.py
 msgid "Form fields"

@@ -1516,7 +1516,35 @@ msgid "Copy pages"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
-msgid "Copy the selected pages (or the current one), to paste them into this or another document"
+msgid "Copy the selected pages (or the current one), to paste them into this or another document (Ctrl+C when no text is selected)"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy text"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Copy the text selected on the page (Ctrl+C); select it by dragging over it, a word by double-clicking, the page's text with Ctrl+A"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Find…"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Search the document's text (Ctrl+F)"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Find next"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Find previous"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1965,6 +1993,12 @@ msgstr ""
 #: src/slim_pdf/gui/insertdialog.py
 msgid "Add text"
 msgstr ""
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid "Copied {n} character"
+msgid_plural "Copied {n} characters"
+msgstr[0] ""
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
@@ -2639,6 +2673,39 @@ msgstr ""
 
 #: src/slim_pdf/gui/document.py
 msgid "coordinate conversion failed"
+msgstr ""
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Find in document"
+msgstr ""
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Match case"
+msgstr ""
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Previous match (Shift+F3)"
+msgstr ""
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Next match (F3, Enter)"
+msgstr ""
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Close the find bar (Esc)"
+msgstr ""
+
+#: src/slim_pdf/gui/findbar.py
+msgid "Find:"
+msgstr ""
+
+#: src/slim_pdf/gui/findbar.py
+msgid "No matches"
+msgstr ""
+
+#: src/slim_pdf/gui/findbar.py
+#, python-brace-format
+msgid "{current} of {total}"
 msgstr ""
 
 #: src/slim_pdf/gui/formpanel.py

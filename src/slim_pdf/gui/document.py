@@ -105,11 +105,66 @@ class PdfDocument:
         # page in its form environment until it is closed, so loading a page
         # per call (sizes are asked for on every resize) piles them up.
         self._pages: dict[int, pdfium.PdfPage] = {}
+        self._text_pages: dict[int, pdfium.PdfTextPage] = {}
 
     def page(self, index: int) -> pdfium.PdfPage:
         if index not in self._pages:
             self._pages[index] = self._pdf[index]
         return self._pages[index]
+
+    # text: selecting, copying, searching (character indices of a page) -----------
+
+    def text_page(self, index: int) -> pdfium.PdfTextPage:
+        if index not in self._text_pages:
+            self._text_pages[index] = self.page(index).get_textpage()
+        return self._text_pages[index]
+
+    def char_count(self, index: int) -> int:
+        return self.text_page(index).count_chars()
+
+    def char_at(self, index: int, x: float, y: float, tolerance: float = 3.0) -> int:
+        """The character at display point (x, y), or -1."""
+        px, py = self.to_pdf(index, x, y)
+        found = self.text_page(index).get_index(px, py, tolerance, tolerance)
+        return found if found is not None and found >= 0 else -1
+
+    def text(self, index: int, start: int = 0, count: int = -1) -> str:
+        """The text of characters ``start``.. with plain line breaks (pdfium
+        counts its line breaks "\\r\\n" as two characters: don't index this)."""
+        text = self.text_page(index).get_text_range(start, count)
+        return text.replace("\r\n", "\n").replace("\r", "\n")
+
+    def text_rects(self, index: int, start: int, count: int) -> list[tuple]:
+        """Display rects (x, y, width, height) covering ``count`` characters
+        from ``start``, a rect per run on a line."""
+        textpage = self.text_page(index)
+        n = textpage.count_rects(start, count)
+        return [self.rect_to_display(index, textpage.get_rect(i)) for i in range(max(n, 0))]
+
+    def word_at(self, index: int, char: int) -> tuple[int, int]:
+        """(start, count) of the word around character ``char``."""
+        text = self.text_page(index).get_text_range()  # as indexed: \r\n not joined
+        if not 0 <= char < len(text) or text[char].isspace():
+            return char, 1
+        start, end = char, char + 1
+        while start > 0 and not text[start - 1].isspace():
+            start -= 1
+        while end < len(text) and not text[end].isspace():
+            end += 1
+        return start, end - start
+
+    def search(self, index: int, text: str, match_case: bool = False) -> list[tuple[int, int]]:
+        """(start, count) of each occurrence of ``text`` on the page."""
+        if not text:
+            return []
+        searcher = self.text_page(index).search(text, match_case=match_case)
+        found = []
+        try:
+            while (hit := searcher.get_next()) is not None:
+                found.append(hit)
+        finally:
+            searcher.close()
+        return found
 
     def label_right_of(self, index: int, x: float, y1: float, y2: float, limit: float,
                        gap: float = 6.0) -> str:
@@ -136,6 +191,9 @@ class PdfDocument:
         return " ".join(text.split())
 
     def close(self) -> None:
+        for textpage in self._text_pages.values():
+            textpage.close()
+        self._text_pages.clear()
         for page in self._pages.values():
             page.close()
         self._pages.clear()

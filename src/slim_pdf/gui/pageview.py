@@ -10,7 +10,7 @@ from PIL.ImageQt import ImageQt
 import math
 
 from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QPainter, QPen, QPixmap
+from PySide6.QtGui import QBrush, QColor, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QGraphicsItem,
@@ -308,6 +308,21 @@ class _InlineText(QPlainTextEdit):
         self.view.finish_text_edit(True)
 
 
+def _join_lines(rects: list[tuple]) -> list[tuple]:
+    """One rect per line: pdfium's runs overlap, which would show darker
+    where the translucent highlights do."""
+    out: list[tuple] = []
+    for x, y, w, h in sorted(rects, key=lambda r: (r[1] + r[3] / 2, r[0])):
+        if out:
+            ox, oy, ow, oh = out[-1]
+            if min(oy + oh, y + h) - max(oy, y) > 0.5 * min(oh, h):  # the same line
+                left, top = min(ox, x), min(oy, y)
+                out[-1] = (left, top, max(ox + ow, x + w) - left, max(oy + oh, y + h) - top)
+                continue
+        out.append((x, y, w, h))
+    return out
+
+
 class PageView(QGraphicsView):
     """Shows one page. Emits ``targetChanged`` when the signing target changes.
 
@@ -318,6 +333,9 @@ class PageView(QGraphicsView):
     field emits ``fieldActivated(name)``, on a form field
     ``formFieldActivated(name, button state)``; ``edit_text`` opens an
     editor over a text field, ``textEdited(name, text)`` reports its result.
+    Dragging over text selects it instead (double-click: a word), shown with
+    ``textSelectionChanged``; ``selected_text`` is what is selected, and
+    ``set_search_matches`` highlights what a search found.
     In crop mode, dragging draws a rectangle;
     ``cropSelected(page, display rect)`` is emitted on release. Insert mode
     works the same way, for one rectangle (or a click: an empty rectangle at
@@ -333,6 +351,7 @@ class PageView(QGraphicsView):
     formFieldActivated = Signal(str, str)
     textEdited = Signal(str, str)
     formFieldStep = Signal(str, int)  # Tab/Shift+Tab in an editor: (field, +1/-1)
+    textSelectionChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -378,6 +397,16 @@ class PageView(QGraphicsView):
         self.insert_mode = False
         self._crop_start: QPointF | None = None
         self._crop_item: QGraphicsRectItem | None = None
+
+        # selected text on this page: (first character, count); while
+        # dragging, the character the drag began at
+        self.text_selection: tuple[int, int] | None = None
+        self._text_anchor: int | None = None
+        self._selection_items: list[QGraphicsRectItem] = []
+        # search results: page -> [(start, count)], and the current one
+        self._matches: dict[int, list[tuple[int, int]]] = {}
+        self._current_match: tuple[int, int, int] | None = None
+        self._match_items: list[QGraphicsRectItem] = []
 
     # setup ------------------------------------------------------------------
 
@@ -538,6 +567,77 @@ class PageView(QGraphicsView):
             it.set_selected(False)
         self.targetChanged.emit()
 
+    # text: selection and search ----------------------------------------------
+
+    def _highlight(self, start: int, count: int, color: QColor, z: float) -> list:
+        items = []
+        for x, y, w, h in _join_lines(self.doc.text_rects(self.page, start, count)):
+            item = self.scene().addRect(QRectF(x, y, w, h), QPen(Qt.NoPen), QBrush(color))
+            item.setZValue(z)  # over the page, under fields
+            items.append(item)
+        return items
+
+    def select_text(self, start: int, count: int) -> None:
+        """Select ``count`` characters from ``start`` on this page (0: none)."""
+        for item in self._selection_items:
+            self.scene().removeItem(item)
+        self._selection_items = []
+        selection = (start, count) if self.doc is not None and count > 0 else None
+        if selection is not None:
+            self._selection_items = self._highlight(start, count, QColor(40, 120, 230, 90), 3)
+        if selection != self.text_selection:
+            self.text_selection = selection
+            self.textSelectionChanged.emit()
+
+    def clear_text_selection(self) -> None:
+        self.select_text(0, 0)
+
+    def select_all_text(self) -> None:
+        if self.doc is not None:
+            self.select_text(0, self.doc.char_count(self.page))
+
+    def selected_text(self) -> str:
+        if self.doc is None or self.text_selection is None:
+            return ""
+        return self.doc.text(self.page, *self.text_selection)
+
+    def _char_at(self, pos: QPointF, tolerance: float = 3.0) -> int:
+        if self.doc is None or not self.page_rect().contains(pos):
+            return -1
+        return self.doc.char_at(self.page, pos.x(), pos.y(), tolerance)
+
+    def _over_item(self, viewport_pos) -> bool:
+        """Whether a field or the signature is under the mouse (they get the click)."""
+        top = next(iter(self.items(viewport_pos)), None)
+        return isinstance(top, (FieldItem, FormItem, SignatureItem))
+
+    def set_search_matches(self, matches: dict[int, list[tuple[int, int]]],
+                           current: tuple[int, int, int] | None = None) -> None:
+        """Highlight ``matches`` (page -> [(start, count)]); ``current``
+        (page, start, count) stands out, and is shown: its page, scrolled to."""
+        self._matches, self._current_match = matches, current
+        if current is not None and current[0] != self.page:
+            self.go_to(current[0])  # renders, with the matches
+        else:
+            self._draw_matches()
+        if current is not None and self._match_items:
+            rects = self.doc.text_rects(*current)
+            if rects:
+                x, y, w, h = rects[0]
+                self.ensureVisible(QRectF(x, y, w, h), 80, 80)
+
+    def _draw_matches(self) -> None:
+        for item in self._match_items:
+            if item.scene() is not None:
+                self.scene().removeItem(item)
+        self._match_items = []
+        if self.doc is None:
+            return
+        for start, count in self._matches.get(self.page, []):
+            current = self._current_match == (self.page, start, count)
+            color = QColor(255, 140, 0, 150) if current else QColor(255, 220, 0, 110)
+            self._match_items += self._highlight(start, count, color, 2.5)
+
     # navigation / zoom -------------------------------------------------------
 
     def go_to(self, page: int) -> None:
@@ -627,6 +727,11 @@ class PageView(QGraphicsView):
         self._page_item = self._detail_item = None
         self._field_items = []
         self._form_items = []
+        self._selection_items, self._match_items = [], []
+        self._text_anchor = None
+        if self.text_selection is not None:
+            self.text_selection = None
+            self.textSelectionChanged.emit()
         if self.doc is None:
             return
 
@@ -664,6 +769,7 @@ class PageView(QGraphicsView):
         # The placed signature stays alive while browsing other pages.
         if self.placement is not None and self._placement_page == self.page:
             scene.addItem(self.placement)
+        self._draw_matches()
         self._update_mode()
         self._apply_zoom()
         self._update_page_pixmap()
@@ -732,6 +838,15 @@ class PageView(QGraphicsView):
             return super().mousePressEvent(event)
         pos = self.mapToScene(event.position().toPoint())
         if not (self.crop_mode or self.place_mode or self.insert_mode):
+            # a drag over text selects it
+            char = -1 if self._over_item(event.position().toPoint()) else self._char_at(pos)
+            if char >= 0:
+                self._text_anchor = char
+                self.select_text(char, 0)
+                self.setFocus()
+                event.accept()
+                return
+            self.clear_text_selection()
             # a click on a field activates it; a drag moves the page
             top = next(iter(self.items(event.position().toPoint())), None)
             at = event.position().toPoint()
@@ -768,6 +883,20 @@ class PageView(QGraphicsView):
             self.place_at(pos)
 
     def mouseMoveEvent(self, event):
+        if self._text_anchor is not None:
+            pos = self.mapToScene(event.position().toPoint())
+            char = self._char_at(pos)
+            if char < 0:
+                char = self._char_at(pos, 12.0)  # between lines: the nearest
+            if char >= 0:
+                first, last = sorted((self._text_anchor, char))
+                self.select_text(first, last - first + 1)
+            return
+        if (self.doc is not None and not event.buttons()
+                and self.dragMode() == QGraphicsView.ScrollHandDrag):
+            at = event.position().toPoint()
+            over_text = not self._over_item(at) and self._char_at(self.mapToScene(at)) >= 0
+            self.viewport().setCursor(Qt.IBeamCursor if over_text else Qt.OpenHandCursor)
         if (self.crop_mode or self.insert_mode) and self._crop_item is not None:
             end = self._clamp(self.mapToScene(event.position().toPoint()))
             self._crop_item.setRect(QRectF(self._crop_start, end).normalized())
@@ -775,6 +904,9 @@ class PageView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if self._text_anchor is not None:
+            self._text_anchor = None
+            return
         if self.crop_mode and self._crop_item is not None:
             rect = self._crop_item.rect()
             self._cancel_crop_drag()
@@ -795,6 +927,26 @@ class PageView(QGraphicsView):
             moved = (event.position().toPoint() - start).manhattanLength()
             if moved < QApplication.startDragDistance():
                 click()
+
+    def mouseDoubleClickEvent(self, event):
+        """On text: select the word."""
+        modes = self.crop_mode or self.place_mode or self.insert_mode
+        if self.doc is not None and event.button() == Qt.LeftButton and not modes:
+            at = event.position().toPoint()
+            char = -1 if self._over_item(at) else self._char_at(self.mapToScene(at))
+            if char >= 0:
+                self._text_anchor = None
+                self.select_text(*self.doc.word_at(self.page, char))
+                event.accept()
+                return
+        super().mouseDoubleClickEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.matches(QKeySequence.SelectAll) and self.doc is not None:
+            self.select_all_text()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def select_field(self, name: str) -> None:
         f = next((f for f in self.fields if f.name == name), None)

@@ -249,6 +249,20 @@ def main() -> None:
     win._escape()
     win.dirty = False
 
+    # finding text (the amounts) and a selected line
+    win.open(doc)
+    win.show_tab(gui_app.EDIT_TAB)
+    win.find_act.trigger()
+    win.find_bar.edit.setText(".00")
+    win.find_bar.search_now()
+    win.find_next_act.trigger()
+    page_text = win.doc.text_page(0).get_text_range()  # as pdfium counts (\r\n: 2)
+    start = page_text.index("Train tickets")
+    win.view.select_text(start, len("Train tickets"))
+    grab(win, "gui-find.png")
+    win.find_bar.close_bar()
+    win.view.clear_text_selection()
+
     # text recognition on a scan of the claim: the progress, over the window
     scan = scanned(doc, tmp / "expense-claim-scan.pdf")
     win.open(scan)

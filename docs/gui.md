@@ -206,6 +206,26 @@ separate objects), slim-pdf asks first. Fill in forms, then sign.
 The same is possible on the command line with `slim-pdf form` (see
 [cli.md](cli.md#fill-in-forms-slim-pdf-form)).
 
+## Finding and copying text
+
+![Finding text, and a selected line](images/gui-find.png)
+
+**Find** (*Edit* tab, `Ctrl+F`) opens a bar under the document. What you
+type is searched in all pages; the matches are highlighted, the current one
+in orange, and the bar counts them ("2 of 3"). `Enter` or `F3` goes to the
+next one, `Shift+Enter` or `Shift+F3` back, also across pages. *Match case*
+tells upper and lower case apart. `Esc` or × closes the bar. Text selected
+on the page is what **Find** looks for.
+
+**Copying text:** drag over text on the page to select it (dragging
+elsewhere still moves the page; the pointer becomes a text cursor over
+text). Double-click selects a word, `Ctrl+A` all text on the page. `Ctrl+C`
+copies it; so do **Copy text** in the ribbon and in the right-click menu.
+Without selected text, `Ctrl+C` copies pages as before.
+
+Both work with the text a PDF contains. A scan has none until its text is
+recognized (see [Recognizing text (OCR)](#recognizing-text-ocr)).
+
 ## Adding text and images
 
 ![Adding text and an image](images/gui-insert.png)
@@ -408,14 +428,19 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | `PgUp` / `PgDown` | Previous / next page |
 | `Ctrl +` / `Ctrl -` | Zoom in / out |
 | Wheel | Zoom in / out around the mouse pointer (out until the whole page fits) |
-| Left button + move | Move the page (or the placed signature, when on it) |
+| Left button + move | Move the page (or the placed signature, when on it); over text: select it |
+| Double-click | Select the word under the mouse |
+| `Ctrl+A` | Select the page's text (in the page) |
+| `Ctrl+F` | Find text in the document |
+| `F3` / `Shift+F3` | Next / previous match (`Enter` / `Shift+Enter` in the find bar) |
 | `Ctrl` + wheel | Resize the placed signature (over it); zoom elsewhere |
-| `Esc` | Cancel placing, remove the placed signature, or cancel cropping or adding text/an image |
+| `Esc` | Cancel placing, remove the placed signature, cancel cropping or adding text/an image, or deselect text; in the find bar: close it |
 | `Tab` / `Shift+Tab` | While typing into a form field on the page: fill it in, go to the next / previous field |
 | `Ctrl+S` | Place signature, then sign |
 | `Ctrl+L` / `Ctrl+R` | Rotate the selected pages left / right |
 | `Delete` | Delete the selected pages (in the *Pages* panel) |
-| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut the selected pages, paste them after the selected (or current) page |
+| `Ctrl+C` | Copy the selected text; without selected text (or in the *Pages* panel): the selected pages |
+| `Ctrl+X` / `Ctrl+V` | Cut the selected pages, paste pages after the selected (or current) page |
 | `Alt+Up` / `Alt+Down` | Move the selected pages up / down (in the *Pages* panel) |
 | `Ctrl+Z` | Undo the last page edit |
 | `Ctrl+Shift+S` | Save as |

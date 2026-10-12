@@ -72,6 +72,7 @@ from .certdialog import details_dialog
 from .screen import fit_to_screen, scrollable
 from .settings import SettingsDialog
 from .dialogs import ask_secret
+from .findbar import FindBar
 from .formpanel import FormPanel
 from .insertdialog import TextDialog
 from .doctab import DocumentTab, DocumentTabs
@@ -164,7 +165,22 @@ class MainWindow(QMainWindow):
         self.tabs.setMovable(True)
         self.tabs.setTabBarAutoHide(True)  # one document: no tab bar
         self.tabs.tabCloseRequested.connect(self.close_tab)
-        self.setCentralWidget(self.tabs)
+        # the find bar under the documents (Ctrl+F); its matches: (page,
+        # first character, count), and which one is shown
+        self.find_bar = FindBar()
+        self.find_bar.hide()
+        self.find_bar.searchChanged.connect(self._search)
+        self.find_bar.step.connect(self._step_match)
+        self.find_bar.closed.connect(self._find_closed)
+        self._matches: list[tuple[int, int, int]] = []
+        self._match = 0
+        central = QWidget()
+        lay = QVBoxLayout(central)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+        lay.addWidget(self.tabs, 1)
+        lay.addWidget(self.find_bar)
+        self.setCentralWidget(central)
         self.setAcceptDrops(True)  # PDF files from a file manager
         self._new_tab()
 
@@ -208,6 +224,7 @@ class MainWindow(QMainWindow):
         view.fieldActivated.connect(mine(self._field_activated))
         view.formFieldActivated.connect(mine(self.form_field_clicked))
         view.formFieldStep.connect(mine(self.step_form_field))
+        view.textSelectionChanged.connect(mine(self._text_selection_changed))
         # text typed on the page may arrive after another tab was chosen: it
         # still belongs to this tab's document
         view.textEdited.connect(lambda name, text: self._in_tab(
@@ -236,6 +253,7 @@ class MainWindow(QMainWindow):
                 other.view.set_place_mode(False)
                 other.view.set_crop_mode(False)
                 other.view.set_insert_mode(False)
+                other.view.set_search_matches({})  # the search is about this one
         self._insert = None
         self.crop_act.setChecked(False)
         self._sync_panels()
@@ -278,6 +296,9 @@ class MainWindow(QMainWindow):
         self.page_count.setText(_(" / {count} ").format(count=count))
         self.form_panel.set_fields(self.form_fields, self._option_labels(),
                                    has_document=doc is not None)
+        self._text_selection_changed()
+        if self.find_bar.isVisible() and self.find_bar.edit.text():
+            self.find_bar.search_now()  # another document, or this one edited
         self._fill_fields()
         self._fill_signatures()
         if self.thumbs.document is not doc:  # (already set while opening)
@@ -383,9 +404,23 @@ class MainWindow(QMainWindow):
         self.insert_image_act = act(_("Image…"), self.insert_image, None, "photo-plus",
                                     _("Add an image (PNG, JPEG or PDF) to the page"), True)
 
-        self.copy_pages_act = act(_("Copy pages"), self.copy_pages, QKeySequence.Copy, "copy",
+        self.copy_pages_act = act(_("Copy pages"), self.copy_pages, None, "copy",
                                   _("Copy the selected pages (or the current one), to paste "
-                                    "them into this or another document"), True)
+                                    "them into this or another document (Ctrl+C when no "
+                                    "text is selected)"), True)
+        # Ctrl+C: the selected text, else the selected pages
+        self.copy_act = act(_("Copy"), self._copy, QKeySequence.Copy)
+        self.copy_text_act = act(_("Copy text"), self.copy_text, None, "clipboard-text",
+                                 _("Copy the text selected on the page (Ctrl+C); select it "
+                                   "by dragging over it, a word by double-clicking, the "
+                                   "page's text with Ctrl+A"))
+        self.copy_text_act.setEnabled(False)
+        self.find_act = act(_("Find…"), self.find, QKeySequence.Find, "search",
+                            _("Search the document's text (Ctrl+F)"), True)
+        self.find_next_act = act(_("Find next"), lambda: self._find_step(1),
+                                 QKeySequence.FindNext)
+        self.find_prev_act = act(_("Find previous"), lambda: self._find_step(-1),
+                                 QKeySequence.FindPrevious)
         self.cut_pages_act = act(_("Cut pages"), self.cut_pages, QKeySequence.Cut, "cut",
                                  _("Copy the selected pages, then delete them here"), True)
         self.paste_pages_act = act(_("Paste pages"), self.paste_pages, QKeySequence.Paste,
@@ -422,6 +457,9 @@ class MainWindow(QMainWindow):
         g = edit.group(_("Insert"))
         g.add(self.insert_text_act)
         g.add(self.insert_image_act)
+        g = edit.group(_("Text"))
+        g.add(self.find_act)
+        g.add(self.copy_text_act, large=False)
         g = edit.group(_("Options"))
         g.add(self.settings_act)
 
@@ -520,6 +558,9 @@ class MainWindow(QMainWindow):
             else ngettext("Delete {n} page", "Delete {n} pages", len(target)).format(
                 n=len(target)))
         menu = QMenu(self)
+        if self.view.text_selection is not None:
+            menu.addAction(self.copy_text_act)
+            menu.addSeparator()
         menu.addActions([self.rotate_left_act, self.rotate_right_act])
         menu.addSeparator()
         menu.addActions([self.crop_act, self.uncrop_act])
@@ -563,6 +604,8 @@ class MainWindow(QMainWindow):
             self.crop_act.setChecked(False)
             self.view.set_crop_mode(False)
             self.statusBar().showMessage(_(HINT))
+        elif self.view.text_selection is not None:
+            self.view.clear_text_selection()
         else:
             self.view.clear_target()
 
@@ -1269,6 +1312,76 @@ class MainWindow(QMainWindow):
         self.apply_edit(new, message, page)
 
     # copying pages between documents ------------------------------------------------
+
+    # text: copying and finding ---------------------------------------------------
+
+    def _text_selection_changed(self) -> None:
+        self.copy_text_act.setEnabled(self.view.text_selection is not None)
+
+    def _copy(self) -> None:
+        """Ctrl+C: the selected text, unless the Pages panel has the focus."""
+        if self.view.text_selection is not None and not self.thumbs.hasFocus():
+            self.copy_text()
+        else:
+            self.copy_pages()
+
+    def copy_text(self) -> None:
+        text = self.view.selected_text()
+        if not text:
+            return
+        QGuiApplication.clipboard().setText(text)
+        self.statusBar().showMessage(ngettext("Copied {n} character", "Copied {n} characters",
+                                              len(text)).format(n=len(text)), 5000)
+
+    def find(self) -> None:
+        """Open the find bar; selected text (one line) is what to look for."""
+        if self.data is None:
+            return
+        selected = self.view.selected_text().strip()
+        self.find_bar.open(selected if selected and "\n" not in selected else "")
+
+    def _find_step(self, step: int) -> None:
+        """F3 / Shift+F3: the next/previous match (opens the bar if closed)."""
+        if self.data is None:
+            return
+        if not self.find_bar.isVisible():
+            self.find_bar.open()
+            if not self.find_bar.edit.text():
+                return
+            self.find_bar.search_now()
+        self._step_match(step)
+
+    def _search(self, text: str, match_case: bool) -> None:
+        doc = self.doc
+        if doc is None or not text:
+            self._matches = []
+            self.view.set_search_matches({})
+            self.find_bar.set_result(None)
+            return
+        self._matches = [(page, start, count) for page in range(len(doc))
+                         for start, count in doc.search(page, text, match_case)]
+        # the first match from the current page on
+        here = self.view.page
+        self._match = next((i for i, m in enumerate(self._matches) if m[0] >= here), 0)
+        self._show_match()
+
+    def _step_match(self, step: int) -> None:
+        if self._matches:
+            self._match = (self._match + step) % len(self._matches)
+            self._show_match()
+
+    def _show_match(self) -> None:
+        by_page: dict[int, list[tuple[int, int]]] = {}
+        for page, start, count in self._matches:
+            by_page.setdefault(page, []).append((start, count))
+        current = self._matches[self._match] if self._matches else None
+        self.view.set_search_matches(by_page, current)
+        self.find_bar.set_result(self._match if current else 0, len(self._matches))
+
+    def _find_closed(self) -> None:
+        self._matches = []
+        self.view.set_search_matches({})
+        self.view.setFocus()
 
     def copy_pages(self) -> None:
         if self.data is None:
