@@ -8,7 +8,7 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
-from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTimer, QTranslator, QUrl, qVersion
+from PySide6.QtCore import QLibraryInfo, QLocale, QSize, Qt, QTimer, QTranslator, QUrl, qVersion
 from PySide6.QtGui import (
     QAction,
     QColor,
@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QStackedWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -526,15 +527,25 @@ class MainWindow(QMainWindow):
                                           "on Edit, signing on Signing)"))
         self.tools_panel_act.setChecked(state.flag("tools_panel"))
         self.tools_panel_act.toggled.connect(self._tools_panel_toggled)
-        spin = QWidget()  # the page number box with " / count"
-        row = QHBoxLayout(spin)
-        row.setContentsMargins(4, 0, 4, 0)
-        row.addWidget(self.page_spin)
-        row.addWidget(self.page_count)
+        # ‹ [page] / count ›: one row, the arrows without text (tooltips name them)
+        pager = QWidget()
+        row = QHBoxLayout(pager)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(2)
+        for item in (self.prev_act, self.page_spin, self.page_count, self.next_act):
+            if isinstance(item, QAction):
+                btn = QToolButton()
+                btn.setDefaultAction(item)
+                btn.setAutoRaise(True)
+                btn.setFocusPolicy(Qt.TabFocus)
+                btn.setToolButtonStyle(Qt.ToolButtonIconOnly)
+                btn.setIconSize(QSize(ribbon.SMALL_ICON, ribbon.SMALL_ICON))
+                row.addWidget(btn)
+            else:
+                row.addWidget(item)
         rb.set_view_controls(_("View"), [
-            [panel, self.tools_panel_act],  # small, one above the other: room for the pages
-            [self.prev_act, spin, self.next_act],
-            [self.zoom_in_act, self.fit_act, self.zoom_out_act],
+            [panel, self.tools_panel_act, pager],
+            [self.zoom_in_act, self.zoom_out_act, self.fit_act],
         ])
         rb.refit()
         rb.currentChanged.connect(self._ribbon_tab_changed)

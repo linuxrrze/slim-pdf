@@ -38,9 +38,9 @@ guide show the English version.
   * *View*, a group at the ribbon's right end, the same on every tab:
     **Pages panel** (show or hide the thumbnails on the left), **Tools
     panel** (show or hide the panel on the right: the form, signing), each on
-    its own and remembered for the next start; **Previous**, the page
-    number, **Next** (`PgUp`/`PgDown`, or type the number); **Zoom in**,
-    **Fit** (fit width), **Zoom out** (`Ctrl +`/`Ctrl -`).
+    its own and remembered for the next start; under them ‹ the page
+    number › (previous / next page: `PgUp`/`PgDown`, or type the number);
+    **Zoom in**, **Zoom out** (`Ctrl +`/`Ctrl -`), **Fit** (fit width).
 
   **Open…** starts in the folder of the last file you opened, also after
   a restart (remembered in `gui.json` in the user state folder, e.g.
