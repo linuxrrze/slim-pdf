@@ -137,6 +137,16 @@ def _draw_on_page(w, page, box: Box, xobject_ref) -> None:
     w.update_container(page)
 
 
+def _helvetica(w) -> generic.IndirectObject:
+    """A new Helvetica font object (WinAnsi), for text drawn on pages."""
+    return w.add_object(generic.DictionaryObject({
+        generic.pdf_name("/Type"): generic.pdf_name("/Font"),
+        generic.pdf_name("/Subtype"): generic.pdf_name("/Type1"),
+        generic.pdf_name("/BaseFont"): generic.pdf_name("/Helvetica"),
+        generic.pdf_name("/Encoding"): generic.pdf_name("/WinAnsiEncoding"),
+    }))
+
+
 def add_text(data: bytes, page: int, box: Box, text: str, *, size: float = 11.0,
              color: Color = (0.0, 0.0, 0.0), password: str | None = None) -> bytes:
     """Draw ``text`` in ``box`` (PDF user space) on ``page`` (0-based).
@@ -161,14 +171,8 @@ def add_text(data: bytes, page: int, box: Box, text: str, *, size: float = 11.0,
             ops.append(f"0 {forms._num(-size * LEADING)} Td")
         ops.append(forms._pdf_string(line).decode("latin-1") + " Tj")
     ops.append("ET Q")
-    helv = w.add_object(generic.DictionaryObject({
-        generic.pdf_name("/Type"): generic.pdf_name("/Font"),
-        generic.pdf_name("/Subtype"): generic.pdf_name("/Type1"),
-        generic.pdf_name("/BaseFont"): generic.pdf_name("/Helvetica"),
-        generic.pdf_name("/Encoding"): generic.pdf_name("/WinAnsiEncoding"),
-    }))
     resources = generic.DictionaryObject({generic.pdf_name("/Font"): generic.DictionaryObject(
-        {generic.pdf_name(FONT_NAME): helv})})
+        {generic.pdf_name(FONT_NAME): _helvetica(w)})})
     xobj = forms.appearance(w, width, height, rot, "\n".join(ops).encode("latin-1"), resources)
     _draw_on_page(w, page_obj, box, xobj)
     return _finish(w)

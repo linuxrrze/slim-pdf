@@ -18,7 +18,19 @@ gui = ["PySide6>=6.6", "pypdfium2>=4.30"]
 pkcs11 = ["pyhanko[pkcs11]>=0.37,<0.38"]
 keyring = ["keyring>=25"]
 keepass = ["pykeepass>=4.1"]
-all = ["slim-pdf[gui,pkcs11,keyring,keepass]"]
+# text recognition; Linux (and elsewhere as an alternative) uses Tesseract, installed separately
+ocr = [
+    "pypdfium2>=4.30",
+    "pyobjc-framework-Vision>=10; sys_platform == 'darwin'",
+    "winrt-runtime>=2; sys_platform == 'win32'",
+    "winrt-Windows.Foundation>=2; sys_platform == 'win32'",
+    "winrt-Windows.Foundation.Collections>=2; sys_platform == 'win32'",
+    "winrt-Windows.Globalization>=2; sys_platform == 'win32'",
+    "winrt-Windows.Graphics.Imaging>=2; sys_platform == 'win32'",
+    "winrt-Windows.Media.Ocr>=2; sys_platform == 'win32'",
+    "winrt-Windows.Storage.Streams>=2; sys_platform == 'win32'",
+]
+all = ["slim-pdf[gui,pkcs11,keyring,keepass,ocr]"]
 dev = ["slim-pdf[all]", "pytest>=8", "pytest-cov>=5", "cryptography>=42"]
 
 [project.scripts]

@@ -631,6 +631,65 @@ def cmd_form(cfg: Config, args) -> int:
     return 0
 
 
+def _ocr_languages(cfg: Config, given: str | None) -> list[str]:
+    from . import ocr
+
+    if given:
+        return [v.strip() for v in given.replace("+", ",").split(",") if v.strip()]
+    return cfg.ocr.languages or ocr.default_languages()
+
+
+def cmd_ocr(cfg: Config, args) -> int:
+    from . import ocr
+
+    if args.list_engines:
+        default = None
+        try:
+            default = ocr.get_engine(cfg.ocr.engine, cfg.ocr.tesseract).name
+        except ocr.OcrError:
+            pass
+        found = ocr.engines(cfg.ocr.tesseract)
+        if not found:
+            print(_("no OCR engine found. {hint}").format(hint=ocr.install_hint("tesseract")))
+        for engine in found:
+            mark = "*" if engine.name == default else " "
+            print(f"{mark} {engine.name:10} {engine.label}")
+            print("      " + _("languages: {languages}").format(
+                languages=", ".join(engine.languages()) or "-"))
+        return 0
+    if not args.file:
+        raise SigningError(_("which PDF? (or --list-engines)"))
+    src = Path(args.file)
+    data, pw = _read_pdf(src, args.password)
+    selected = pages.parse_pages(args.pages, pages.page_count(data, pw))
+    engine = ocr.get_engine(args.engine or cfg.ocr.engine, cfg.ocr.tesseract)
+    languages = _ocr_languages(cfg, args.lang)
+    _guard_signatures(data, pw, args.force,
+                      _("adding text would invalidate the signature(s) {names}"))
+
+    def progress(done: int, total: int) -> None:
+        if sys.stderr.isatty():
+            print("\r" + _("page {done} of {total}").format(done=min(done + 1, total),
+                                                           total=total),
+                  end="" if done < total else "\n", file=sys.stderr, flush=True)
+
+    out, done, skipped = ocr.recognize(data, selected, engine, languages, password=pw,
+                                       force=args.redo, progress=progress)
+    if skipped:
+        print(ngettext("skipped {n} page that already has text (--redo recognizes it anyway)",
+                       "skipped {n} pages that already have text (--redo recognizes them anyway)",
+                       len(skipped)).format(n=len(skipped)))
+    if out is None:
+        print(_("no text recognized; nothing written"))
+        return 0
+    dst = _edit_output(src, args, "ocr")
+    _atomic_write(dst, out)
+    print(ngettext("recognized text on {n} page -> {path}",
+                   "recognized text on {n} pages -> {path}", len(done)).format(
+        n=len(done), path=dst))
+    return 0
+
+
 def cmd_split(cfg: Config, args) -> int:
     src = Path(args.file)
     data, pw = _read_pdf(src, args.password)
@@ -779,8 +838,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--password", help=_(PASSWORD_HELP))
     p.set_defaults(func=cmd_verify)
 
-    def edit_opts(p, suffix, all_pages=True):
-        p.add_argument("file")
+    def edit_opts(p, suffix, all_pages=True, file_optional=False):
+        p.add_argument("file", nargs="?" if file_optional else None)
         p.add_argument("-o", "--output",
                        help=_("output file (default: <name>-{suffix}.pdf)").format(suffix=suffix))
         p.add_argument("-i", "--in-place", action="store_true", help=_("overwrite the input"))
@@ -822,6 +881,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true",
                    help=_("go ahead even if this invalidates existing signatures"))
     p.set_defaults(func=cmd_form)
+
+    p = sub.add_parser("ocr", help=_("recognize text in scanned pages (OCR)"),
+                       description=_("Adds the recognized text invisibly over the scanned "
+                                     "pages, so it can be searched and copied. Runs locally."))
+    edit_opts(p, "ocr", file_optional=True)  # not needed with --list-engines
+    p.add_argument("--lang", help=_("languages, e.g. de,en (default: the user interface's "
+                                    "language and English)"))
+    p.add_argument("--engine", choices=("vision", "windows", "tesseract"),
+                   help=_("OCR engine (default: the platform's own, else Tesseract)"))
+    p.add_argument("--redo", action="store_true",
+                   help=_("also pages that already have text"))
+    p.add_argument("--list-engines", action="store_true",
+                   help=_("show the OCR engines and languages available here"))
+    p.set_defaults(func=cmd_ocr)
 
     p = sub.add_parser("split", help=_("split into several PDFs"))
     p.add_argument("file")

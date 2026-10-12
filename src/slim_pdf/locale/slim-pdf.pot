@@ -773,6 +773,47 @@ msgid_plural "filled in {n} fields -> {path}"
 msgstr[0] ""
 
 #: src/slim_pdf/cli.py
+#: src/slim_pdf/ocr/__init__.py
+#, python-brace-format
+msgid "no OCR engine found. {hint}"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+#, python-brace-format
+msgid "languages: {languages}"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "which PDF? (or --list-engines)"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+#, python-brace-format
+msgid "adding text would invalidate the signature(s) {names}"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+#, python-brace-format
+msgid "page {done} of {total}"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+#, python-brace-format
+msgid "skipped {n} page that already has text (--redo recognizes it anyway)"
+msgid_plural "skipped {n} pages that already have text (--redo recognizes them anyway)"
+msgstr[0] ""
+
+#: src/slim_pdf/cli.py
+msgid "no text recognized; nothing written"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+#, python-brace-format
+msgid "recognized text on {n} page -> {path}"
+msgid_plural "recognized text on {n} pages -> {path}"
+msgstr[0] ""
+
+#: src/slim_pdf/cli.py
 #, python-brace-format
 msgid "splitting would remove the signature(s) {names}"
 msgstr ""
@@ -990,6 +1031,30 @@ msgid "output file (default: <name>-filled.pdf)"
 msgstr ""
 
 #: src/slim_pdf/cli.py
+msgid "recognize text in scanned pages (OCR)"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "Adds the recognized text invisibly over the scanned pages, so it can be searched and copied. Runs locally."
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "languages, e.g. de,en (default: the user interface's language and English)"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "OCR engine (default: the platform's own, else Tesseract)"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "also pages that already have text"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "show the OCR engines and languages available here"
+msgstr ""
+
+#: src/slim_pdf/cli.py
 msgid "split into several PDFs"
 msgstr ""
 
@@ -1140,6 +1205,26 @@ msgid "{name}: {key} must be a string, not {value!r}"
 msgstr ""
 
 #: src/slim_pdf/config.py
+#, python-brace-format
+msgid "{path}: unknown keys in [ocr]: {keys}"
+msgstr ""
+
+#: src/slim_pdf/config.py
+#, python-brace-format
+msgid "{path}: ocr engine must be one of {engines}"
+msgstr ""
+
+#: src/slim_pdf/config.py
+#, python-brace-format
+msgid "{path}: ocr tesseract must be a path"
+msgstr ""
+
+#: src/slim_pdf/config.py
+#, python-brace-format
+msgid "{path}: ocr languages must be a list like [\"de\", \"en\"]"
+msgstr ""
+
+#: src/slim_pdf/config.py
 msgid "no certificate given and no default configured"
 msgstr ""
 
@@ -1166,6 +1251,11 @@ msgstr ""
 #: src/slim_pdf/config.py
 #, python-brace-format
 msgid "{path}: language must be one of {languages}"
+msgstr ""
+
+#: src/slim_pdf/config.py
+#, python-brace-format
+msgid "{path}: ocr must be a table"
 msgstr ""
 
 #: src/slim_pdf/forms.py
@@ -2692,6 +2782,175 @@ msgstr ""
 
 #: src/slim_pdf/insert.py
 msgid "the font size must be positive"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+#, python-brace-format
+msgid "{engine} can't recognize {languages}. {hint}"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "German"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "English"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "French"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Italian"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Spanish"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Dutch"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Portuguese"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Polish"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Czech"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Danish"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Swedish"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Finnish"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Norwegian"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Hungarian"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Turkish"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Russian"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Ukrainian"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+#, python-brace-format
+msgid "unknown OCR engine {name!r} (known: {engines})"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+#, python-brace-format
+msgid "{engine} is not available. {hint}"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Apple Vision is only available on macOS."
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Windows OCR is only available on Windows."
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Install its packages: pip install 'slim-pdf[ocr]'"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Install Tesseract, e.g. from https://github.com/UB-Mannheim/tesseract/wiki (with the German language data)."
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Install Tesseract, e.g. with Homebrew: brew install tesseract tesseract-lang"
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "Install Tesseract with the German language data, e.g. sudo apt install tesseract-ocr tesseract-ocr-deu (Fedora: sudo dnf install tesseract tesseract-langpack-deu)."
+msgstr ""
+
+#: src/slim_pdf/ocr/__init__.py
+msgid "text recognition needs pypdfium2: pip install 'slim-pdf[ocr]'"
+msgstr ""
+
+#: src/slim_pdf/ocr/_tesseract.py
+msgid "Tesseract"
+msgstr ""
+
+#: src/slim_pdf/ocr/_tesseract.py
+msgid "Install the language data with the Tesseract installer."
+msgstr ""
+
+#: src/slim_pdf/ocr/_tesseract.py
+msgid "Install the language data: brew install tesseract-lang"
+msgstr ""
+
+#: src/slim_pdf/ocr/_tesseract.py
+#, python-brace-format
+msgid "Install the language data, e.g. sudo apt install {packages}"
+msgstr ""
+
+#: src/slim_pdf/ocr/_tesseract.py
+msgid "Tesseract took too long"
+msgstr ""
+
+#: src/slim_pdf/ocr/_tesseract.py
+#, python-brace-format
+msgid "cannot run Tesseract: {error}"
+msgstr ""
+
+#: src/slim_pdf/ocr/_tesseract.py
+#, python-brace-format
+msgid "Tesseract failed: {error}"
+msgstr ""
+
+#: src/slim_pdf/ocr/_vision.py
+msgid "Apple Vision"
+msgstr ""
+
+#: src/slim_pdf/ocr/_vision.py
+msgid "A newer macOS recognizes more languages."
+msgstr ""
+
+#: src/slim_pdf/ocr/_vision.py
+#, python-brace-format
+msgid "Apple Vision failed: {error}"
+msgstr ""
+
+#: src/slim_pdf/ocr/_winocr.py
+msgid "Windows OCR"
+msgstr ""
+
+#: src/slim_pdf/ocr/_winocr.py
+#, python-brace-format
+msgid "Add the language in Windows' settings (Time & language → Language & region, with \"Optical character recognition\"), or as administrator in PowerShell: Add-WindowsCapability -Online -Name Language.OCR~~~{tag}~0.0.1.0"
+msgstr ""
+
+#: src/slim_pdf/ocr/_winocr.py
+#, python-brace-format
+msgid "Windows OCR can't recognize {language}. {hint}"
 msgstr ""
 
 #: src/slim_pdf/pages.py

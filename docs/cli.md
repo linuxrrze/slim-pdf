@@ -12,6 +12,8 @@ slim-pdf [--config FILE] [--verbose] <command> ...
   delete FILE --pages SPEC
   split FILE [--every N | --part SPEC ...]
   merge -o OUT FILE[@SPEC] ...
+  form FILE [--set NAME=VALUE ...]
+  ocr FILE [--pages SPEC] [--lang de,en] | ocr --list-engines
   gui [FILE]
 ```
 
@@ -688,6 +690,56 @@ doesn't accept changes to fields whose buttons are separate objects, like
 radio buttons; when filling in would invalidate a signature, `form` stops
 with exit code `3` unless you add `--force`.
 
+## Recognize text (OCR): `slim-pdf ocr`
+
+Scanned pages are only pictures: you can't search them or copy their text.
+`ocr` recognizes the text and adds it **invisibly** over the scan. The page
+looks exactly the same, but its text can be searched, selected and copied
+(and screen readers can read it). Everything runs on your machine; nothing
+is uploaded.
+
+```console
+$ slim-pdf ocr scan.pdf
+skipped 1 page that already has text (--redo recognizes it anyway)
+recognized text on 2 pages -> scan-ocr.pdf
+```
+
+Pages that already have text (for example, documents that were not scanned)
+are skipped; `--redo` recognizes them anyway. Use it for scans with a few
+typed lines added, not for pages that were already recognized: those would get
+the text a second time. Like the page tools, `ocr` takes `--pages`,
+`-o`/`--output` or `-i`/`--in-place` (default: `<name>-ocr.pdf`) and
+`--password`. Adding text invalidates existing signatures, so a signed
+document is refused with exit code `3` unless you add `--force`; recognize
+text *before* signing.
+
+`--lang` picks the languages (default: the user interface's language and
+English, e.g. `de,en`). The engine is the one built into the system, or
+Tesseract:
+
+| System | Engine (`--engine`) | Install |
+|---|---|---|
+| macOS 11+ | Apple Vision (`vision`) | Nothing: part of macOS, and of the app. |
+| Windows 10/11 | Windows OCR (`windows`) | Nothing, but each language needs its OCR component: *Settings → Time & language → Language & region*, or as administrator: `Add-WindowsCapability -Online -Name Language.OCR~~~de-DE~0.0.1.0` |
+| Linux, or anywhere | Tesseract (`tesseract`) | `sudo apt install tesseract-ocr tesseract-ocr-deu` (Fedora: `tesseract tesseract-langpack-deu`; macOS: `brew install tesseract tesseract-lang`; Windows: the [UB Mannheim installer](https://github.com/UB-Mannheim/tesseract/wiki)) |
+
+With pip, the macOS and Windows engines come with `pip install
+'slim-pdf[ocr]'` (also part of `[all]`). `--list-engines` shows what works
+here, with the default marked `*`:
+
+```console
+$ slim-pdf ocr --list-engines
+* tesseract  Tesseract
+      languages: de, en
+$ slim-pdf ocr scan.pdf --lang fr
+error: Tesseract can't recognize French. Install the language data, e.g. sudo apt install tesseract-ocr-fra
+```
+
+Windows OCR reads one language at a time (the first of `--lang`); German
+text with English words in it works fine with `de`. Recognized text is
+stored in the Windows-1252 character set (Latin script, €); other characters
+become `?`.
+
 ## GUI: `slim-pdf gui`
 
 ```console
@@ -748,6 +800,11 @@ write this file. You can also edit it by hand:
 default = "work"
 trust = ["~/certs/supervisor-ca.pem"]   # extra roots for verify (optional)
 language = "de"                          # "en" or "de"; omit for the system language
+
+[ocr]                                    # text recognition (optional)
+engine = "tesseract"                     # "vision", "windows" or "tesseract"; omit for the default
+languages = ["de", "en"]                 # omit for the user interface's language and English
+tesseract = "D:/Tools/Tesseract-OCR/tesseract.exe"   # if it isn't on the PATH
 
 [certs.work]
 type = "pkcs12"

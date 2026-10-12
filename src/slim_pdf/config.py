@@ -43,6 +43,7 @@ def supported_cert_types(platform: str | None = None) -> tuple[str, ...]:
 SECRET_SOURCES = ("prompt", "keyring", "keepass", "keepassxc", "none")
 KEEPASS_SOURCES = ("keepass", "keepassxc")
 TEXT_POSITIONS = ("below", "above", "left", "right")  # the stamp text, seen from the image
+OCR_ENGINES = ("vision", "windows", "tesseract")  # as in ocr.ENGINES (not imported: no deps)
 
 # The stored default stays English, so existing profiles keep their stamp;
 # new profiles start with the text in the current language (new_profile()).
@@ -187,11 +188,41 @@ def new_profile(name: str) -> CertProfile:
 
 
 @dataclass
+class OcrSettings:
+    """Text recognition, the [ocr] table."""
+    engine: str = ""  # "" = the platform's own, else ocr.ENGINES
+    languages: list[str] = field(default_factory=list)  # [] = UI language and English
+    tesseract: str = ""  # path to the program, if not on the PATH
+
+    def to_dict(self) -> dict:
+        return {k: v for k, v in asdict(self).items() if v}
+
+    @classmethod
+    def from_dict(cls, d: dict, path: Path) -> OcrSettings:
+        unknown = set(d) - {f.name for f in fields(cls)}
+        if unknown:
+            raise ValueError(_("{path}: unknown keys in [ocr]: {keys}").format(
+                path=path, keys=sorted(unknown)))
+        engine, tesseract = d.get("engine", ""), d.get("tesseract", "")
+        languages = d.get("languages", [])
+        if engine not in ("", *OCR_ENGINES):
+            raise ValueError(_("{path}: ocr engine must be one of {engines}").format(
+                path=path, engines=", ".join(OCR_ENGINES)))
+        if not isinstance(tesseract, str):
+            raise ValueError(_("{path}: ocr tesseract must be a path").format(path=path))
+        if not (isinstance(languages, list) and all(isinstance(v, str) for v in languages)):
+            raise ValueError(_("{path}: ocr languages must be a list like [\"de\", \"en\"]"
+                               ).format(path=path))
+        return cls(engine=engine, languages=list(languages), tesseract=tesseract)
+
+
+@dataclass
 class Config:
     certs: dict[str, CertProfile] = field(default_factory=dict)
     default: str = ""
     trust: list[str] = field(default_factory=list)  # extra trust roots for verify
     language: str = ""  # "" = the system's language; else a code from i18n.LANGUAGES
+    ocr: OcrSettings = field(default_factory=OcrSettings)
     path: Path | None = None
 
     def get(self, name: str | None) -> CertProfile:
@@ -226,6 +257,8 @@ class Config:
             data["trust"] = list(self.trust)
         if self.language:
             data["language"] = self.language
+        if self.ocr.to_dict():
+            data["ocr"] = self.ocr.to_dict()
         data["certs"] = {n: p.to_dict() for n, p in self.certs.items()}
         tmp = path.with_suffix(".tmp")
         with open(tmp, "wb") as f:
@@ -263,7 +296,7 @@ def load_config(path: Path | None = None) -> Config:
     certs = {
         name: CertProfile.from_dict(name, d) for name, d in data.get("certs", {}).items()
     }
-    unknown = set(data) - {"default", "trust", "language", "certs"}
+    unknown = set(data) - {"default", "trust", "language", "ocr", "certs"}
     if unknown:
         raise ValueError(_("{path}: unknown keys {keys}").format(path=path, keys=sorted(unknown)))
     default, trust = data.get("default", ""), data.get("trust", [])
@@ -276,8 +309,11 @@ def load_config(path: Path | None = None) -> Config:
     if language not in ("", *LANGUAGES):
         raise ValueError(_("{path}: language must be one of {languages}").format(
             path=path, languages=", ".join(LANGUAGES)))
+    ocr = data.get("ocr", {})
+    if not isinstance(ocr, dict):
+        raise ValueError(_("{path}: ocr must be a table").format(path=path))
     return Config(certs=certs, default=default, trust=list(trust), language=language,
-                  path=path)
+                  ocr=OcrSettings.from_dict(ocr, path), path=path)
 
 
 def expand(p: str) -> Path:
