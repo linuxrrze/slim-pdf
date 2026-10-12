@@ -361,6 +361,7 @@ class PageView(QGraphicsView):
         self.setAlignment(Qt.AlignCenter)
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.NoAnchor)  # zoom_at() anchors itself
+        self.viewport().setMouseTracking(True)  # moves without a button: the text cursor
 
         self.doc: PdfDocument | None = None
         self.fields: list[SigField] = []
@@ -844,6 +845,7 @@ class PageView(QGraphicsView):
                 self._text_anchor = char
                 self.select_text(char, 0)
                 self.setFocus()
+                self.viewport().setCursor(Qt.IBeamCursor)  # also while dragging
                 event.accept()
                 return
             self.clear_text_selection()
@@ -884,6 +886,7 @@ class PageView(QGraphicsView):
 
     def mouseMoveEvent(self, event):
         if self._text_anchor is not None:
+            self.viewport().setCursor(Qt.IBeamCursor)
             pos = self.mapToScene(event.position().toPoint())
             char = self._char_at(pos)
             if char < 0:
@@ -892,20 +895,27 @@ class PageView(QGraphicsView):
                 first, last = sorted((self._text_anchor, char))
                 self.select_text(first, last - first + 1)
             return
-        if (self.doc is not None and not event.buttons()
-                and self.dragMode() == QGraphicsView.ScrollHandDrag):
-            at = event.position().toPoint()
-            over_text = not self._over_item(at) and self._char_at(self.mapToScene(at)) >= 0
-            self.viewport().setCursor(Qt.IBeamCursor if over_text else Qt.OpenHandCursor)
         if (self.crop_mode or self.insert_mode) and self._crop_item is not None:
             end = self._clamp(self.mapToScene(event.position().toPoint()))
             self._crop_item.setRect(QRectF(self._crop_start, end).normalized())
             return
-        super().mouseMoveEvent(event)
+        super().mouseMoveEvent(event)  # (sets the hand cursor again)
+        if not event.buttons():
+            self._hover_cursor(event.position().toPoint())
+
+    def _hover_cursor(self, at) -> None:
+        """A text cursor over text, else the hand that moves the page."""
+        if self.doc is None or self.dragMode() != QGraphicsView.ScrollHandDrag:
+            return
+        if self._over_item(at):
+            return  # fields and the signature have their own
+        over_text = self._char_at(self.mapToScene(at)) >= 0
+        self.viewport().setCursor(Qt.IBeamCursor if over_text else Qt.OpenHandCursor)
 
     def mouseReleaseEvent(self, event):
         if self._text_anchor is not None:
             self._text_anchor = None
+            self._hover_cursor(event.position().toPoint())
             return
         if self.crop_mode and self._crop_item is not None:
             rect = self._crop_item.rect()

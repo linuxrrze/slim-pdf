@@ -173,3 +173,29 @@ def test_search_follows_the_document(window, text_pdf, tmp_path):
     other = make_pdf(tmp_path / "other.pdf", pages=1)
     window.open(other)  # another tab: searched there
     assert window._matches == [] and window.find_bar.count.text() == "No matches"
+
+
+def test_cursor_shows_text_and_selecting(window, text_pdf, qapp):
+    window.open(text_pdf)
+    view, vp = window.view, window.view.viewport()
+
+    def at(x, y):
+        return view.mapFromScene(QPointF(x, y))
+
+    def move(pos):  # goes through the window system: handled after events are
+        QTest.mouseMove(vp, pos)
+        qapp.processEvents()
+
+    on_text, off_text = at(*char_center(window, 1)), at(300, 500)
+    # QTest's mouse may still have a button down from earlier tests' drags
+    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, off_text)
+    move(off_text)
+    move(on_text)
+    assert vp.cursor().shape() == Qt.IBeamCursor
+    move(off_text)
+    assert vp.cursor().shape() == Qt.OpenHandCursor
+    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, on_text)
+    move(off_text)  # still selecting, even beside the text
+    assert vp.cursor().shape() == Qt.IBeamCursor
+    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, off_text)
+    assert vp.cursor().shape() == Qt.OpenHandCursor
