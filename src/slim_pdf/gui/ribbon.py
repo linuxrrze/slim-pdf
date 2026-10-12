@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QHBoxLayout,
-    QLabel,
     QScrollArea,
     QSizePolicy,
     QStackedWidget,
@@ -78,7 +77,8 @@ CHECKED_STYLE = ("QToolButton { padding: 1px 3px; border: 1px solid transparent;
 
 class RibbonGroup(QFrame):
     """Small buttons (text beside the icon) stacked in columns of three, or
-    large ones (text under it) in a row, with the group's name underneath."""
+    large ones (text under it) in a row. Its name isn't shown (the
+    separators group the buttons); screen readers get it."""
 
     def __init__(self, title: str):
         super().__init__()
@@ -89,10 +89,8 @@ class RibbonGroup(QFrame):
         self.row = QHBoxLayout()
         self.row.setSpacing(2)
         outer.addLayout(self.row, 1)
-        self.title = QLabel(title)
-        self.title.setAlignment(Qt.AlignHCenter)
-        self.title.setEnabled(False)  # greyed, as a caption
-        outer.addWidget(self.title)
+        self.name = title
+        self.setAccessibleName(title)
         self._column: QVBoxLayout | None = None
 
     def add(self, action: QAction, large: bool = False) -> QToolButton:

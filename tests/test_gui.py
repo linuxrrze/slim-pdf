@@ -1552,7 +1552,7 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     assert view == [window.pages_dock.toggleViewAction(), window.tools_panel_act,
                     window.prev_act, window.next_act,
                     window.zoom_in_act, window.zoom_out_act, window.fit_act]
-    assert rb.view_controls.title.text() == "View"
+    assert rb.view_controls.name == "View"
     assert rb.view_controls.isAncestorOf(window.page_spin)
     for i in range(rb.count()):
         rb.setCurrentIndex(i)
