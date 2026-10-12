@@ -3,6 +3,9 @@ name = "slim-pdf"
 version = "0.1.0"
 description = "A slim PDF tool: sign with real certificates (PAdES), check signatures, fill in forms, add text and images, edit pages"
 requires-python = ">=3.11"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE", "src/slim_pdf/gui/icons/LICENSE"]
+authors = [{ name = "Marcel Ritter", email = "marcel@linux-ng.de" }]
 dependencies = [
     "pyhanko>=0.37,<0.38",
     "pyhanko-certvalidator>=0.32,<0.33",
@@ -42,7 +45,7 @@ slim-pdf-gui = "slim_pdf.gui:main"
 pdfsigner-gui = "slim_pdf.gui:main"
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]  # license expressions (PEP 639)
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]

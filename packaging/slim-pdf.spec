@@ -6,6 +6,7 @@
 # Output: dist/Slim PDF/ (Windows, Linux) or dist/Slim PDF.app (macOS,
 # with the CLI at Contents/MacOS/slim-pdf).
 
+import runpy
 import sys
 import tomllib
 from pathlib import Path
@@ -37,6 +38,10 @@ datas = (
                                                      "locale/*/LC_MESSAGES/*.mo"])
     + [(str(ICONS / "slim-pdf.png"), ".")]
 )
+# Slim PDF's license, and the licenses of everything bundled with it
+notices = runpy.run_path(str(ROOT / "packaging" / "third_party_licenses.py"))["write"](
+    ROOT / "build" / "THIRD-PARTY-LICENSES.txt")
+datas += [(str(ROOT / "LICENSE"), "."), (str(notices), ".")]
 # Metadata the bundle can't work without (keyring finds its backends through
 # entry points, others read their own version). A missing one fails the build
 # instead of shipping an app without, e.g., keyring support.

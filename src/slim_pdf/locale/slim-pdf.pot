@@ -2213,6 +2213,18 @@ msgid "Icons: Tabler Icons (MIT license)"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
+msgid "Free software, without any warranty. License:"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "GNU GPL version 3 or later"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Licenses of the bundled software"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid ""
 "Cannot read the configuration:\n"

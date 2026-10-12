@@ -112,6 +112,12 @@ def main() -> int:
                 print(f"[FAIL] recognized text: {text!r}\n{engines}")
         if sys.platform in ("win32", "darwin"):
             run("certs", "system")
+        # the license texts the installers must carry
+        for name in ("LICENSE", "THIRD-PARTY-LICENSES.txt"):
+            places = [cli.parent / "_internal" / name, cli.parent.parent / "Resources" / name]
+            ok = any(p.is_file() for p in places)
+            failures += not ok
+            print(f"[{'ok' if ok else 'FAIL'}] {name} in the bundle")
 
         r = subprocess.run([str(gui), "--smoke-test", str(signed)], env=env,
                            capture_output=True, text=True, timeout=120)

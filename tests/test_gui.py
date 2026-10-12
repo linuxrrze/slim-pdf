@@ -1,6 +1,7 @@
 """GUI tests; run headless (conftest sets QT_QPA_PLATFORM=offscreen)."""
 
 import os
+import sys
 
 import pytest
 
@@ -1539,7 +1540,7 @@ def page_buttons(rb):
             for b in rb.tab_page(i).findChildren(QtWidgets.QToolButton)]
 
 
-def test_ribbon_tabs_and_about(window, monkeypatch):
+def test_ribbon_tabs_and_about(window, monkeypatch, tmp_path):
     """The ribbon replaces the toolbars; Help → About names the version."""
     rb = window.ribbon
     assert window.menuWidget() is rb
@@ -1587,7 +1588,15 @@ def test_ribbon_tabs_and_about(window, monkeypatch):
     assert title == "About Slim PDF"
     assert gui_app.version() in text and "pyHanko" in text
     assert gui_app.HOMEPAGE in text
+    assert "GNU GPL version 3 or later" in text and gui_app.LICENSE_URL in text
+    assert "bundled software" not in text  # from source: no THIRD-PARTY-LICENSES.txt
     assert "freezes.log" not in text and "stops responding" not in text
+    bundle = tmp_path / "_internal"  # a frozen build carries the third-party licenses
+    bundle.mkdir()
+    (bundle / "THIRD-PARTY-LICENSES.txt").write_text("…", encoding="utf-8")
+    monkeypatch.setattr(sys, "_MEIPASS", str(bundle), raising=False)
+    assert "Licenses of the bundled software" in gui_app.about_text()
+    assert "THIRD-PARTY-LICENSES.txt" in gui_app.about_text()
     help_tab = [b.defaultAction().text() for b in
                 rb.tab_page(rb.count() - 1).findChildren(QtWidgets.QToolButton)]
     assert help_tab == ["Documentation", "About Slim PDF"]  # no "About Qt"

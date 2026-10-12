@@ -34,7 +34,8 @@ guide show the English version.
   * *Pages:* rotate, crop and delete pages; copy, cut and paste them (see
     [Page tools](#page-tools)).
   * *Help:* **Documentation** (`F1`, this guide online), **About Slim PDF**
-    (version, and the libraries it is built on).
+    (version, the libraries it is built on, the license, and in the
+    installed app the licenses of the software bundled with it).
   * *View*, a group at the ribbon's right end, the same on every tab:
     **Pages panel** (show or hide the thumbnails on the left), **Tools
     panel** (show or hide the panel on the right: the form, signing), each on

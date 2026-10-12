@@ -60,6 +60,7 @@ Name: "openwith"; Description: "Offer Slim PDF in ""Open with"" for PDF files"; 
 Source: "{#SourceDir}\*"; Excludes: "\Slim PDF.exe,\slim-pdf.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SourceDir}\Slim PDF.exe"; DestDir: "{app}"; Flags: ignoreversion{#SignFlag}
 Source: "{#SourceDir}\slim-pdf.exe"; DestDir: "{app}"; Flags: ignoreversion{#SignFlag}
+Source: "..\..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"

@@ -1812,6 +1812,7 @@ class MainWindow(QMainWindow):
 ICON = Path(__file__).with_name("icon.png")
 HOMEPAGE = "https://github.com/linuxrrze/slim-pdf"
 DOCS_URL = HOMEPAGE + "/blob/main/docs/gui.md"
+LICENSE_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
 RADIO_LABEL_WIDTH = 100  # points to the right of a radio button searched for its label
 IMAGE_WIDTH = 150  # points: an image added with a click
 STAMP_PREVIEW_PX = 240  # height of the placed stamp's preview, sharp enough when zoomed
@@ -1846,8 +1847,23 @@ def about_text() -> str:
         "<p>{}</p>".format(html.escape(_("Built with: {libraries}").format(
             libraries=", ".join(f"{name} {v}" for name, v in libs)))),
         "<p>{}</p>".format(html.escape(_("Icons: Tabler Icons (MIT license)"))),
+        '<p>{} <a href="{url}">{name}</a></p>'.format(
+            html.escape(_("Free software, without any warranty. License:")),
+            url=LICENSE_URL, name=html.escape(_("GNU GPL version 3 or later"))),
+        *(['<p><a href="{url}">{text}</a></p>'.format(
+            url=html.escape(QUrl.fromLocalFile(str(notices)).toString()),
+            text=html.escape(_("Licenses of the bundled software")))]
+          if (notices := third_party_notices()) else []),
         '<p><a href="{url}">{url}</a></p>'.format(url=HOMEPAGE),
     ])
+
+
+def third_party_notices() -> Path | None:
+    """THIRD-PARTY-LICENSES.txt of an installed (frozen) build; a pip
+    install has each package's license in its own metadata instead."""
+    bundle = getattr(sys, "_MEIPASS", None)
+    path = Path(bundle) / "THIRD-PARTY-LICENSES.txt" if bundle else None
+    return path if path is not None and path.is_file() else None
 
 
 def setup_language(app: QApplication, configured: str | None) -> str:

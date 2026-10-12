@@ -30,6 +30,7 @@ staging="$(mktemp -d)"
 trap 'rm -rf "$staging"' EXIT
 ditto "$APP" "$staging/Slim PDF.app"  # keeps signatures, symlinks and metadata
 ln -s /Applications "$staging/Applications"
+cp LICENSE "$staging/LICENSE.txt"  # third-party licenses: inside the app (Resources)
 rm -f "$DMG"
 hdiutil create -volname "Slim PDF" -srcfolder "$staging" -ov -format UDZO "$DMG"
 

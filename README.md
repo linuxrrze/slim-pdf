@@ -224,3 +224,21 @@ Screenshots are regenerated with
   styles, and the installers. **Feedback is welcome**: what works, what
   doesn't, screenshots — please open an
   [issue](https://github.com/linuxrrze/slim-pdf/issues).
+
+## License
+
+Copyright (C) 2026 Marcel Ritter
+
+slim-pdf is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version. It is distributed WITHOUT ANY WARRANTY; see
+[LICENSE](LICENSE) for the full text.
+
+The libraries it uses keep their own licenses, all compatible with the GPL:
+mostly MIT, BSD and Apache-2.0 (pyHanko, pypdf, pypdfium2/PDFium, Pillow,
+cryptography, …), MPL-2.0 (certifi), LGPL-3.0 (Qt via PySide6) and GPL-3.0
+(pykeepass). The icons are [Tabler Icons](https://tabler.io/icons) (MIT, see
+[src/slim_pdf/gui/icons/LICENSE](src/slim_pdf/gui/icons/LICENSE)). The
+installers carry a `THIRD-PARTY-LICENSES.txt` with the license texts of
+everything they bundle (see [packaging/README.md](packaging/README.md#licenses)).
