@@ -77,8 +77,8 @@ CHECKED_STYLE = ("QToolButton { padding: 1px 3px; border: 1px solid transparent;
 
 
 class RibbonGroup(QFrame):
-    """Buttons in a row (large) or stacked in columns of three (small),
-    with the group's name underneath."""
+    """Small buttons (text beside the icon) stacked in columns of three, or
+    large ones (text under it) in a row, with the group's name underneath."""
 
     def __init__(self, title: str):
         super().__init__()
@@ -95,7 +95,7 @@ class RibbonGroup(QFrame):
         outer.addWidget(self.title)
         self._column: QVBoxLayout | None = None
 
-    def add(self, action: QAction, large: bool = True) -> QToolButton:
+    def add(self, action: QAction, large: bool = False) -> QToolButton:
         btn = QToolButton()
         btn.setDefaultAction(action)
         btn.setAutoRaise(True)
