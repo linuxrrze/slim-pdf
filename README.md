@@ -35,6 +35,9 @@ It has a CLI and a Qt GUI that share the same certificate profiles.
   or drag pages from one to another.
 * **Page tools:** rotate, crop and delete pages (CLI and the GUI's page
   menu); split and merge on the command line.
+* **Recognize text (OCR)** in scanned pages, so they can be searched and
+  copied: with the system's own engine on macOS and Windows, Tesseract on
+  Linux; entirely offline (`slim-pdf ocr`, and in the GUI).
 * **English and German** (GUI and command line), following the system
   language or `language` in the config.
 * **Verify** signatures (`slim-pdf verify`, and a *Signatures* list in the
@@ -53,7 +56,7 @@ building them yourself.
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
-pip install -e '.[all]'          # or pick extras: gui, keyring, keepass, pkcs11
+pip install -e '.[all]'          # or pick extras: gui, keyring, keepass, pkcs11, ocr
 ```
 
 On Windows (PowerShell):
@@ -73,6 +76,7 @@ pip install -e ".[all]"
 | PKCS#11 module (OpenSC) | `opensc-pkcs11.so` | `/Library/OpenSC/lib/opensc-pkcs11.so` | `opensc-pkcs11.dll` |
 | PKCS#11 module (YubiKey) | `libykcs11.so` | `libykcs11.dylib` | `libykcs11.dll` |
 | Shortcuts | `Ctrl` | `Cmd` | `Ctrl` |
+| Text recognition (OCR) | Tesseract: `tesseract-ocr tesseract-ocr-deu` | Apple Vision (built in) | Windows OCR (built in; one OCR language pack per language) |
 
 * Certificates in the **Windows certificate store** or the **macOS
   keychain** can be used directly (`--system-cert`, new; see
@@ -160,7 +164,7 @@ slim-pdf gui contract.pdf
 ```bash
 pip install -e '.[dev]'
 pytest                       # GUI tests run headless (QT_QPA_PLATFORM=offscreen)
-pytest --cov=slim_pdf       # ~390 tests; ~87 % line coverage on Linux (the Windows/macOS store code runs only there)
+pytest --cov=slim_pdf       # ~650 tests; ~87 % line coverage on Linux (the Windows/macOS store code runs only there)
 ```
 
 Translations live in `src/slim_pdf/locale/`. After changing user-visible
@@ -182,6 +186,7 @@ strings, run `python scripts/i18n.py update`, translate the new entries in
 | `test_pages.py` | Page specs; rotate and crop as incremental updates (encryption kept, signatures reported invalid afterwards); crop margins follow the screen on all four rotations; split/merge drop signed fields but keep empty ones; CLI refuses signed input without `--force`. |
 | `test_forms.py`, `test_gui_forms.py` | Listing and filling in every field kind (text, multi-line, check box, radio, drop-down, list box, child fields), the drawn appearances, refused values and characters, read-only and signature-locked fields, certified and encrypted documents, signatures staying valid; the GUI's form panel and side panel switching, clicking a field on the page, undo, the warning before a signature would break; `slim-pdf form`. |
 | `test_insert.py`, `test_gui_insert.py` | Text and images added upright and in place on all four page rotations, wrapping, vector (PDF) images, encrypted documents, existing content and resources kept; in the GUI: dragging a box, clicking, `Esc`, the text dialog's checks, the warning on signed documents. |
+| `test_ocr.py`, `test_gui_ocr.py` | The invisible text layer: words where they are on all four rotations and on cropped pages, pixel-identical rendering, pages with text skipped, progress and cancel, `slim-pdf ocr`, signed documents refused; the real engines (Tesseract, Apple Vision, Windows OCR) wherever CI has them; in the GUI: pdfium only on the GUI thread, cancel, undo, missing engines and languages explained, the settings. |
 | `test_gui_pages.py` | GUI page tools: thumbnails, rotating selected pages, cropping by dragging, undo and save, the unsaved-changes prompt, warnings on signed documents, signing an edited document, split and merge dialogs. |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |

@@ -1514,6 +1514,22 @@ msgid "Delete the pages selected in the Pages panel, or the current one"
 msgstr "Die in der Seitenleiste ausgewählten Seiten löschen, sonst die aktuelle"
 
 #: src/slim_pdf/gui/app.py
+msgid "Recognize text"
+msgstr "Text erkennen"
+
+#: src/slim_pdf/gui/app.py
+msgid "Recognize the text of scanned pages (the selected ones, or the current one), so it can be searched and copied"
+msgstr "Den Text gescannter Seiten erkennen (der ausgewählten oder der aktuellen), damit er durchsucht und kopiert werden kann"
+
+#: src/slim_pdf/gui/app.py
+msgid "All pages"
+msgstr "Alle Seiten"
+
+#: src/slim_pdf/gui/app.py
+msgid "Recognize the text of every scanned page"
+msgstr "Den Text aller gescannten Seiten erkennen"
+
+#: src/slim_pdf/gui/app.py
 msgid "Text…"
 msgstr "Text…"
 
@@ -1636,6 +1652,10 @@ msgstr "Zuschneiden"
 #: src/slim_pdf/gui/app.py
 msgid "Clipboard"
 msgstr "Zwischenablage"
+
+#: src/slim_pdf/gui/app.py
+msgid "Text recognition"
+msgstr "Texterkennung"
 
 #: src/slim_pdf/gui/app.py
 msgid "Help"
@@ -1784,10 +1804,6 @@ msgid "This page ({page})"
 msgstr "Diese Seite ({page})"
 
 #: src/slim_pdf/gui/app.py
-msgid "All pages"
-msgstr "Alle Seiten"
-
-#: src/slim_pdf/gui/app.py
 #, python-brace-format
 msgid "Selected pages ({count})"
 msgstr "Ausgewählte Seiten ({count})"
@@ -1868,6 +1884,54 @@ msgid "Deleted {n} page"
 msgid_plural "Deleted {n} pages"
 msgstr[0] "{n} Seite gelöscht"
 msgstr[1] "{n} Seiten gelöscht"
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid ""
+"Adding the recognized text will invalidate the signature(s) {names}.\n"
+"\n"
+"Recognize text before signing. Continue anyway?"
+msgstr ""
+"Der erkannte Text macht die Signatur(en) {names} ungültig.\n"
+"\n"
+"Erkennen Sie Text vor dem Signieren. Trotzdem fortfahren?"
+
+#: src/slim_pdf/gui/app.py
+msgid "Text recognition cancelled"
+msgstr "Texterkennung abgebrochen"
+
+#: src/slim_pdf/gui/app.py
+msgid "The page already has text."
+msgid_plural "The pages already have text."
+msgstr[0] "Die Seite hat schon Text."
+msgstr[1] "Die Seiten haben schon Text."
+
+#: src/slim_pdf/gui/app.py
+msgid "No text was found."
+msgstr "Es wurde kein Text gefunden."
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid "Recognized text on {n} page"
+msgid_plural "Recognized text on {n} pages"
+msgstr[0] "Text auf {n} Seite erkannt"
+msgstr[1] "Text auf {n} Seiten erkannt"
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid "({n} page already had text)"
+msgid_plural "({n} pages already had text)"
+msgstr[0] "({n} Seite hatte schon Text)"
+msgstr[1] "({n} Seiten hatten schon Text)"
+
+#: src/slim_pdf/gui/app.py
+msgid "Recognizing text…"
+msgstr "Text wird erkannt…"
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid "Recognizing text: page {done} of {total}…"
+msgstr "Text wird erkannt: Seite {done} von {total}…"
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
@@ -2855,6 +2919,49 @@ msgid "General"
 msgstr "Allgemein"
 
 #: src/slim_pdf/gui/settings.py
+msgid "Language codes, e.g. de, en. Empty: the user interface's language and English."
+msgstr "Sprachcodes, z. B. de, en. Leer: die Sprache der Oberfläche und Englisch."
+
+#: src/slim_pdf/gui/settings.py
+msgid "found automatically"
+msgstr "automatisch gefunden"
+
+#: src/slim_pdf/gui/settings.py
+msgid "Browse…"
+msgstr "Durchsuchen…"
+
+#: src/slim_pdf/gui/settings.py
+msgid "Text recognition (OCR)"
+msgstr "Texterkennung (OCR)"
+
+#: src/slim_pdf/gui/settings.py
+msgid "Engine"
+msgstr "Verfahren"
+
+#: src/slim_pdf/gui/settings.py
+msgid "Languages"
+msgstr "Sprachen"
+
+#: src/slim_pdf/gui/settings.py
+#: src/slim_pdf/ocr/_tesseract.py
+msgid "Tesseract"
+msgstr "Tesseract"
+
+#: src/slim_pdf/gui/settings.py
+msgid "Automatic"
+msgstr "Automatisch"
+
+#: src/slim_pdf/gui/settings.py
+#, python-brace-format
+msgid "{engine} (not available)"
+msgstr "{engine} (nicht verfügbar)"
+
+#: src/slim_pdf/gui/settings.py
+#, python-brace-format
+msgid "{engine} recognizes: {languages}"
+msgstr "{engine} erkennt: {languages}"
+
+#: src/slim_pdf/gui/settings.py
 msgid "Trusted certificates"
 msgstr "Vertrauenswürdige Zertifikate"
 
@@ -2990,10 +3097,6 @@ msgstr "Installieren Sie Tesseract mit den deutschen Sprachdaten, z. B. sudo apt
 #: src/slim_pdf/ocr/__init__.py
 msgid "text recognition needs pypdfium2: pip install 'slim-pdf[ocr]'"
 msgstr "die Texterkennung braucht pypdfium2: pip install 'slim-pdf[ocr]'"
-
-#: src/slim_pdf/ocr/_tesseract.py
-msgid "Tesseract"
-msgstr "Tesseract"
 
 #: src/slim_pdf/ocr/_tesseract.py
 msgid "Install the language data with the Tesseract installer."

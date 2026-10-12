@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QMenu,
     QMessageBox,
+    QProgressDialog,
     QPushButton,
     QSpinBox,
     QStackedWidget,
@@ -41,7 +42,17 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import certinfo, forms, i18n, insert, pages, secretstore, systemstore, validation
+from .. import (
+    certinfo,
+    forms,
+    i18n,
+    insert,
+    ocr,
+    pages,
+    secretstore,
+    systemstore,
+    validation,
+)
 from ..config import Config, load_config
 from ..i18n import N_, _, ngettext
 from ..signing import (
@@ -360,7 +371,12 @@ class MainWindow(QMainWindow):
         self.delete_pages_act = act(_("Delete pages"), self.delete_pages, None, "trash",
                                     _("Delete the pages selected in the Pages panel, or the "
                                       "current one"), True)
-
+        self.ocr_act = act(_("Recognize text"), self.recognize_text, None, "text-scan-2",
+                           _("Recognize the text of scanned pages (the selected ones, or the "
+                             "current one), so it can be searched and copied"), True)
+        self.ocr_all_act = act(_("All pages"), lambda: self.recognize_text(all_pages=True),
+                               None, "files", _("Recognize the text of every scanned page"),
+                               True)
 
         self.insert_text_act = act(_("Text…"), self.insert_text, None, "text-plus",
                                    _("Add text to the page"), True)
@@ -448,6 +464,9 @@ class MainWindow(QMainWindow):
         g.add(self.paste_pages_act)
         g.add(self.copy_pages_act, large=False)
         g.add(self.cut_pages_act, large=False)
+        g = pages_tab.group(_("Text recognition"))
+        g.add(self.ocr_act)
+        g.add(self.ocr_all_act, large=False)
 
         help_tab = rb.tab(_("Help"))
         g = help_tab.group(_("Help"))
@@ -506,6 +525,8 @@ class MainWindow(QMainWindow):
         menu.addActions([self.crop_act, self.uncrop_act])
         menu.addSeparator()
         menu.addActions([self.copy_pages_act, self.cut_pages_act, self.paste_pages_act])
+        menu.addSeparator()
+        menu.addAction(self.ocr_act)
         menu.addSeparator()
         menu.addAction(self.delete_act)
         return menu
@@ -916,6 +937,77 @@ class MainWindow(QMainWindow):
             message = ngettext("Deleted {n} page", "Deleted {n} pages",
                                len(target)).format(n=len(target))
         self.apply_edit(new, message)
+
+    # text recognition -----------------------------------------------------------------
+
+    def recognize_text(self, all_pages: bool = False) -> None:
+        """Add the text of scanned pages invisibly (ocr.recognize)."""
+        if self.data is None:
+            return
+        title = _("Recognize text")
+        settings = self.config.ocr
+        try:
+            engine = ocr.get_engine(settings.engine, settings.tesseract)
+            languages = settings.languages or ocr.default_languages()
+            engine.check_languages(languages)
+        except ocr.OcrError as e:
+            QMessageBox.information(self, title, str(e))
+            return
+        target = list(range(len(self.doc))) if all_pages else self.target_pages()
+        if not self._confirm_breaking(_(
+                "Adding the recognized text will invalidate the signature(s) {names}.\n\n"
+                "Recognize text before signing. Continue anyway?")):
+            return
+        dialog = self._ocr_progress(len(target))
+        data, password = self.data, self.pdf_password
+
+        def work(ask):
+            def progress(done, total):
+                return ask(lambda: self._ocr_step(dialog, done, total))
+            return ocr.recognize(data, target, engine, languages, password=password,
+                                 progress=progress, pdfium_call=ask)
+
+        try:
+            new, done, skipped = background.run(self, work)
+        except secretstore.Cancelled:
+            self.statusBar().showMessage(_("Text recognition cancelled"), 5000)
+            return
+        except Exception as e:  # noqa: BLE001 - engines fail in their own ways
+            QMessageBox.critical(self, title, str(e))
+            return
+        finally:
+            dialog.close()
+        if new is None:
+            QMessageBox.information(self, title, (
+                ngettext("The page already has text.", "The pages already have text.",
+                         len(target)) if skipped else _("No text was found.")))
+            return
+        message = ngettext("Recognized text on {n} page", "Recognized text on {n} pages",
+                           len(done)).format(n=len(done))
+        if skipped:
+            message += " " + ngettext("({n} page already had text)",
+                                      "({n} pages already had text)",
+                                      len(skipped)).format(n=len(skipped))
+        self.apply_edit(new, message)
+
+    def _ocr_progress(self, total: int) -> QProgressDialog:
+        dialog = QProgressDialog(_("Recognizing text…"), _("Cancel"), 0, total, self)
+        dialog.setWindowTitle(_("Recognize text"))
+        dialog.setMinimumDuration(0)
+        dialog.setAutoClose(False)
+        dialog.setAutoReset(False)
+        dialog.show()
+        return dialog
+
+    @staticmethod
+    def _ocr_step(dialog: QProgressDialog, done: int, total: int) -> bool:
+        """Show the progress; False once cancelled."""
+        dialog.setValue(done)
+        if done < total:
+            dialog.setLabelText(_("Recognizing text: page {done} of {total}…").format(
+                done=done + 1, total=total))
+        return not dialog.wasCanceled()
+
     def move_pages(self, target: list[int], to: int) -> None:
         """Move ``target`` pages before page ``to`` (``len(doc)``: to the end)."""
         if self.data is None:

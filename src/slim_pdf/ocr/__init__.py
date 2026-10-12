@@ -103,7 +103,7 @@ def get_engine(name: str = "", tesseract: str = "") -> Engine:
         raise OcrError(_("unknown OCR engine {name!r} (known: {engines})").format(
             name=name, engines=", ".join(ENGINES)))
     for candidate in [name] if name else DEFAULT_ORDER:
-        engine = _make(candidate, tesseract)
+        engine = make_engine(candidate, tesseract)
         if engine.available() or name:
             if not engine.available():
                 raise OcrError(_("{engine} is not available. {hint}").format(
@@ -114,10 +114,10 @@ def get_engine(name: str = "", tesseract: str = "") -> Engine:
 
 def engines(tesseract: str = "") -> list[Engine]:
     """All engines that work on this machine."""
-    return [e for e in (_make(n, tesseract) for n in ENGINES) if e.available()]
+    return [e for e in (make_engine(n, tesseract) for n in ENGINES) if e.available()]
 
 
-def _make(name: str, tesseract: str) -> Engine:
+def make_engine(name: str, tesseract: str) -> Engine:
     if name == "tesseract":
         from ._tesseract import TesseractEngine
         return TesseractEngine(tesseract)
@@ -157,48 +157,72 @@ def _pdfium():
     return pypdfium2
 
 
-def pages_with_text(data: bytes, password: str | None = None) -> list[int]:
+Call = Callable[[Callable[[], object]], object]
+
+
+def _direct(fn):
+    return fn()
+
+
+def pages_with_text(data: bytes, password: str | None = None, *,
+                    pdfium_call: Call = _direct) -> list[int]:
     """Pages (0-based) that already have text."""
     pdfium = _pdfium()
-    pdf = pdfium.PdfDocument(data, password=password)
+
+    def find():
+        pdf = pdfium.PdfDocument(data, password=password)
+        try:
+            found = []
+            for i in range(len(pdf)):
+                page = pdf[i]
+                textpage = page.get_textpage()
+                if textpage.count_chars() > 0:
+                    found.append(i)
+                textpage.close()
+                page.close()
+            return found
+        finally:
+            pdf.close()
+
+    return pdfium_call(find)
+
+
+def _render(pdf, index: int, dpi: int):
+    """(PIL image, width, height in points) of a page as displayed."""
+    page = pdf[index]
     try:
-        found = []
-        for i in range(len(pdf)):
-            page = pdf[i]
-            textpage = page.get_textpage()
-            if textpage.count_chars() > 0:
-                found.append(i)
-            textpage.close()
-            page.close()
-        return found
+        width, height = page.get_size()
+        scale = min(dpi / 72, MAX_PIXELS / max(width, height, 1))
+        # page content only: form fields and annotations have their text
+        bitmap = page.render(scale=scale, draw_annots=False, grayscale=True)
+        image = bitmap.to_pil().copy()  # independent of pdfium's buffer
+        bitmap.close()
+        return image, width, height
     finally:
-        pdf.close()
+        page.close()
 
 
 def recognize_pages(data: bytes, pages: Iterable[int], engine: Engine, languages: list[str], *,
                     password: str | None = None, dpi: int = DPI,
-                    progress: Callable[[int, int], bool | None] | None = None
-                    ) -> dict[int, list[Word]]:
+                    progress: Callable[[int, int], bool | None] | None = None,
+                    pdfium_call: Call = _direct) -> dict[int, list[Word]]:
     """Words on each of ``pages`` (0-based), boxes in points of the page as
     displayed. ``progress(done, total)`` is called before each page and
-    after the last; returning False cancels (raises Cancelled)."""
+    after the last; returning False cancels (raises Cancelled).
+
+    pdfium may only be used by one thread at a time: when this runs in a
+    thread of its own, ``pdfium_call(fn)`` must run ``fn`` on the thread that
+    uses pdfium otherwise (the GUI's) and return its result."""
     pages = list(pages)
     engine.check_languages(languages)
     pdfium = _pdfium()
-    pdf = pdfium.PdfDocument(data, password=password)
+    pdf = pdfium_call(lambda: pdfium.PdfDocument(data, password=password))
     result: dict[int, list[Word]] = {}
     try:
         for done, index in enumerate(pages):
             if progress is not None and progress(done, len(pages)) is False:
                 raise Cancelled()
-            page = pdf[index]
-            try:
-                width, height = page.get_size()
-                scale = min(dpi / 72, MAX_PIXELS / max(width, height, 1))
-                # page content only: form fields and annotations have their text
-                image = page.render(scale=scale, draw_annots=False, grayscale=True).to_pil()
-            finally:
-                page.close()
+            image, width, height = pdfium_call(lambda index=index: _render(pdf, index, dpi))
             sx, sy = width / image.width, height / image.height
             result[index] = [
                 Word(w.text, (w.box[0] * sx, w.box[1] * sy, w.box[2] * sx, w.box[3] * sy),
@@ -207,26 +231,28 @@ def recognize_pages(data: bytes, pages: Iterable[int], engine: Engine, languages
         if progress is not None and progress(len(pages), len(pages)) is False:
             raise Cancelled()
     finally:
-        pdf.close()
+        pdfium_call(pdf.close)
     return result
 
 
 def recognize(data: bytes, pages: Iterable[int], engine: Engine, languages: list[str], *,
               password: str | None = None, force: bool = False,
-              progress: Callable[[int, int], bool | None] | None = None
-              ) -> tuple[bytes | None, list[int], list[int]]:
+              progress: Callable[[int, int], bool | None] | None = None,
+              pdfium_call: Call = _direct) -> tuple[bytes | None, list[int], list[int]]:
     """Recognize ``pages`` and add the text layer: (new PDF or None if no
     text was found, pages with text added, pages skipped because they
-    already have text; unless ``force``)."""
+    already have text; unless ``force``). Progress and pdfium_call as for
+    :func:`recognize_pages`."""
     from .textlayer import add_text_layer
 
     pages = list(pages)
-    skipped = [] if force else sorted(set(pages) & set(pages_with_text(data, password)))
+    skipped = [] if force else sorted(set(pages) & set(pages_with_text(
+        data, password, pdfium_call=pdfium_call)))
     todo = [p for p in pages if p not in skipped]
     if not todo:
         return None, [], skipped
     words = recognize_pages(data, todo, engine, languages, password=password,
-                            progress=progress)
+                            progress=progress, pdfium_call=pdfium_call)
     words = {p: ws for p, ws in words.items() if ws}
     if not words:
         return None, [], skipped

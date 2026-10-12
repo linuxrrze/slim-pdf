@@ -1,5 +1,6 @@
-"""Program settings: language and trust roots (the config file's top-level
-keys) on the General tab, the certificate profiles on the Certificates tab.
+"""Program settings: language, trust roots and text recognition (the config
+file's top-level keys and [ocr]) on the General tab, the certificate
+profiles on the Certificates tab.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
@@ -26,8 +28,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import i18n
-from ..config import Config, default_config_path
+from .. import i18n, ocr
+from ..config import Config, OcrSettings, default_config_path
 from ..i18n import _
 from ..signing import SigningError
 from ..validation import load_trust_roots
@@ -47,7 +49,7 @@ class SettingsDialog(QDialog):
     def __init__(self, config: Config, parent=None, tab: int = GENERAL):
         super().__init__(parent)
         self.setWindowTitle(_("Settings"))
-        fit_to_screen(self, 720, 460)
+        fit_to_screen(self, 720, 540)
         self.config = copy.deepcopy(config)
         self.language_changed = False
 
@@ -101,6 +103,7 @@ class SettingsDialog(QDialog):
         lay = QVBoxLayout(general_tab)
         lay.addLayout(general)
         lay.addWidget(trust_box, 1)
+        lay.addWidget(self._ocr_box())
         # the same config object: profile changes are saved with the other
         # settings as they were (language and trust are taken over by OK)
         self.certs = CertManager(self.config)
@@ -113,6 +116,78 @@ class SettingsDialog(QDialog):
         lay.addWidget(self.tabs, 1)
         lay.addWidget(where)
         lay.addWidget(box)
+
+    def _ocr_box(self) -> QGroupBox:
+        """Text recognition: engine, languages, where Tesseract is."""
+        settings = self.config.ocr
+        self.ocr_engine = QComboBox()
+        self.ocr_languages = QLineEdit(", ".join(settings.languages))
+        self.ocr_languages.setPlaceholderText(", ".join(ocr.default_languages()))
+        self.ocr_languages.setToolTip(_("Language codes, e.g. de, en. Empty: the user "
+                                        "interface's language and English."))
+        self.tesseract_path = QLineEdit(settings.tesseract)
+        self.tesseract_path.setPlaceholderText(_("found automatically"))
+        browse = QPushButton(_("Browse…"))
+        browse.clicked.connect(self._browse_tesseract)
+        self.ocr_status = QLabel()
+        self.ocr_status.setWordWrap(True)
+        self.ocr_status.setStyleSheet("color: gray")
+        self._fill_engines(settings.engine)
+        self.ocr_engine.currentIndexChanged.connect(self._show_ocr_status)
+        self.tesseract_path.editingFinished.connect(
+            lambda: self._fill_engines(self.ocr_engine.currentData()))
+
+        path_row = QHBoxLayout()
+        path_row.addWidget(self.tesseract_path, 1)
+        path_row.addWidget(browse)
+        box = QGroupBox(_("Text recognition (OCR)"))
+        form = QFormLayout(box)
+        form.addRow(_("Engine"), self.ocr_engine)
+        form.addRow(_("Languages"), self.ocr_languages)
+        form.addRow(_("Tesseract"), path_row)
+        form.addRow(self.ocr_status)
+        return box
+
+    def _fill_engines(self, selected: str) -> None:
+        """The engines, the ones that don't work here marked as such."""
+        path = self.tesseract_path.text().strip()
+        working = {e.name: e for e in ocr.engines(path)}
+        combo = self.ocr_engine
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItem(_("Automatic"), "")
+        for name in ocr.ENGINES:
+            engine = working.get(name) or ocr.make_engine(name, path)
+            label = engine.label if name in working else _("{engine} (not available)").format(
+                engine=engine.label)
+            combo.addItem(label, name)
+        combo.setCurrentIndex(max(0, combo.findData(selected)))
+        combo.blockSignals(False)
+        self._show_ocr_status()
+
+    def _show_ocr_status(self) -> None:
+        name = self.ocr_engine.currentData()
+        path = self.tesseract_path.text().strip()
+        try:
+            engine = ocr.get_engine(name, path)
+        except ocr.OcrError as e:
+            self.ocr_status.setText(str(e))
+            return
+        self.ocr_status.setText(_("{engine} recognizes: {languages}").format(
+            engine=engine.label,
+            languages=", ".join(engine.languages()) or "-"))
+
+    def _browse_tesseract(self) -> None:
+        path, _filter = QFileDialog.getOpenFileName(self, _("Tesseract"), str(Path.home()))
+        if path:
+            self.tesseract_path.setText(path)
+            self._fill_engines(self.ocr_engine.currentData())
+
+    def ocr_settings(self) -> OcrSettings:
+        languages = [v.strip() for v in self.ocr_languages.text().replace(";", ",").split(",")
+                     if v.strip()]
+        return OcrSettings(engine=self.ocr_engine.currentData(), languages=languages,
+                           tesseract=self.tesseract_path.text().strip())
 
     def _add_item(self, path: str) -> None:
         """List entry: the path, plus the certificate's subject if it loads."""
@@ -151,13 +226,14 @@ class SettingsDialog(QDialog):
 
     def _save(self) -> None:
         language = self.language_combo.currentData()
-        old = self.config.language, self.config.trust
+        old = self.config.language, self.config.trust, self.config.ocr
         self.config.language = language
         self.config.trust = self.trust_paths()
+        self.config.ocr = self.ocr_settings()
         try:
             self.config.save()
         except OSError as e:
-            self.config.language, self.config.trust = old  # as in the file
+            self.config.language, self.config.trust, self.config.ocr = old  # as in the file
             QMessageBox.critical(self, _("Settings"),
                                  _("Cannot save the configuration:\n{error}").format(error=e))
             return

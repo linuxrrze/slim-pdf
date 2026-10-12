@@ -270,6 +270,27 @@ Page edits invalidate existing signatures, so slim-pdf warns first: edit
 pages, then sign. Splitting and merging documents is available on the
 command line (see [cli.md](cli.md#page-tools-rotate-crop-delete-split-merge)).
 
+## Recognizing text (OCR)
+
+![Recognizing the text of a scanned document](images/gui-ocr.png)
+
+Scanned pages are only pictures. **Recognize text** (*Pages* tab, also in
+the page menu) reads their text and lays it invisibly over the scan: the
+page looks the same, but in the saved PDF the text can be searched,
+selected and copied (and read aloud by screen readers). It works on the
+selected pages, else the current one; **All pages** does the whole
+document. Pages that already have text are left alone. A window shows the
+progress; **Cancel** stops before the next page and changes nothing.
+**Undo** takes the text away again.
+
+Recognition runs on your computer; nothing is uploaded. It uses Apple
+Vision on macOS and Windows OCR on Windows, both part of the system; on
+Windows each language needs its OCR component (*Settings → Time & language
+→ Language & region*). On Linux, install Tesseract with the German language
+data (`sudo apt install tesseract-ocr tesseract-ocr-deu`). If something is
+missing, slim-pdf says what to install. Adding text invalidates existing
+signatures, so recognize text before signing.
+
 ## Settings
 
 **Settings…** on the ribbon's *Edit* tab has two tabs. *General* is what
@@ -282,7 +303,14 @@ applies to all profiles:
   list and the system's CA store are always trusted. Files that aren't certificates are refused. The
   open document is checked again when you press OK.
 
-Both are stored in the config file (`language`, `trust`), together with the
+* **Text recognition (OCR):** the engine (*Automatic* picks the system's
+  own, else Tesseract; engines that don't work here are marked), the
+  languages (codes such as `de, en`; empty: the user interface's language
+  and English) and where Tesseract is, if it isn't found automatically.
+  Below, it shows which languages the chosen engine recognizes, or what is
+  missing.
+
+They are stored in the config file (`language`, `trust`, `[ocr]`), together with the
 profiles; **OK** saves them, **Cancel** discards them.
 
 *Certificates* holds the certificate profiles (see below).

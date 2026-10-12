@@ -125,6 +125,16 @@ def registration_pdf(path: Path) -> Path:
     return add_form_fields(path, path.with_name("registration.pdf"))
 
 
+def scanned(src: Path, path: Path) -> Path:
+    """``src`` as a scanner would deliver it: pictures of the pages."""
+    import pypdfium2 as pdfium
+
+    pdf = pdfium.PdfDocument(str(src))
+    images = [pdf[i].render(scale=150 / 72, grayscale=True).to_pil() for i in range(len(pdf))]
+    images[0].save(path, format="PDF", resolution=150, save_all=True, append_images=images[1:])
+    return path
+
+
 def click(view, x, y):
     QTest.mouseClick(view.viewport(), Qt.LeftButton, Qt.NoModifier,
                      view.mapFromScene(QPointF(x, y)))
@@ -238,6 +248,22 @@ def main() -> None:
     grab(win, "gui-pages.png")
     win._escape()
     win.dirty = False
+
+    # text recognition on a scan of the claim: the progress, over the window
+    scan = scanned(doc, tmp / "expense-claim-scan.pdf")
+    win.open(scan)
+    win.ribbon.setCurrentIndex(2)
+    progress = win._ocr_progress(2)
+    win._ocr_step(progress, 0, 2)
+    QTest.qWait(60)
+    shot = win.grab()
+    at = win.rect().center() - progress.rect().center()
+    painter = QPainter(shot)
+    painter.drawPixmap(at, progress.grab())
+    painter.end()
+    progress.close()
+    shot.save(str(OUT / "gui-ocr.png"))
+    print("wrote", OUT / "gui-ocr.png")
     win.show_tab(gui_app.SIGN_TAB)
 
     # filling in a form: the form panel (Edit tab), cursor in a field
