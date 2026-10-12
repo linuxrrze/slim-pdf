@@ -1146,8 +1146,8 @@ class MainWindow(QMainWindow):
                 action.setChecked(value == f.value)
             item = next((i for i in self.view.scene().items()
                          if isinstance(i, FormItem) and i.name == name), None)
-            at = (self.view.mapFromScene(item.rect().bottomLeft()) if item is not None
-                  else self.view.viewport().rect().center())
+            at = (self.view.mapFromScene(item.mapToScene(item.rect().bottomLeft()))
+                  if item is not None else self.view.viewport().rect().center())
             chosen = self._exec_choice_menu(menu, self.view.viewport().mapToGlobal(at))
             if chosen is not None:
                 self.fill_form({name: chosen.data()})

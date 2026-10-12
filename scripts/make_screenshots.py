@@ -137,7 +137,7 @@ def scanned(src: Path, path: Path) -> Path:
 
 def click(view, x, y):
     QTest.mouseClick(view.viewport(), Qt.LeftButton, Qt.NoModifier,
-                     view.mapFromScene(QPointF(x, y)))
+                     view.map_from_page(x, y))
 
 
 def grab(widget, name):
@@ -241,8 +241,9 @@ def main() -> None:
     print("wrote", OUT / "gui-page-menu.png")
     win.crop_act.setChecked(True)
     win._toggle_crop()
+    view = win.view  # the new tab's
     vp = view.viewport()
-    a, b = view.mapFromScene(QPointF(40, 60)), view.mapFromScene(QPointF(555, 300))
+    a, b = view.map_from_page(40, 60), view.map_from_page(555, 300)
     QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, a)
     QTest.mouseMove(vp, b)  # leave the rectangle visible
     grab(win, "gui-pages.png")
@@ -303,18 +304,19 @@ def main() -> None:
     win.statusBar().clearMessage()
     win._insert = ("text", "Registered 2026-10-11\nAlice Example", 14.0, (0.0, 0.2, 0.65))
     win.view.set_insert_mode(True)
+    view = win.view
     vp = view.viewport()
-    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, view.mapFromScene(QPointF(380, 470)))
-    QTest.mouseMove(vp, view.mapFromScene(QPointF(560, 520)))
-    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, view.mapFromScene(QPointF(560, 520)))
+    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, view.map_from_page(380, 470))
+    QTest.mouseMove(vp, view.map_from_page(560, 520))
+    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, view.map_from_page(560, 520))
     win._insert = ("image", str(tmp / "certs/signature.png"), 3.0)
     win.view.set_insert_mode(True)
     win.statusBar().showMessage(win.tr("Drag a box for the image on the page, or click where "
                                        "its centre should be. Esc cancels."))
-    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, view.mapFromScene(QPointF(380, 540)))
-    QTest.mouseMove(vp, view.mapFromScene(QPointF(560, 600)))
+    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, view.map_from_page(380, 540))
+    QTest.mouseMove(vp, view.map_from_page(560, 600))
     grab(win, "gui-insert.png")
-    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, view.mapFromScene(QPointF(560, 600)))
+    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, view.map_from_page(560, 600))
     win.dirty = False
     win.show_tab(gui_app.SIGN_TAB)
 

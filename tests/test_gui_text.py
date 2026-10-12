@@ -65,22 +65,60 @@ def test_drag_elsewhere_moves_the_page(window, text_pdf):
     assert window.view.text_selection is None and bar.value() != before
 
 
-def test_double_click_selects_a_word_ctrl_a_the_page(window, text_pdf):
+def test_double_click_selects_a_word_ctrl_a_everything(window, text_pdf):
     window.open(text_pdf)
     view = window.view
     x, y = char_center(window, 8)  # in "World"
     QTest.mouseDClick(view.viewport(), Qt.LeftButton, Qt.NoModifier,
-                      view.mapFromScene(QPointF(x, y)))
+                      view.map_from_page(x, y))
     assert view.selected_text() == "World"
     QTest.keySequence(view, QKeySequence.SelectAll)
-    assert view.selected_text() == "Hello World"
+    assert view.selected_text() == "\n".join(TEXTS)
 
 
-def test_selection_ends_with_the_page(window, text_pdf):
+def test_selection_runs_over_pages(window, text_pdf):
+    """The pages are one below the other: a drag goes on to the next."""
     window.open(text_pdf)
-    window.view.select_all_text()
-    window.view.go_to(1)
-    assert window.view.text_selection is None and not window.copy_text_act.isEnabled()
+    view = window.view
+    view.set_zoom(view.min_zoom())  # whole pages: 1 and 2 both in view
+    view.go_to(0)
+    start = view.map_from_page(*char_center(window, 6))  # "World"
+    window.view.page = 1  # (where the drag ends)
+    end = view.map_from_page(*char_center(window, 4), page=1)  # "hello"
+    window.view.page = 0
+    vp = view.viewport()
+    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, start)
+    for i in range(1, 6):
+        QTest.mouseMove(vp, start + (end - start) * i / 5)
+    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, end)
+    assert view.selected_text() == "World\nhello"
+    assert len(view.pages[0].decorations) == 1 and len(view.pages[1].decorations) == 1
+    view.go_to(3)  # scrolling keeps it
+    assert view.text_selection is not None and window.copy_text_act.isEnabled()
+    window.copy_act.trigger()
+    assert QGuiApplication.clipboard().text() == "World\nhello"
+
+
+def test_shift_click_extends_the_selection(window, text_pdf):
+    window.open(text_pdf)
+    view = window.view
+    view.select_text(0, 5)  # "Hello" on page 1
+    view.go_to(3)
+    at = view.map_from_page(*char_center(window, 11))  # the last "O" on page 4
+    QTest.mouseClick(view.viewport(), Qt.LeftButton, Qt.ShiftModifier, at)
+    assert view.selected_text() == "\n".join(TEXTS)
+
+
+def test_edits_keep_the_scroll_position(window, text_pdf):
+    window.open(text_pdf)
+    view = window.view
+    view.set_zoom(2.0)
+    view.go_to(2)
+    bar = view.verticalScrollBar()
+    bar.setValue(bar.value() + 150)
+    before = (bar.value(), view.page)
+    window.apply_edit(insert.add_text(window.data, 2, (50, 50, 300, 100), "Added"), "x")
+    assert (bar.value(), view.page) == before
 
 
 def test_ctrl_c_copies_pages_without_text_selected(window, text_pdf, monkeypatch):
@@ -117,11 +155,15 @@ def test_find_across_pages(window, text_pdf):
     bar = window.find_bar
     assert bar.isVisible() and bar.count.text() == "1 of 4"
     assert window._matches == [(0, 0, 5), (1, 0, 5), (3, 0, 5), (3, 7, 5)]
-    assert window.view.page == 0 and len(window.view._match_items) == 1
+
+    def shown_on(page):  # the highlights on a page (those in view)
+        return [i for i in window.view.pages[page].decorations if i.zValue() == 2.5]
+
+    assert window.view.page == 0 and len(shown_on(0)) == 1
     bar.next_btn.click()
     assert window.view.page == 1 and bar.count.text() == "2 of 4"
     window.find_next_act.trigger()  # F3
-    assert window.view.page == 3 and len(window.view._match_items) == 2
+    assert window.view.page == 3 and len(shown_on(3)) == 2
     window.find_next_act.trigger()
     window.find_next_act.trigger()  # wraps around
     assert window.view.page == 0 and bar.count.text() == "1 of 4"
@@ -180,7 +222,7 @@ def test_cursor_shows_text_and_selecting(window, text_pdf, qapp):
     view, vp = window.view, window.view.viewport()
 
     def at(x, y):
-        return view.mapFromScene(QPointF(x, y))
+        return view.map_from_page(x, y)
 
     def move(pos):  # goes through the window system: handled after events are
         QTest.mouseMove(vp, pos)
@@ -199,3 +241,31 @@ def test_cursor_shows_text_and_selecting(window, text_pdf, qapp):
     assert vp.cursor().shape() == Qt.IBeamCursor
     QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, off_text)
     assert vp.cursor().shape() == Qt.OpenHandCursor
+
+
+def test_selecting_at_the_edge_scrolls_on(window, text_pdf):
+    window.open(text_pdf)
+    view = window.view
+    view.set_zoom(2.0)
+    view.go_to(0)
+    vp = view.viewport()
+    QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, view.map_from_page(*char_center(window, 0)))
+    bottom = QPointF(vp.width() / 2, vp.height() - 5)
+    QTest.mouseMove(vp, bottom.toPoint())
+    bar = view.verticalScrollBar()
+    before = bar.value()
+    for _ in range(40):
+        view._scroll_at_edge()  # (the timer's ticks)
+    assert bar.value() > before and view.text_selection[2] >= 1  # into page 2
+    QTest.mouseRelease(vp, Qt.LeftButton, Qt.NoModifier, bottom.toPoint())
+
+
+def test_scrolling_changes_the_current_page(window, text_pdf):
+    window.open(text_pdf)
+    view = window.view
+    bar = view.verticalScrollBar()
+    bar.setValue(bar.maximum())
+    assert view.page == 3 and window.page_spin.value() == 4
+    assert window.thumbs.currentRow() == 3
+    bar.setValue(0)
+    assert view.page == 0 and window.page_spin.value() == 1

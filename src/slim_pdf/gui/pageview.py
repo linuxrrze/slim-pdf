@@ -1,15 +1,20 @@
-"""Page view: renders one page, shows signature fields, places the signature.
+"""Page view: the pages one below the other, with signature and form fields;
+places the signature, selects text.
 
-Scene units are display points (see document.py), so the placed item's
-geometry converts directly to PDF coordinates via PdfDocument.rect_to_pdf.
+Scene units are display points (see document.py). Each page is a container
+item; what is on a page is its child, in the page's own display points, so
+the placed item's geometry converts directly to PDF coordinates via
+PdfDocument.rect_to_pdf.
 """
 
 from __future__ import annotations
 
-from PIL.ImageQt import ImageQt
+import bisect
 import math
 
-from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
+from PIL.ImageQt import ImageQt
+
+from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -41,6 +46,8 @@ MAX_PAGE_PIXELS = 8_000_000
 RENDER_DELAY = 120
 WHEEL_ZOOM = 1.15  # per wheel notch
 MAX_ZOOM = 6.0
+PAGE_GAP = 12.0  # points between pages
+MARGIN = 20.0  # points around the pages
 
 class SignatureItem(QGraphicsObject):
     """Movable signature preview; the corner handle scales it keeping the aspect ratio."""
@@ -70,6 +77,7 @@ class SignatureItem(QGraphicsObject):
         return self._w, self._w / self._aspect
 
     def scene_rect(self) -> QRectF:
+        """Its rect on the page (display points)."""
         w, h = self.size
         return QRectF(self.pos(), QPointF(self.pos().x() + w, self.pos().y() + h))
 
@@ -323,23 +331,71 @@ def _join_lines(rects: list[tuple]) -> list[tuple]:
     return out
 
 
-class PageView(QGraphicsView):
-    """Shows one page. Emits ``targetChanged`` when the signing target changes.
+class _Page:
+    """One page in the scene: a container at the page's place (children use
+    the page's display points), its picture and the sharper detail."""
 
-    By default the wheel zooms and dragging moves the page (a placed
+    def __init__(self, scene: QGraphicsScene, index: int, x: float, y: float,
+                 w: float, h: float):
+        self.index, self.w, self.h = index, w, h
+        self.item = QGraphicsRectItem(QRectF(0, 0, w, h))
+        self.item.setPen(QPen(Qt.NoPen))
+        self.item.setBrush(QBrush(Qt.white))  # until rendered
+        self.item.setPos(x, y)
+        scene.addItem(self.item)
+        shadow = QGraphicsRectItem(QRectF(3, 3, w, h), self.item)
+        shadow.setPen(QPen(Qt.NoPen))
+        shadow.setBrush(QBrush(QColor(0, 0, 0, 80)))
+        shadow.setFlag(QGraphicsItem.ItemStacksBehindParent)
+        self.pixmap = QGraphicsPixmapItem(self.item)
+        self.pixmap.setTransformationMode(Qt.SmoothTransformation)
+        self.detail = QGraphicsPixmapItem(self.item)
+        self.detail.setZValue(1)  # over the page, under fields and the signature
+        self.detail.setTransformationMode(Qt.SmoothTransformation)
+        self.detail.setVisible(False)
+        self.scale = 0.0  # pixels per point of the picture; 0: none yet
+        self.decorations: list[QGraphicsRectItem] = []  # selection, search matches
+        self.decorated = False
+
+    @property
+    def rect(self) -> QRectF:
+        return QRectF(0, 0, self.w, self.h)
+
+    @property
+    def top(self) -> float:
+        return self.item.pos().y()
+
+    def drop_picture(self) -> None:
+        self.pixmap.setPixmap(QPixmap())
+        self.detail.setPixmap(QPixmap())
+        self.detail.setVisible(False)
+        self.scale = 0.0
+
+
+class PageView(QGraphicsView):
+    """Shows the pages one below the other (continuous scrolling); ``page``
+    is the one in the middle of the view. Emits ``targetChanged`` when the
+    signing target changes, ``pageChanged`` when another page comes to the
+    middle.
+
+    By default the wheel zooms and dragging moves the pages (a placed
     signature is dragged itself). In place mode, one click places the
     signature or picks an empty field, then the view is back to the default
     (``placeModeChanged``). Outside place mode, a click (not a drag) on a
     field emits ``fieldActivated(name)``, on a form field
     ``formFieldActivated(name, button state)``; ``edit_text`` opens an
     editor over a text field, ``textEdited(name, text)`` reports its result.
-    Dragging over text selects it instead (double-click: a word), shown with
-    ``textSelectionChanged``; ``selected_text`` is what is selected, and
-    ``set_search_matches`` highlights what a search found.
-    In crop mode, dragging draws a rectangle;
+    Dragging over text selects it instead, also on to further pages
+    (double-click: a word), shown with ``textSelectionChanged``;
+    ``selected_text`` is what is selected, and ``set_search_matches``
+    highlights what a search found.
+    In crop mode, dragging draws a rectangle on a page;
     ``cropSelected(page, display rect)`` is emitted on release. Insert mode
     works the same way, for one rectangle (or a click: an empty rectangle at
     that point), emitted as ``insertSelected``; then it ends.
+
+    Positions on a page are its display points (see document.py), relative
+    to its top left corner: items on a page are children of its container.
     """
 
     targetChanged = Signal()
@@ -358,7 +414,7 @@ class PageView(QGraphicsView):
         self.setScene(QGraphicsScene(self))
         self.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
         self.setBackgroundBrush(QColor(90, 90, 90))
-        self.setAlignment(Qt.AlignCenter)
+        self.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.NoAnchor)  # zoom_at() anchors itself
         self.viewport().setMouseTracking(True)  # moves without a button: the text cursor
@@ -370,21 +426,21 @@ class PageView(QGraphicsView):
         self.page = 0
         self.zoom = 1.0
         self._fit_width = True
-        self._page_item: QGraphicsPixmapItem | None = None
-        self._page_scale = 0.0  # pixels per point of _page_item
-        self._detail_item: QGraphicsPixmapItem | None = None
+        self.pages: list[_Page] = []
         self._detail_timer = QTimer(self)
         self._detail_timer.setSingleShot(True)
         self._detail_timer.setInterval(RENDER_DELAY)
         self._detail_timer.timeout.connect(self._update_detail)
         for bar in (self.horizontalScrollBar(), self.verticalScrollBar()):
-            bar.valueChanged.connect(self._schedule_detail)
+            bar.valueChanged.connect(self._scrolled)
+        self._going_to = False  # go_to() sets the page itself
+        # (page sizes, current page, scroll bar values) when last shown
+        self._last_shown: tuple = ([], -1, (0, 0))
         self._field_items: list[FieldItem] = []
         self._form_items: list[FormItem] = []
-        # (signal, field name, press position) of a click on a field
         # (what a click does, press position) of a press on a field
         self._field_press: tuple[object, object] | None = None
-        self._inline: tuple[str, QWidget] | None = None  # (field, editor) of edit_text
+        self._inline: tuple | None = None  # (field, item, editor, text, multiline)
         self._sig_pixmap: QPixmap | None = None
         self._sig_aspect = 3.0
 
@@ -396,29 +452,55 @@ class PageView(QGraphicsView):
         self.place_mode = False
         self.crop_mode = False
         self.insert_mode = False
+        self._crop_page: _Page | None = None  # the page a crop/insert rectangle is on
         self._crop_start: QPointF | None = None
         self._crop_item: QGraphicsRectItem | None = None
 
-        # selected text on this page: (first character, count); while
-        # dragging, the character the drag began at
-        self.text_selection: tuple[int, int] | None = None
-        self._text_anchor: int | None = None
-        self._selection_items: list[QGraphicsRectItem] = []
+        # selected text: (first page, first character, last page, last
+        # character), both ends included; while dragging, (page, character)
+        # where the drag began, and the mouse for scrolling at the edges
+        self.text_selection: tuple[int, int, int, int] | None = None
+        self._text_anchor: tuple[int, int] | None = None
+        self._drag_pos: QPointF | None = None
+        self._edge_timer = QTimer(self)
+        self._edge_timer.setInterval(40)
+        self._edge_timer.timeout.connect(self._scroll_at_edge)
         # search results: page -> [(start, count)], and the current one
         self._matches: dict[int, list[tuple[int, int]]] = {}
         self._current_match: tuple[int, int, int] | None = None
-        self._match_items: list[QGraphicsRectItem] = []
 
     # setup ------------------------------------------------------------------
 
     def set_document(self, doc: PdfDocument | None, fields: list[SigField],
                      page: int = 0, form_fields=()) -> None:
+        """Show ``doc`` at ``page``; the same document again (edited, with
+        pages of the same sizes) stays scrolled where it was."""
+        if self.pages:  # what was shown, also across set_document(None) in between
+            self._last_shown = ([(p.w, p.h) for p in self.pages], self.page,
+                                (self.horizontalScrollBar().value(),
+                                 self.verticalScrollBar().value()))
+        layout, last_page, scroll = self._last_shown
+        same_layout = (doc is not None and page == last_page
+                       and layout == [doc.display_size(i) for i in range(len(doc))])
         self.doc, self.fields, self.form_fields = doc, fields, list(form_fields)
         self.set_place_mode(False)
         self.set_insert_mode(False)
         self.clear_target()
         self.page = min(page, len(doc) - 1) if doc is not None else 0
-        self._render()
+        self._going_to = True  # the new scroll range isn't a scroll to another page
+        try:
+            self._build()
+            if doc is not None and same_layout:
+                self.horizontalScrollBar().setValue(scroll[0])
+                self.verticalScrollBar().setValue(scroll[1])
+        finally:
+            self._going_to = False
+        if doc is None:
+            return
+        if same_layout:
+            self._update_visible()
+        else:
+            self._scroll_to_page(self.page)
 
     def _update_mode(self) -> None:
         clicking = self.place_mode or self.crop_mode or self.insert_mode
@@ -459,9 +541,12 @@ class PageView(QGraphicsView):
     def edit_text(self, name: str, text: str, multiline: bool = False,
                   max_len: int | None = None) -> None:
         """Type into the form field ``name`` right on the page: an editor over
-        (the first widget of) it on this page; ``textEdited`` follows."""
+        (the first widget of) it, preferably on the current page;
+        ``textEdited`` follows."""
         self.finish_text_edit(True)
-        item = next((i for i in self._form_items if i.name == name), None)
+        items = [i for i in self._form_items if i.name == name]
+        item = next((i for i in items if self._page_of(i) == self.page),
+                    items[0] if items else None)
         if item is None:
             return
         editor = _InlineText(self) if multiline else _InlineLine(self)
@@ -469,6 +554,7 @@ class PageView(QGraphicsView):
             editor.setMaxLength(max_len)
         editor.setText(text)
         self._inline = (name, item, editor, text, multiline)
+        self.ensureVisible(item.mapRectToScene(item.rect()), 40, 40)
         self._place_inline()
         editor.show()
         editor.setFocus()
@@ -482,7 +568,7 @@ class PageView(QGraphicsView):
         if self._inline is None:
             return
         _name, item, editor, _text, multiline = self._inline
-        r = self.mapFromScene(item.rect()).boundingRect()
+        r = self.mapFromScene(item.mapRectToScene(item.rect())).boundingRect()
         font = editor.font()
         if multiline:
             font.setPixelSize(max(11, min(round(11 * self.zoom), 28)))
@@ -519,21 +605,19 @@ class PageView(QGraphicsView):
             QTimer.singleShot(0, report)
 
     def highlight_form_field(self, name: str | None) -> None:
-        """Mark the form field ``name`` (None: none) and show it: its page,
-        scrolled into view."""
+        """Mark the form field ``name`` (None: none) and show it: scrolled
+        into view."""
         self.active_form_field = name
-        f = next((f for f in self.form_fields if f.name == name), None)
-        page = f.page if f is not None else None
-        if page is not None and page != self.page:
-            self.go_to(page)  # re-renders, marking it
         for it in self._form_items:
             it.set_active(it.name == name)
         shown = [it for it in self._form_items if it.name == name]
         if shown:
-            area = shown[0].rect()
-            for it in shown[1:]:
-                area = area.united(it.rect())
-            self.ensureVisible(area, 40, 40)
+            f = next((f for f in self.form_fields if f.name == name), None)
+            on_page = [it for it in shown if f is None or self._page_of(it) == f.page] or shown
+            area = on_page[0].mapRectToScene(on_page[0].rect())
+            for it in on_page[1:]:
+                area = area.united(it.mapRectToScene(it.rect()))
+            self._show_scene_rect(area, 40)
 
     def set_insert_mode(self, on: bool) -> None:
         on = on and self.doc is not None
@@ -549,6 +633,7 @@ class PageView(QGraphicsView):
             self.scene().removeItem(self._crop_item)
         self._crop_item = None
         self._crop_start = None
+        self._crop_page = None
 
     def set_signature_appearance(self, pixmap: QPixmap | None, aspect: float) -> None:
         self._sig_pixmap, self._sig_aspect = pixmap, aspect
@@ -568,44 +653,290 @@ class PageView(QGraphicsView):
             it.set_selected(False)
         self.targetChanged.emit()
 
+    # pages in the scene --------------------------------------------------------
+
+    def _page_of(self, item: QGraphicsItem) -> int:
+        parent = item.parentItem()
+        return next((p.index for p in self.pages if p.item is parent), -1)
+
+    def page_at(self, scene_pos: QPointF, nearest: bool = False) -> tuple[int, QPointF] | None:
+        """(page, position on it) at ``scene_pos``; with ``nearest``, the
+        closest page when between or beside them."""
+        if not self.pages:
+            return None
+        y = scene_pos.y()
+        index = bisect.bisect_right([p.top for p in self.pages], y) - 1
+        index = max(index, 0)
+        page = self.pages[index]
+        if nearest and index + 1 < len(self.pages):
+            below = self.pages[index + 1]
+            if y > page.top + page.h and below.top - y < y - (page.top + page.h):
+                page = below
+        local = page.item.mapFromScene(scene_pos)
+        if not nearest and not page.rect.contains(local):
+            return None
+        return page.index, local
+
+    def map_from_page(self, x: float, y: float, page: int | None = None):
+        """Viewport position of point (x, y) on ``page`` (default: the current one)."""
+        p = self.pages[self.page if page is None else page]
+        return self.mapFromScene(p.item.mapToScene(QPointF(x, y)))
+
+    def page_rect(self, page: int | None = None) -> QRectF:
+        """The page's rect in its own display points."""
+        return self.pages[self.page if page is None else page].rect
+
+    def _build(self) -> None:
+        """The scene: every page with its fields, nothing rendered yet."""
+        self.finish_text_edit(True)
+        scene = self.scene()
+        for item in list(scene.items()):
+            if item.parentItem() is None:
+                scene.removeItem(item)
+        self.pages = []
+        self._field_items = []
+        self._form_items = []
+        self._text_anchor = None
+        if self.text_selection is not None:
+            self.text_selection = None
+            self.textSelectionChanged.emit()
+        if self.doc is None:
+            scene.setSceneRect(QRectF())
+            return
+
+        sizes = [self.doc.display_size(i) for i in range(len(self.doc))]
+        widest = max(w for w, _h in sizes)
+        y = 0.0
+        for i, (w, h) in enumerate(sizes):
+            self.pages.append(_Page(scene, i, (widest - w) / 2, y, w, h))
+            y += h + PAGE_GAP
+        scene.setSceneRect(QRectF(-MARGIN, -MARGIN, widest + 2 * MARGIN,
+                                  y - PAGE_GAP + 2 * MARGIN))
+
+        for f in self.fields:
+            if f.page is None or f.rect is None or not 0 <= f.page < len(self.pages):
+                continue
+            x, y, fw, fh = self.doc.rect_to_display(f.page, f.rect)
+            item = FieldItem(f, QRectF(x, y, fw, fh))
+            item.setParentItem(self.pages[f.page].item)
+            item.set_selected(f.name == self.selected_field)
+            self._field_items.append(item)
+
+        for f in self.form_fields:
+            for wd in f.widgets:
+                if not 0 <= wd.page < len(self.pages) or wd.rect[2] <= wd.rect[0]:
+                    continue
+                x, y, fw, fh = self.doc.rect_to_display(wd.page, wd.rect)
+                item = FormItem(f.name, QRectF(x, y, fw, fh), f.fillable, f.label, wd.state)
+                item.setParentItem(self.pages[wd.page].item)
+                item.set_active(f.name == self.active_form_field)
+                self._form_items.append(item)
+
+        self._update_mode()
+        self._apply_zoom()
+
+    def _visible_pages(self, margin: float = 0.0) -> list[_Page]:
+        """Pages in (or within ``margin`` points of) the visible area."""
+        if not self.pages:
+            return []
+        shown = self.mapToScene(self.viewport().rect()).boundingRect()
+        top, bottom = shown.top() - margin, shown.bottom() + margin
+        first = max(bisect.bisect_right([p.top for p in self.pages], top) - 1, 0)
+        out = []
+        for page in self.pages[first:]:
+            if page.top > bottom:
+                break
+            if page.top + page.h >= top:
+                out.append(page)
+        return out
+
+    def _scrolled(self, *args) -> None:
+        self._update_visible()
+        if not self._going_to:
+            self._track_page()
+
+    def _track_page(self) -> None:
+        """The page in the middle of the view is the current one."""
+        if not self.pages:
+            return
+        middle = self.mapToScene(self.viewport().rect().center())
+        found = self.page_at(middle, nearest=True)
+        if found is not None and found[0] != self.page:
+            self.page = found[0]
+            self.pageChanged.emit(self.page)
+
+    def _update_visible(self) -> None:
+        """Render the pages coming into view (and the next ones), forget the
+        pictures of pages far away, decorate the visible ones."""
+        self._place_inline()  # follows scrolling and zooming
+        if self.doc is None or not self.pages:
+            return
+        visible = self._visible_pages()
+        near = self._visible_pages(margin=self.viewport().height() / max(self.zoom, 0.01))
+        for page in near:
+            if page.scale == 0.0:
+                self._render_page(page)
+        keep = {p.index for p in near}
+        for page in self.pages:
+            if page.scale and page.index not in keep:
+                page.drop_picture()
+        for page in visible:
+            if not page.decorated:
+                self._decorate(page)
+        self._detail_timer.start()  # sharper, once zooming/scrolling pauses
+
+    def _render_page(self, page: _Page) -> None:
+        """The whole page, as sharp as the current zoom needs, but at most
+        MAX_PAGE_PIXELS: a huge page (or a crafted MediaBox) at high zoom
+        would need gigabytes and seconds. The detail covers the rest."""
+        cap = 0.999 * (MAX_PAGE_PIXELS / max(page.w * page.h, 1.0)) ** 0.5  # pdfium rounds up
+        scale = min(self.zoom * self.devicePixelRatioF(), cap)
+        pm = QPixmap.fromImage(ImageQt(self.doc.render(page.index, scale)))
+        pm.setDevicePixelRatio(1.0)
+        page.pixmap.setPixmap(pm)
+        page.pixmap.setScale(1 / scale)
+        page.scale = scale
+
+    def _update_detail(self) -> None:
+        """Render the visible part of each visible page sharply when its
+        whole-page picture is coarser than the screen."""
+        if self.doc is None:
+            return
+        shown = self.mapToScene(self.viewport().rect()).boundingRect()
+        for page in self.pages:
+            item = page.detail
+            scale = self.zoom * self.devicePixelRatioF()
+            visible = page.item.mapRectFromScene(shown) & page.rect
+            if (page.scale == 0.0 or scale <= page.scale * 1.05
+                    or visible.width() < 1 or visible.height() < 1):
+                item.setVisible(False)
+                item.setPixmap(QPixmap())
+                continue
+            w, h = page.w, page.h
+            # never more than the visible area needs (plus rounding)
+            scale = min(scale, (4 * MAX_PAGE_PIXELS / (visible.width() * visible.height())) ** 0.5)
+            crop = (visible.left(), h - visible.bottom(), w - visible.right(), visible.top())
+            img = self.doc.render(page.index, scale, crop)
+            pm = QPixmap.fromImage(ImageQt(img))
+            pm.setDevicePixelRatio(1.0)
+            item.setPixmap(pm)
+            item.setScale(1 / scale)
+            # pdfium cuts whole pixels: rounded up from the crop
+            item.setPos(math.ceil(crop[0] * scale) / scale, math.ceil(crop[3] * scale) / scale)
+            item.setVisible(True)
+
+    def _show_scene_rect(self, rect: QRectF, margin: int) -> None:
+        """Scroll ``rect`` (scene) into view; the page it is on becomes current."""
+        self.ensureVisible(rect, margin, margin)
+        found = self.page_at(rect.center(), nearest=True)
+        if found is not None and found[0] != self.page:
+            self.page = found[0]
+            self.pageChanged.emit(self.page)
+
     # text: selection and search ----------------------------------------------
 
-    def _highlight(self, start: int, count: int, color: QColor, z: float) -> list:
+    def _decorate(self, page: _Page) -> None:
+        """The selection's and the search's highlights on ``page``."""
+        for item in page.decorations:
+            if item.scene() is not None:
+                self.scene().removeItem(item)
+        page.decorations = []
+        page.decorated = True
+        if self.doc is None:
+            return
+        for start, count in self._matches.get(page.index, []):
+            current = self._current_match == (page.index, start, count)
+            color = QColor(255, 140, 0, 150) if current else QColor(255, 220, 0, 110)
+            page.decorations += self._highlight(page, start, count, color, 2.5)
+        part = self._selected_on(page.index)
+        if part is not None:
+            page.decorations += self._highlight(page, *part, QColor(40, 120, 230, 90), 3)
+
+    def _redecorate(self) -> None:
+        """Highlights changed: redrawn on the visible pages, the others later."""
+        for page in self.pages:
+            page.decorated = False
+        for page in self._visible_pages():
+            self._decorate(page)
+        for page in self.pages:  # pages out of view: stale highlights go now
+            if not page.decorated and page.decorations:
+                for item in page.decorations:
+                    self.scene().removeItem(item)
+                page.decorations = []
+
+    def _highlight(self, page: _Page, start: int, count: int, color: QColor,
+                   z: float) -> list:
         items = []
-        for x, y, w, h in _join_lines(self.doc.text_rects(self.page, start, count)):
-            item = self.scene().addRect(QRectF(x, y, w, h), QPen(Qt.NoPen), QBrush(color))
+        for x, y, w, h in _join_lines(self.doc.text_rects(page.index, start, count)):
+            item = QGraphicsRectItem(QRectF(x, y, w, h), page.item)
+            item.setPen(QPen(Qt.NoPen))
+            item.setBrush(QBrush(color))
             item.setZValue(z)  # over the page, under fields
             items.append(item)
         return items
 
-    def select_text(self, start: int, count: int) -> None:
-        """Select ``count`` characters from ``start`` on this page (0: none)."""
-        for item in self._selection_items:
-            self.scene().removeItem(item)
-        self._selection_items = []
-        selection = (start, count) if self.doc is not None and count > 0 else None
-        if selection is not None:
-            self._selection_items = self._highlight(start, count, QColor(40, 120, 230, 90), 3)
+    def _selected_on(self, page: int) -> tuple[int, int] | None:
+        """(start, count) of the selection on ``page``, or None."""
+        if self.text_selection is None:
+            return None
+        p0, c0, p1, c1 = self.text_selection
+        if not p0 <= page <= p1:
+            return None
+        start = c0 if page == p0 else 0
+        end = c1 if page == p1 else self.doc.char_count(page) - 1
+        return (start, end - start + 1) if end >= start else None
+
+    def select_range(self, p0: int, c0: int, p1: int, c1: int) -> None:
+        """Select from character ``c0`` on page ``p0`` to ``c1`` on ``p1``
+        (both included, in either order)."""
+        (p0, c0), (p1, c1) = sorted([(p0, c0), (p1, c1)])
+        selection = (p0, c0, p1, c1) if self.doc is not None else None
         if selection != self.text_selection:
             self.text_selection = selection
+            self._redecorate()
             self.textSelectionChanged.emit()
 
+    def select_text(self, start: int, count: int, page: int | None = None) -> None:
+        """Select ``count`` characters from ``start`` on ``page`` (default:
+        the current one); 0 characters: none."""
+        if count <= 0:
+            self.clear_text_selection()
+        else:
+            page = self.page if page is None else page
+            self.select_range(page, start, page, start + count - 1)
+
     def clear_text_selection(self) -> None:
-        self.select_text(0, 0)
+        if self.text_selection is not None:
+            self.text_selection = None
+            self._redecorate()
+            self.textSelectionChanged.emit()
 
     def select_all_text(self) -> None:
-        if self.doc is not None:
-            self.select_text(0, self.doc.char_count(self.page))
+        """All text of the document."""
+        if self.doc is not None and self.pages:
+            last = len(self.pages) - 1
+            self.select_range(0, 0, last, self.doc.char_count(last) - 1)
 
     def selected_text(self) -> str:
         if self.doc is None or self.text_selection is None:
             return ""
-        return self.doc.text(self.page, *self.text_selection)
+        p0, _c0, p1, _c1 = self.text_selection
+        parts = []
+        for page in range(p0, p1 + 1):
+            part = self._selected_on(page)
+            if part is not None:
+                parts.append(self.doc.text(page, *part))
+        return "\n".join(parts)
 
-    def _char_at(self, pos: QPointF, tolerance: float = 3.0) -> int:
-        if self.doc is None or not self.page_rect().contains(pos):
-            return -1
-        return self.doc.char_at(self.page, pos.x(), pos.y(), tolerance)
+    def _char_at(self, scene_pos: QPointF, tolerance: float = 3.0,
+                 nearest_page: bool = False) -> tuple[int, int] | None:
+        """(page, character) at ``scene_pos``, or None."""
+        found = self.page_at(scene_pos, nearest=nearest_page)
+        if found is None or self.doc is None:
+            return None
+        page, local = found
+        char = self.doc.char_at(page, local.x(), local.y(), tolerance)
+        return (page, char) if char >= 0 else None
 
     def _over_item(self, viewport_pos) -> bool:
         """Whether a field or the signature is under the mouse (they get the click)."""
@@ -615,45 +946,49 @@ class PageView(QGraphicsView):
     def set_search_matches(self, matches: dict[int, list[tuple[int, int]]],
                            current: tuple[int, int, int] | None = None) -> None:
         """Highlight ``matches`` (page -> [(start, count)]); ``current``
-        (page, start, count) stands out, and is shown: its page, scrolled to."""
+        (page, start, count) stands out, and is scrolled to."""
         self._matches, self._current_match = matches, current
-        if current is not None and current[0] != self.page:
-            self.go_to(current[0])  # renders, with the matches
-        else:
-            self._draw_matches()
-        if current is not None and self._match_items:
+        if current is not None and self.doc is not None:
             rects = self.doc.text_rects(*current)
             if rects:
                 x, y, w, h = rects[0]
-                self.ensureVisible(QRectF(x, y, w, h), 80, 80)
+                rect = self.pages[current[0]].item.mapRectToScene(QRectF(x, y, w, h))
+                self._show_scene_rect(rect, 80)
+        self._redecorate()
 
-    def _draw_matches(self) -> None:
-        for item in self._match_items:
-            if item.scene() is not None:
-                self.scene().removeItem(item)
-        self._match_items = []
-        if self.doc is None:
-            return
-        for start, count in self._matches.get(self.page, []):
-            current = self._current_match == (self.page, start, count)
-            color = QColor(255, 140, 0, 150) if current else QColor(255, 220, 0, 110)
-            self._match_items += self._highlight(start, count, color, 2.5)
+    @property
+    def _match_items(self) -> list:
+        """The search highlights shown now (for the tests)."""
+        return [i for p in self.pages for i in p.decorations if i.zValue() == 2.5]
 
     # navigation / zoom -------------------------------------------------------
 
     def go_to(self, page: int) -> None:
-        if self.doc is None or not 0 <= page < len(self.doc) or page == self.page:
+        """Scroll to the top of ``page``."""
+        if self.doc is None or not 0 <= page < len(self.doc):
             return
-        self.page = page
-        self._render()
-        self.pageChanged.emit(page)
+        self._scroll_to_page(page)
+
+    def _scroll_to_page(self, page: int) -> None:
+        self._going_to = True
+        try:
+            p = self.pages[page]
+            shown = self.mapToScene(self.viewport().rect()).boundingRect()
+            centre_x = shown.center().x() if shown.width() < self.sceneRect().width() else 0
+            self.centerOn(QPointF(centre_x, p.top - PAGE_GAP / 2 + shown.height() / 2))
+        finally:
+            self._going_to = False
+        self._update_visible()
+        if page != self.page:
+            self.page = page
+            self.pageChanged.emit(page)
 
     def set_zoom(self, zoom: float | None) -> None:
         """``None`` means fit width. Keeps the centre of the view in place."""
         self.zoom_at(None, zoom)
 
     def zoom_at(self, pos: QPointF | None, zoom: float | None) -> None:
-        """Zoom so that the page point under viewport position ``pos`` (default:
+        """Zoom so that the point under viewport position ``pos`` (default:
         the centre) stays where it is."""
         if pos is None:
             pos = QPointF(self.viewport().rect().center())
@@ -662,49 +997,75 @@ class PageView(QGraphicsView):
         if zoom is not None:
             self.zoom = min(zoom, MAX_ZOOM)
         self._apply_zoom()
-        if not self._fit_width:
-            moved = self.mapFromScene(anchor) - pos.toPoint()
-            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + moved.x())
-            self.verticalScrollBar().setValue(self.verticalScrollBar().value() + moved.y())
+        moved = self.mapFromScene(anchor) - pos.toPoint()
+        self._going_to = True  # the page under the anchor stays the current one
+        self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + moved.x())
+        self.verticalScrollBar().setValue(self.verticalScrollBar().value() + moved.y())
+        self._going_to = False
+        self._update_visible()
+
+    def _largest_page(self) -> tuple[float, float]:
+        return (max(p.w for p in self.pages), max(p.h for p in self.pages))
 
     def min_zoom(self) -> float:
-        """Zooming out stops where the whole page fits into the view."""
-        if self.doc is None:
+        """Zooming out stops where a whole page fits into the view."""
+        if self.doc is None or not self.pages:
             return 0.0
-        w, h = self.doc.display_size(self.page)  # plus a 20pt margin on each side
+        w, h = self._largest_page()  # plus a margin on each side
         avail = self.maximumViewportSize()  # without scroll bars
-        return max(0.01, min((avail.width() - 2) / (w + 40), (avail.height() - 2) / (h + 40)))
+        if len(self.pages) > 1:  # there will be a vertical bar
+            avail.setWidth(avail.width() - self._bar_width())
+        return max(0.01, min((avail.width() - 2) / (w + 2 * MARGIN),
+                             (avail.height() - 2) / (h + 2 * MARGIN)))
+
+    def _bar_width(self) -> int:
+        return self.style().pixelMetric(QStyle.PM_ScrollBarExtent, None, self)
 
     def fit_width_zoom(self) -> float:
-        """The zoom that fits the page's width into the view. Worked out from
+        """The zoom that fits the widest page into the view. Worked out from
         the view's size without scroll bars, plus the vertical one if the
-        page will need it, never from the bars currently shown: otherwise a
-        page that fits exactly with the bars shown but not without them
-        makes the bars, the viewport and the zoom flip back and forth
+        pages will need it, never from the bars currently shown: otherwise
+        pages that fit exactly with the bars shown but not without them
+        make the bars, the viewport and the zoom flip back and forth
         endlessly, freezing the window."""
-        w, h = self.doc.display_size(self.page)  # plus a 20pt margin on each side
+        w, _h = self._largest_page()
+        total = self.sceneRect().height()
         avail = self.maximumViewportSize()
-        zoom = (avail.width() - 2) / (w + 40)
-        if (h + 40) * zoom > avail.height() - 2:  # too tall: there will be a vertical bar
-            bar = self.style().pixelMetric(QStyle.PM_ScrollBarExtent, None, self)
-            zoom = (avail.width() - bar - 2) / (w + 40)
+        zoom = (avail.width() - 2) / (w + 2 * MARGIN)
+        if total * zoom > avail.height() - 2:  # too tall: there will be a vertical bar
+            zoom = (avail.width() - self._bar_width() - 2) / (w + 2 * MARGIN)
         return max(zoom, 0.01)
 
     def _apply_zoom(self) -> None:
-        if self.doc is None:
+        if self.doc is None or not self.pages:
             return
         if self._fit_width:
             self.zoom = self.fit_width_zoom()
         self.zoom = max(self.zoom, self.min_zoom())
-        self.resetTransform()
-        self.scale(self.zoom, self.zoom)
-        self._schedule_detail()
+        if self.transform().m11() == self.zoom:
+            self._update_visible()
+            return
+        # what is at the top of the view stays there (zoom_at() then moves
+        # its own anchor); meanwhile the scroll range shrinks and grows
+        # again, which isn't scrolling to another page
+        at = QPoint(self.viewport().width() // 2, 0)
+        anchor = self.mapToScene(at)
+        self._going_to = True
+        try:
+            self.resetTransform()
+            self.scale(self.zoom, self.zoom)
+            moved = self.mapFromScene(anchor) - at
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + moved.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() + moved.y())
+        finally:
+            self._going_to = False
+        self._update_visible()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if self._fit_width or self.zoom < self.min_zoom():
             self._apply_zoom()
-        self._schedule_detail()
+        self._update_visible()
 
     def wheelEvent(self, event):
         steps = event.angleDelta().y() / 120  # touchpads send fractions of a notch
@@ -717,141 +1078,32 @@ class PageView(QGraphicsView):
             self.zoom_at(event.position(), self.zoom * WHEEL_ZOOM ** steps)
         event.accept()
 
-    # rendering ---------------------------------------------------------------
-
-    def _render(self) -> None:
-        self.finish_text_edit(True)  # e.g. another page: its field is gone
-        scene = self.scene()
-        for item in list(scene.items()):
-            if item.parentItem() is None:
-                scene.removeItem(item)
-        self._page_item = self._detail_item = None
-        self._field_items = []
-        self._form_items = []
-        self._selection_items, self._match_items = [], []
-        self._text_anchor = None
-        if self.text_selection is not None:
-            self.text_selection = None
-            self.textSelectionChanged.emit()
-        if self.doc is None:
-            return
-
-        w, h = self.doc.display_size(self.page)
-        scene.setSceneRect(QRectF(-20, -20, w + 40, h + 40))
-        self._page_item = QGraphicsPixmapItem()
-        self._page_item.setZValue(0)
-        scene.addItem(self._page_item)
-        page_shadow = scene.addRect(QRectF(3, 3, w, h), QPen(Qt.NoPen), QBrush(QColor(0, 0, 0, 80)))
-        page_shadow.setZValue(-1)
-        self._detail_item = QGraphicsPixmapItem()
-        self._detail_item.setZValue(1)  # over the page, under fields and the signature
-        self._detail_item.setTransformationMode(Qt.SmoothTransformation)
-        scene.addItem(self._detail_item)
-
-        for f in self.fields:
-            if f.page != self.page or f.rect is None:
-                continue
-            x, y, fw, fh = self.doc.rect_to_display(self.page, f.rect)
-            item = FieldItem(f, QRectF(x, y, fw, fh))
-            item.set_selected(f.name == self.selected_field)
-            scene.addItem(item)
-            self._field_items.append(item)
-
-        for f in self.form_fields:
-            for wd in f.widgets:
-                if wd.page != self.page or wd.rect[2] <= wd.rect[0]:
-                    continue
-                x, y, fw, fh = self.doc.rect_to_display(self.page, wd.rect)
-                item = FormItem(f.name, QRectF(x, y, fw, fh), f.fillable, f.label, wd.state)
-                item.set_active(f.name == self.active_form_field)
-                scene.addItem(item)
-                self._form_items.append(item)
-
-        # The placed signature stays alive while browsing other pages.
-        if self.placement is not None and self._placement_page == self.page:
-            scene.addItem(self.placement)
-        self._draw_matches()
-        self._update_mode()
-        self._apply_zoom()
-        self._update_page_pixmap()
-
-    def _update_page_pixmap(self) -> None:
-        """The whole page, as sharp as the current zoom needs, but at most
-        MAX_PAGE_PIXELS: a huge page (or a crafted MediaBox) at high zoom
-        would need gigabytes and seconds. The detail covers the rest."""
-        if self.doc is None or self._page_item is None:
-            return
-        w, h = self.doc.display_size(self.page)
-        cap = 0.999 * (MAX_PAGE_PIXELS / max(w * h, 1.0)) ** 0.5  # pdfium rounds up
-        scale = min(self.zoom * self.devicePixelRatioF(), cap)
-        pm = QPixmap.fromImage(ImageQt(self.doc.render(self.page, scale)))
-        pm.setDevicePixelRatio(1.0)
-        self._page_item.setPixmap(pm)
-        self._page_item.setScale(1 / scale)
-        self._page_item.setTransformationMode(Qt.SmoothTransformation)
-        self._page_scale = scale
-
-    def _schedule_detail(self, *args) -> None:
-        self._place_inline()  # follows scrolling and zooming
-        if self._detail_item is not None:
-            self._detail_timer.start()  # restarts: renders once zooming/scrolling pauses
-
-    def _update_detail(self) -> None:
-        """Render the visible part of the page sharply when the whole-page
-        pixmap is coarser than the screen."""
-        item = self._detail_item
-        if self.doc is None or item is None or item.scene() is None:
-            return
-        scale = self.zoom * self.devicePixelRatioF()
-        if scale <= self._page_scale * 1.05:
-            item.setVisible(False)
-            return
-        w, h = self.doc.display_size(self.page)
-        visible = self.mapToScene(self.viewport().rect()).boundingRect() & QRectF(0, 0, w, h)
-        if visible.width() < 1 or visible.height() < 1:
-            item.setVisible(False)
-            return
-        # never more than the visible area needs (plus rounding)
-        scale = min(scale, (4 * MAX_PAGE_PIXELS / (visible.width() * visible.height())) ** 0.5)
-        crop = (visible.left(), h - visible.bottom(), w - visible.right(), visible.top())
-        img = self.doc.render(self.page, scale, crop)
-        pm = QPixmap.fromImage(ImageQt(img))
-        pm.setDevicePixelRatio(1.0)
-        item.setPixmap(pm)
-        item.setScale(1 / scale)
-        # pdfium cuts whole pixels: rounded up from the crop
-        item.setPos(math.ceil(crop[0] * scale) / scale, math.ceil(crop[3] * scale) / scale)
-        item.setVisible(True)
-
     # interaction -------------------------------------------------------------
-
-    def page_rect(self) -> QRectF:
-        w, h = self.doc.display_size(self.page)
-        return QRectF(0, 0, w, h)
-
-    def _clamp(self, pos: QPointF) -> QPointF:
-        r = self.page_rect()
-        return QPointF(min(max(pos.x(), r.left()), r.right()),
-                       min(max(pos.y(), r.top()), r.bottom()))
 
     def mousePressEvent(self, event):
         if self.doc is None or event.button() != Qt.LeftButton:
             return super().mousePressEvent(event)
-        pos = self.mapToScene(event.position().toPoint())
+        at = event.position().toPoint()
+        pos = self.mapToScene(at)
         if not (self.crop_mode or self.place_mode or self.insert_mode):
             # a drag over text selects it
-            char = -1 if self._over_item(event.position().toPoint()) else self._char_at(pos)
-            if char >= 0:
-                self._text_anchor = char
-                self.select_text(char, 0)
+            hit = None if self._over_item(at) else self._char_at(pos)
+            if hit is not None:
+                self._text_anchor = hit
+                if event.modifiers() & Qt.ShiftModifier and self.text_selection is not None:
+                    self._text_anchor = self.text_selection[:2]  # extend the selection
+                    self.select_range(*self._text_anchor, *hit)
+                else:
+                    self.clear_text_selection()
+                self._drag_pos = QPointF(at)
+                self._edge_timer.start()
                 self.setFocus()
                 self.viewport().setCursor(Qt.IBeamCursor)  # also while dragging
                 event.accept()
                 return
             self.clear_text_selection()
-            # a click on a field activates it; a drag moves the page
-            top = next(iter(self.items(event.position().toPoint())), None)
-            at = event.position().toPoint()
+            # a click on a field activates it; a drag moves the pages
+            top = next(iter(self.items(at)), None)
             if isinstance(top, FieldItem) and not top.field.locked:
                 name = top.field.name
                 self._field_press = (lambda: self.fieldActivated.emit(name), at)
@@ -860,43 +1112,76 @@ class PageView(QGraphicsView):
                 self._field_press = (lambda: self.formFieldActivated.emit(name, state), at)
             else:
                 self._field_press = None
-            return super().mousePressEvent(event)  # drag the signature, or the page
+            return super().mousePressEvent(event)  # drag the signature, or the pages
+        found = self.page_at(pos)
         if self.crop_mode or self.insert_mode:
-            if not self.page_rect().contains(pos) and self.insert_mode:
-                return
+            if found is None:
+                if self.insert_mode:
+                    return
+                found = self.page_at(pos, nearest=True)
             self._cancel_crop_drag()
-            self._crop_start = self._clamp(pos)
-            self._crop_item = QGraphicsRectItem(QRectF(self._crop_start, self._crop_start))
+            page = self.pages[found[0]]
+            self._crop_page = page
+            self._crop_start = self._clamp(page, found[1])
+            self._crop_item = QGraphicsRectItem(QRectF(self._crop_start, self._crop_start),
+                                                page.item)
             color = QColor(30, 90, 200) if self.insert_mode else QColor(220, 40, 40)
             self._crop_item.setPen(QPen(color, 0, Qt.DashLine))
             color.setAlpha(30)
             self._crop_item.setBrush(QBrush(color))
             self._crop_item.setZValue(20)
-            self.scene().addItem(self._crop_item)
             return
         # place mode: one click, then back to zoom/move
-        item = next((i for i in self.items(event.position().toPoint())
-                     if isinstance(i, FieldItem)), None)
+        item = next((i for i in self.items(at) if isinstance(i, FieldItem)), None)
         if item is not None:
             if item.clickable:
                 self.select_field(item.field.name)
             return
-        if self.page_rect().contains(pos):
-            self.place_at(pos)
+        if found is not None:
+            self.place_at(found[1], found[0])
+
+    @staticmethod
+    def _clamp(page: _Page, pos: QPointF) -> QPointF:
+        return QPointF(min(max(pos.x(), 0.0), page.w), min(max(pos.y(), 0.0), page.h))
+
+    def _extend_selection(self, viewport_pos: QPointF) -> None:
+        """While dragging over text: the selection runs to the mouse."""
+        pos = self.mapToScene(viewport_pos.toPoint())
+        hit = self._char_at(pos, nearest_page=True)
+        if hit is None:
+            hit = self._char_at(pos, 12.0, nearest_page=True)  # between lines: the nearest
+        if hit is None:  # beside the text: the page's start or end
+            found = self.page_at(pos, nearest=True)
+            if found is not None:
+                page, local = found
+                count = self.doc.char_count(page)
+                if count:  # above the middle: from its start, below: to its end
+                    hit = (page, count - 1 if local.y() > self.pages[page].h / 2 else 0)
+        if hit is not None:
+            self.select_range(*self._text_anchor, *hit)
+
+    def _scroll_at_edge(self) -> None:
+        """Dragging a selection to the top or bottom edge scrolls on."""
+        if self._text_anchor is None or self._drag_pos is None:
+            self._edge_timer.stop()
+            return
+        y, height = self._drag_pos.y(), self.viewport().height()
+        edge = 30
+        step = (y - (height - edge)) if y > height - edge else (y - edge if y < edge else 0)
+        if step:
+            bar = self.verticalScrollBar()
+            bar.setValue(bar.value() + int(max(-40, min(40, step))))
+            self._extend_selection(self._drag_pos)
 
     def mouseMoveEvent(self, event):
         if self._text_anchor is not None:
             self.viewport().setCursor(Qt.IBeamCursor)
-            pos = self.mapToScene(event.position().toPoint())
-            char = self._char_at(pos)
-            if char < 0:
-                char = self._char_at(pos, 12.0)  # between lines: the nearest
-            if char >= 0:
-                first, last = sorted((self._text_anchor, char))
-                self.select_text(first, last - first + 1)
+            self._drag_pos = event.position()
+            self._extend_selection(event.position())
             return
         if (self.crop_mode or self.insert_mode) and self._crop_item is not None:
-            end = self._clamp(self.mapToScene(event.position().toPoint()))
+            pos = self._crop_page.item.mapFromScene(self.mapToScene(event.position().toPoint()))
+            end = self._clamp(self._crop_page, pos)
             self._crop_item.setRect(QRectF(self._crop_start, end).normalized())
             return
         super().mouseMoveEvent(event)  # (sets the hand cursor again)
@@ -904,31 +1189,33 @@ class PageView(QGraphicsView):
             self._hover_cursor(event.position().toPoint())
 
     def _hover_cursor(self, at) -> None:
-        """A text cursor over text, else the hand that moves the page."""
+        """A text cursor over text, else the hand that moves the pages."""
         if self.doc is None or self.dragMode() != QGraphicsView.ScrollHandDrag:
             return
         if self._over_item(at):
             return  # fields and the signature have their own
-        over_text = self._char_at(self.mapToScene(at)) >= 0
+        over_text = self._char_at(self.mapToScene(at)) is not None
         self.viewport().setCursor(Qt.IBeamCursor if over_text else Qt.OpenHandCursor)
 
     def mouseReleaseEvent(self, event):
         if self._text_anchor is not None:
             self._text_anchor = None
+            self._drag_pos = None
+            self._edge_timer.stop()
             self._hover_cursor(event.position().toPoint())
             return
         if self.crop_mode and self._crop_item is not None:
-            rect = self._crop_item.rect()
+            rect, page = self._crop_item.rect(), self._crop_page.index
             self._cancel_crop_drag()
             if rect.width() >= 5 and rect.height() >= 5:
-                self.cropSelected.emit(self.page, rect)
+                self.cropSelected.emit(page, rect)
             return
         if self.insert_mode and self._crop_item is not None:
-            rect = self._crop_item.rect()
+            rect, page = self._crop_item.rect(), self._crop_page.index
             if rect.width() < 5 or rect.height() < 5:  # a click
                 rect = QRectF(self._crop_start, self._crop_start)
             self.set_insert_mode(False)
-            self.insertSelected.emit(self.page, rect)
+            self.insertSelected.emit(page, rect)
             return
         press, self._field_press = self._field_press, None
         super().mouseReleaseEvent(event)
@@ -943,10 +1230,12 @@ class PageView(QGraphicsView):
         modes = self.crop_mode or self.place_mode or self.insert_mode
         if self.doc is not None and event.button() == Qt.LeftButton and not modes:
             at = event.position().toPoint()
-            char = -1 if self._over_item(at) else self._char_at(self.mapToScene(at))
-            if char >= 0:
+            hit = None if self._over_item(at) else self._char_at(self.mapToScene(at))
+            if hit is not None:
                 self._text_anchor = None
-                self.select_text(*self.doc.word_at(self.page, char))
+                self._edge_timer.stop()
+                page, char = hit
+                self.select_text(*self.doc.word_at(page, char), page=page)
                 event.accept()
                 return
         super().mouseDoubleClickEvent(event)
@@ -963,32 +1252,32 @@ class PageView(QGraphicsView):
         if f is None or f.filled or f.locked:
             return
         self._drop_placement()
-        if f.page is not None and f.page != self.page:
-            self.go_to(f.page)
         self.selected_field = name
         for it in self._field_items:
             it.set_selected(it.field.name == name)
-        if f.rect is not None:
-            self.ensureVisible(self._field_items_by_name(name).rect(), 40, 40)
+        item = next((it for it in self._field_items if it.field.name == name), None)
+        if item is not None:
+            self._show_scene_rect(item.mapRectToScene(item.rect()), 40)
+        elif f.page is not None:
+            self.go_to(f.page)
         self.set_place_mode(False)
         self.targetChanged.emit()
 
-    def _field_items_by_name(self, name: str) -> FieldItem:
-        return next(it for it in self._field_items if it.field.name == name)
-
-    def place_at(self, pos: QPointF) -> None:
+    def place_at(self, pos: QPointF, page: int | None = None) -> None:
+        """Put the new signature's centre at ``pos`` on ``page`` (default:
+        the current one)."""
+        page = self.page if page is None else page
         self.selected_field = None
         for it in self._field_items:
             it.set_selected(False)
-        bounds = self.page_rect()
-        if self.placement is None or self._placement_page != self.page:
+        if self.placement is None or self._placement_page != page:
             self._drop_placement()
             self.placement = SignatureItem(
-                self._sig_pixmap, self._sig_aspect, DEFAULT_WIDTH, bounds
+                self._sig_pixmap, self._sig_aspect, DEFAULT_WIDTH, self.pages[page].rect
             )
             self.placement.geometryChanged.connect(self.targetChanged)
-            self.scene().addItem(self.placement)
-            self._placement_page = self.page
+            self.placement.setParentItem(self.pages[page].item)
+            self._placement_page = page
         self.placement.center_on(pos)
         self.placement.setSelected(True)
         self.set_place_mode(False)
@@ -1000,6 +1289,6 @@ class PageView(QGraphicsView):
         """(page, PDF box) of the placed signature, or None."""
         if self.placement is None or self._placement_page is None:
             return None
-        r = self.placement.scene_rect()
+        r = self.placement.scene_rect()  # on its page
         page = self._placement_page
         return page, self.doc.rect_to_pdf(page, r.x(), r.y(), r.width(), r.height())

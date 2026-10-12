@@ -98,7 +98,7 @@ def window(qapp, profile, p12_bob, secrets, save_to, tmp_path):
 
 def click_scene(view, x, y):
     QTest.mouseClick(view.viewport(), Qt.LeftButton, Qt.NoModifier,
-                     view.mapFromScene(QPointF(x, y)))
+                     view.map_from_page(x, y))
 
 
 def stamp_aspect(window, name="alice"):
@@ -122,7 +122,7 @@ def place(view, x, y):
 
 def drag_scene(view, start, end):
     vp = view.viewport()
-    a, b = view.mapFromScene(QPointF(*start)), view.mapFromScene(QPointF(*end))
+    a, b = view.map_from_page(*start), view.map_from_page(*end)
     QTest.mousePress(vp, Qt.LeftButton, Qt.NoModifier, a)
     for i in range(1, 6):
         QTest.mouseMove(vp, a + (b - a) * i / 5)
@@ -258,11 +258,9 @@ def test_placement_survives_page_navigation(window, blank_pdf):
     place(view, 200, 300)
     item = view.placement
     view.go_to(1)
-    assert item.scene() is None  # not shown on page 2
+    assert item.parentItem() is view.pages[0].item  # stays on page 1, scrolled away
     assert view.placement_box()[0] == 0
     assert window.sign_act.isEnabled()
-    view.go_to(0)
-    assert item.scene() is view.scene()
     # clicking on page 2 moves the placement there
     view.go_to(1)
     place(view, 300, 300)
@@ -317,11 +315,11 @@ def test_default_is_zoom_and_move(window, blank_pdf, qapp):
 
     view.set_zoom(1.0)
     qapp.processEvents()
-    under = view.mapFromScene(QPointF(300, 400))
+    under = view.map_from_page(300, 400)
     zoom = view.zoom
     wheel(view, (300, 400), 120, Qt.NoModifier)
     assert view.zoom == pytest.approx(zoom * 1.15)
-    after = view.mapFromScene(QPointF(300, 400))  # the point under the mouse stays
+    after = view.map_from_page(300, 400)  # the point under the mouse stays
     assert abs(after.x() - under.x()) <= 2 and abs(after.y() - under.y()) <= 2
     wheel(view, (300, 400), -120, Qt.NoModifier)
     assert view.zoom == pytest.approx(zoom)
@@ -345,12 +343,12 @@ def test_zoom_out_stops_when_the_page_fits(window, blank_pdf, qapp):
     view.set_zoom(view.zoom / 1.2)  # toolbar "−"
     qapp.processEvents()
     assert view.zoom == pytest.approx(view.min_zoom())
+    view.go_to(0)
     shown = view.mapToScene(view.viewport().rect()).boundingRect()
     assert shown.contains(QRectF(0, 0, 595, 842))  # the whole page is visible
-    assert not view.verticalScrollBar().isVisible()
     # and it fills the view in one direction: no smaller than needed
     slack = 4 / view.zoom  # whole pixels
-    assert shown.height() <= 842 + 40 + slack or shown.width() <= 595 + 40 + slack
+    assert shown.height() <= 842 + 40 + slack or shown.width() <= 595 + 40 + 20 + slack
     window.resize(window.width(), window.height() - 200)  # a smaller window: still fits
     qapp.processEvents()
     assert view.zoom == pytest.approx(view.min_zoom())
@@ -429,8 +427,9 @@ def test_zoomed_in_only_the_visible_part_is_rendered_sharply(window, blank_pdf, 
     window.open(blank_pdf)
     view = window.view
     view.set_zoom(6.0)
+    view.go_to(0)
     view._update_detail()  # normally after a short pause
-    detail = view._detail_item
+    detail = view.pages[0].detail
     assert detail.isVisible()
     pm = detail.pixmap()
     vp = view.viewport()
@@ -439,8 +438,9 @@ def test_zoomed_in_only_the_visible_part_is_rendered_sharply(window, blank_pdf, 
     shown = view.mapToScene(vp.rect()).boundingRect() & QRectF(0, 0, 595, 842)
     assert detail.sceneBoundingRect().left() == pytest.approx(shown.left(), abs=0.5)
     assert detail.sceneBoundingRect().top() == pytest.approx(shown.top(), abs=0.5)
-    page = view._page_item.pixmap()
+    page = view.pages[0].pixmap.pixmap()
     assert page.width() * page.height() <= MAX_PAGE_PIXELS
+    assert not view.pages[1].detail.isVisible()  # out of sight
     view.set_zoom(None)
     view._update_detail()
     assert not detail.isVisible()  # the whole-page pixmap is sharp enough
@@ -915,7 +915,7 @@ def wheel(view, scene_pos, delta, modifiers=Qt.ControlModifier):
     from PySide6.QtCore import QPoint
     from PySide6.QtGui import QWheelEvent
 
-    p = QPointF(view.mapFromScene(QPointF(*scene_pos)))
+    p = QPointF(view.map_from_page(*scene_pos))
     ev = QWheelEvent(p, QPointF(view.viewport().mapToGlobal(p.toPoint())), QPoint(0, 0),
                      QPoint(0, delta), Qt.NoButton, modifiers, Qt.NoScrollPhase, False)
     QtWidgets.QApplication.sendEvent(view.viewport(), ev)
@@ -1306,10 +1306,10 @@ def test_huge_page_render_is_capped(window, tmp_path):
     big.write_bytes(buf.getvalue())
     window.open(big)
     window.view.set_zoom(6.0)
-    pm = window.view._page_item.pixmap()
+    pm = window.view.pages[0].pixmap.pixmap()
     assert pm.width() * pm.height() <= MAX_PAGE_PIXELS
     # geometry stays right: the item still covers the whole page in scene units
-    rect = window.view._page_item.sceneBoundingRect()
+    rect = window.view.pages[0].pixmap.sceneBoundingRect()
     assert rect.width() == pytest.approx(14400, rel=0.01)
 
 

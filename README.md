@@ -35,8 +35,8 @@ It has a CLI and a Qt GUI that share the same certificate profiles.
   or drag pages from one to another.
 * **Page tools:** rotate, crop and delete pages (CLI and the GUI's page
   menu); split and merge on the command line.
-* **Find and copy text** in the GUI: search all pages (`Ctrl+F`), select
-  text on the page and copy it.
+* **Find and copy text** in the GUI: the pages scroll continuously; search
+  all of them (`Ctrl+F`), select text (also over several pages) and copy it.
 * **Recognize text (OCR)** in scanned pages, so they can be searched and
   copied: with the system's own engine on macOS and Windows, Tesseract on
   Linux; entirely offline (`slim-pdf ocr`, and in the GUI).
@@ -189,7 +189,7 @@ strings, run `python scripts/i18n.py update`, translate the new entries in
 | `test_forms.py`, `test_gui_forms.py` | Listing and filling in every field kind (text, multi-line, check box, radio, drop-down, list box, child fields), the drawn appearances, refused values and characters, read-only and signature-locked fields, certified and encrypted documents, signatures staying valid; the GUI's form panel and side panel switching, clicking a field on the page, undo, the warning before a signature would break; `slim-pdf form`. |
 | `test_insert.py`, `test_gui_insert.py` | Text and images added upright and in place on all four page rotations, wrapping, vector (PDF) images, encrypted documents, existing content and resources kept; in the GUI: dragging a box, clicking, `Esc`, the text dialog's checks, the warning on signed documents. |
 | `test_ocr.py`, `test_gui_ocr.py` | The invisible text layer: words where they are on all four rotations and on cropped pages, pixel-identical rendering, pages with text skipped, progress and cancel, `slim-pdf ocr`, signed documents refused; the real engines (Tesseract, Apple Vision, Windows OCR) wherever CI has them; in the GUI: pdfium only on the GUI thread, cancel, undo, missing engines and languages explained, the settings. |
-| `test_gui_text.py` | Selecting text by dragging (also backwards and over lines), double-click for a word, `Ctrl+A`, copying with `Ctrl+C` (pages instead when nothing is selected or the *Pages* panel has the focus), the ribbon and page menu; the find bar: matches across pages, next/previous with wrap-around, starting on the current page, match case, `Enter`/`Esc`, searching again after edits and in another document. |
+| `test_gui_text.py` | Selecting text by dragging (also backwards, over lines and on to the next page), `Shift`+click, double-click for a word, `Ctrl+A` (the whole document), the scroll position kept after edits, copying with `Ctrl+C` (pages instead when nothing is selected or the *Pages* panel has the focus), the ribbon and page menu; the find bar: matches across pages, next/previous with wrap-around, starting on the current page, match case, `Enter`/`Esc`, searching again after edits and in another document. |
 | `test_gui_pages.py` | GUI page tools: thumbnails, rotating selected pages, cropping by dragging, undo and save, the unsaved-changes prompt, warnings on signed documents, signing an edited document, split and merge dialogs. |
 | `test_cli.py` | Every subcommand, exit codes, output format; target errors are reported **before** any passphrase prompt; keyring and encrypted-PDF flows. |
 | `test_config.py`, `test_secretstore.py` | Profile validation and TOML round-trip; prompt, keyring and KeePass (attachment, entry paths containing `/`, key files, error cases). |

@@ -56,9 +56,15 @@ guide show the English version.
   edits). **Close** or the tab's ×  closes a document, asking first if it
   has unsaved edits; so does closing the window, for each of them.
   `slim-pdf gui a.pdf b.pdf` opens both.
-* **Page:** the mouse wheel zooms in and out around the mouse pointer (out
-  only until the whole page fits the view);
-  press and hold the left mouse button and move to move the page. Prepared
+* **Pages:** shown one below the other; scroll through them with the
+  scroll bar, `PgUp`/`PgDown`, or by pressing the left mouse button on an
+  empty spot and moving. The page in the middle of the view is the current
+  one (its number is in the *View* group, its thumbnail marked); the
+  page tools and **Recognize text** act on it unless pages are selected in
+  the *Pages* panel. The mouse wheel zooms in and out around the mouse
+  pointer (out only until a whole page fits the view). Over text, the
+  pointer is a text cursor: dragging there selects text (see
+  [Finding and copying text](#finding-and-copying-text)). Prepared
   signature fields appear as boxes:
   * blue, dashed: empty, can be signed; a click signs it;
   * green: already signed; a click shows the signature's details;
@@ -217,11 +223,14 @@ next one, `Shift+Enter` or `Shift+F3` back, also across pages. *Match case*
 tells upper and lower case apart. `Esc` or × closes the bar. Text selected
 on the page is what **Find** looks for.
 
-**Copying text:** drag over text on the page to select it (dragging
-elsewhere still moves the page; the pointer becomes a text cursor over
-text). Double-click selects a word, `Ctrl+A` all text on the page. `Ctrl+C`
-copies it; so do **Copy text** in the ribbon and in the right-click menu.
-Without selected text, `Ctrl+C` copies pages as before.
+**Copying text:** drag over text to select it, also on to the next pages
+(at the top or bottom edge of the view, it scrolls on). Dragging elsewhere
+still moves the pages; the pointer is a text cursor over text.
+Double-click selects a word, `Shift`+click extends the selection to where
+you click (scroll there first), `Ctrl+A` selects the whole document's
+text. `Ctrl+C` copies it, pages separated by a line break; so do **Copy
+text** in the ribbon and in the right-click menu. Without selected text,
+`Ctrl+C` copies pages as before.
 
 Both work with the text a PDF contains. A scan has none until its text is
 recognized (see [Recognizing text (OCR)](#recognizing-text-ocr)).
@@ -425,12 +434,13 @@ scroll), and `Fn+↑`/`Fn+↓` for `PgUp`/`PgDown`.
 | `Ctrl+O` | Open PDF (in a tab of its own) |
 | `Ctrl+W` | Close the current document |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Next / previous document |
-| `PgUp` / `PgDown` | Previous / next page |
+| `PgUp` / `PgDown` | Previous / next page (scrolls to its top) |
 | `Ctrl +` / `Ctrl -` | Zoom in / out |
-| Wheel | Zoom in / out around the mouse pointer (out until the whole page fits) |
-| Left button + move | Move the page (or the placed signature, when on it); over text: select it |
+| Wheel | Zoom in / out around the mouse pointer (out until a whole page fits) |
+| Left button + move | Move the pages (or the placed signature, when on it); over text: select it, also over several pages |
+| `Shift` + click | Extend the selected text to here |
 | Double-click | Select the word under the mouse |
-| `Ctrl+A` | Select the page's text (in the page) |
+| `Ctrl+A` | Select all text of the document (in the pages) |
 | `Ctrl+F` | Find text in the document |
 | `F3` / `Shift+F3` | Next / previous match (`Enter` / `Shift+Enter` in the find bar) |
 | `Ctrl` + wheel | Resize the placed signature (over it); zoom elsewhere |
