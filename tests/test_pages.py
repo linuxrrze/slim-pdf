@@ -236,11 +236,12 @@ def test_cli_refuses_signed_without_force(profile, form_pdf, tmp_path, cfg_path,
     for argv in (("rotate", signed, "-i", "--angle", "90"),
                  ("crop", signed, "-i", "--margins", "10"),
                  ("split", signed),
-                 ("merge", "-o", tmp_path / "m.pdf", signed)):
+                 ("merge", "-o", tmp_path / "m.pdf", signed),
+                 ("encrypt", signed, "-i", "--new-password", "x")):
         assert run(*argv) == 3, argv
         err = capsys.readouterr().err
         assert "'Applicant'" in err and err.rstrip().endswith("(use --force to continue anyway)")
-        assert ("remove" if argv[0] in ("split", "merge") else "invalidate") in err
+        assert ("remove" if argv[0] in ("split", "merge", "encrypt") else "invalidate") in err
     assert signed.read_bytes() == before
     assert run("rotate", signed, "-i", "--angle", "90", "--force") == 0
 
@@ -419,3 +420,89 @@ def test_move_in_signed_document_is_detected(profile, form_pdf, tmp_path):
     sign_with(profile, form_pdf, signed, field_name="Applicant")
     [r] = verify_pdf(pages.move(signed.read_bytes(), [1], 0))
     assert r.status == INVALID
+
+
+# --- encrypt -----------------------------------------------------------------------------
+
+
+def opens_with(data, password):
+    """Whether the document opens with ``password`` (None: without one)."""
+    from pyhanko.pdf_utils.crypt import AuthStatus
+
+    r = PdfFileReader(io.BytesIO(data))
+    if password is None:
+        return not r.encrypted
+    return r.encrypted and r.decrypt(password).status != AuthStatus.FAILED
+
+
+def test_encrypt(form_pdf, tmp_path):
+    from pypdf import PdfReader
+
+    data = form_pdf.read_bytes()
+    out = pages.encrypt(data, "secret")
+    assert opens_with(out, "secret") and not opens_with(out, "wrong")
+    encryption = PdfReader(io.BytesIO(out)).trailer["/Encrypt"].get_object()
+    assert (encryption["/V"], encryption["/R"]) == (5, 6)  # AES-256
+    assert info(out, "secret") == info(data)  # the same pages
+    # the fields are kept, and the document can still be signed and edited
+    assert [f.name for f in inspect_pdf(out, "secret").fields] == \
+        [f.name for f in inspect_pdf(data).fields]
+    with pytest.raises(PasswordRequired):
+        pages.page_count(out)
+    assert info(pages.rotate(out, [0], 90, "secret"), "secret")[0][2] == 90
+
+
+def test_encrypt_sets_a_new_password(blank_pdf, tmp_path):
+    enc = make_encrypted(blank_pdf, tmp_path / "e.pdf", "old").read_bytes()
+    with pytest.raises(PasswordRequired):
+        pages.encrypt(enc, "new")
+    with pytest.raises(SigningError, match="password"):
+        pages.encrypt(enc, "new", "wrong")
+    out = pages.encrypt(enc, "new", "old")
+    assert opens_with(out, "new") and not opens_with(out, "old")
+    with pytest.raises(PageError, match="empty"):
+        pages.encrypt(enc, "", "old")
+
+
+def test_encrypted_document_can_be_signed(profile, p12, form_pdf, tmp_path):
+    from conftest import validate_all
+
+    enc = tmp_path / "enc.pdf"
+    enc.write_bytes(pages.encrypt(form_pdf.read_bytes(), "secret"))
+    signed = tmp_path / "signed.pdf"
+    sign_with(profile, enc, signed, field_name="Applicant", pdf_password="secret")
+    [(_name, status)] = validate_all(signed, p12[1], password="secret")
+    assert status.bottom_line
+
+
+def test_encrypt_removes_signatures(profile, form_pdf, tmp_path):
+    signed = tmp_path / "s.pdf"
+    sign_with(profile, form_pdf, signed, field_name="Applicant")
+    out = tmp_path / "e.pdf"
+    out.write_bytes(pages.encrypt(signed.read_bytes(), "pw"))
+    fields = inspect_pdf(out, "pw").fields
+    assert "Applicant" not in [f.name for f in fields]  # the signed one: gone
+    assert "Supervisor" in [f.name for f in fields]  # an empty one: kept
+    assert not pages.signature_names(out.read_bytes(), "pw")
+
+
+def test_cli_encrypt(blank_pdf, tmp_path, cfg_path, capsys, monkeypatch):
+    out = tmp_path / "blank-encrypted.pdf"
+    # asked twice; a mistyped repetition changes nothing
+    answers = iter(["secret", "secrte"])
+    monkeypatch.setattr(cli, "_ask", lambda prompt: next(answers))
+    assert run("encrypt", blank_pdf) == 1
+    assert "don't match" in capsys.readouterr().err and not out.exists()
+    answers = iter(["secret", "secret"])
+    assert run("encrypt", blank_pdf) == 0
+    assert "AES-256" in capsys.readouterr().out and opens_with(out.read_bytes(), "secret")
+    # scripts: the old password and the new one from stdin, one line each
+    monkeypatch.setattr("sys.stdin", io.StringIO("secret\nnewer\n"))
+    assert run("encrypt", out, "-i", "--password", "-", "--new-password", "-") == 0
+    assert opens_with(out.read_bytes(), "newer")
+    monkeypatch.setenv("SLIM_PDF_PDF_PASSWORD", "newer")
+    monkeypatch.setenv("SLIM_PDF_NEW_PDF_PASSWORD", "newest")
+    assert run("encrypt", out, "-i") == 0
+    assert opens_with(out.read_bytes(), "newest")
+    assert run("encrypt", blank_pdf, "-o", tmp_path / "x.pdf", "--new-password", "") == 1
+    assert "empty" in capsys.readouterr().err

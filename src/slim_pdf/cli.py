@@ -413,6 +413,7 @@ def cmd_sign(cfg: Config, args) -> int:
 
 
 PDF_PASSWORD_ENV = "PDF_PASSWORD"  # $SLIM_PDF_PDF_PASSWORD
+NEW_PASSWORD_ENV = "NEW_PDF_PASSWORD"  # $SLIM_PDF_NEW_PDF_PASSWORD (encrypt)
 
 
 PASSWORD_HELP = N_("password of an encrypted PDF; '-' reads it from stdin. Without it, "
@@ -746,6 +747,40 @@ def cmd_merge(cfg: Config, args) -> int:
     return 0
 
 
+def _new_password(given: str | None) -> str:
+    """--new-password (``-``: a line from stdin), else $SLIM_PDF_NEW_PDF_PASSWORD,
+    else asked twice."""
+    if given == "-":
+        new = sys.stdin.readline().rstrip("\r\n")
+    elif given is not None:
+        new = given
+    elif (env := environ(NEW_PASSWORD_ENV)) is not None:
+        new = env
+    else:
+        new = _ask(_("New PDF password"))
+        if new is None:
+            raise Cancelled()
+        again = _ask(_("New PDF password (again)"))
+        if again is None:
+            raise Cancelled()
+        if again != new:
+            raise SigningError(_("the passwords don't match"))
+    if not new:
+        raise SigningError(_("the new password is empty"))
+    return new
+
+
+def cmd_encrypt(cfg: Config, args) -> int:
+    src = Path(args.file)
+    data, pw = _read_pdf(src, args.password)
+    _guard_signatures(data, pw, args.force,
+                      _("encrypting would remove the signature(s) {names}"))
+    dst = _edit_output(src, args, "encrypted")
+    _atomic_write(dst, pages.encrypt(data, _new_password(args.new_password), pw))
+    print(_("encrypted ({algorithm}) -> {path}").format(algorithm=pages.ENCRYPTION, path=dst))
+    return 0
+
+
 def cmd_gui(cfg: Config, args) -> int:
     try:
         from .gui.app import main as gui_main
@@ -918,6 +953,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true", help=_("merge even signed documents "
                                                           "(the signatures are removed)"))
     p.set_defaults(func=cmd_merge)
+
+    p = sub.add_parser("encrypt", help=_("protect a PDF with a password"),
+                       description=_("Encrypts the PDF (AES-256) so it opens only with the "
+                                     "new password; an encrypted PDF gets the new password "
+                                     "instead of its old one. The file is written anew, so "
+                                     "signatures are removed: encrypt before signing."))
+    p.add_argument("file")
+    p.add_argument("-o", "--output",
+                   help=_("output file (default: <name>-{suffix}.pdf)").format(suffix="encrypted"))
+    p.add_argument("-i", "--in-place", action="store_true", help=_("overwrite the input"))
+    p.add_argument("--new-password",
+                   help=_("the password to set; '-' reads it from stdin (after --password -, "
+                          "if both are). Without it, $SLIM_PDF_NEW_PDF_PASSWORD or a prompt "
+                          "(twice) is used"))
+    p.add_argument("--password", help=_(PASSWORD_HELP))
+    p.add_argument("--force", action="store_true", help=_("encrypt even signed documents "
+                                                          "(the signatures are removed)"))
+    p.set_defaults(func=cmd_encrypt)
 
     p = sub.add_parser("gui", help=_("start the GUI"))
     p.add_argument("files", nargs="*", metavar="FILE", help=_("PDFs to open, a tab each"))

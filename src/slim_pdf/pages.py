@@ -1,4 +1,4 @@
-"""Page operations: rotate, crop, split, merge.
+"""Page operations: rotate, crop, split, merge; encrypting a document.
 
 * ``rotate``, ``crop`` and ``delete`` are written as incremental updates (like
   signatures), so earlier revisions stay byte-identical and the encryption
@@ -8,6 +8,9 @@
   be carried over, so signed signature fields are dropped from the output;
   empty signature fields are kept. Encrypted inputs are decrypted; the output
   is not encrypted.
+* ``encrypt`` writes the document anew as well (encryption covers the whole
+  file; earlier revisions can't be encrypted afterwards), so signatures are
+  dropped the same way.
 
 Page numbers are 0-based here; :func:`parse_pages` converts the 1-based
 specs used on the command line ("1-3,5,8-", "odd", "even", "all").
@@ -455,4 +458,22 @@ def merge(inputs: Sequence[tuple[bytes, Sequence[int] | None, str | None]]) -> b
         sel = list(range(len(reader.pages))) if pages is None else _check_pages(
             pages, len(reader.pages))
         writer.append(reader, pages=sel)
+    return _write(writer)
+
+
+# --- encrypt (a new document) ----------------------------------------------------------
+
+ENCRYPTION = "AES-256"
+
+
+def encrypt(data: bytes, new_password: str, password: str | None = None) -> bytes:
+    """The document encrypted with ``new_password`` (AES-256), which opens
+    it and allows everything. An encrypted document (``password``: its
+    current one) gets the new password instead."""
+    from pypdf import PdfWriter
+
+    if not new_password:
+        raise PageError(_("the new password is empty"))
+    writer = PdfWriter(clone_from=_reader(data, password))
+    writer.encrypt(user_password=new_password, algorithm=ENCRYPTION)
     return _write(writer)

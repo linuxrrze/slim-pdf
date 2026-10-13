@@ -20,7 +20,8 @@ guide show the English version.
 
 * **Ribbon** (top), in four tabs:
   * *Edit* (the first tab, shown when a document is opened): **Open…**
-    (`Ctrl+O`), **Save**, **Save as…**, **Undo**, **Close** (`Ctrl+W`);
+    (`Ctrl+O`), **Save**, **Save as…**, **Undo**, **Close** (`Ctrl+W`),
+    **Encrypt…** (see [Encrypting a document](#encrypting-a-document));
     **Text…** and **Image…** (see
     [Adding text and images](#adding-text-and-images)); **Settings…** (also
     for the certificates). The form is in the side panel (see
@@ -321,6 +322,19 @@ Windows each language needs its OCR component (*Settings → Time & language
 data (`sudo apt install tesseract-ocr tesseract-ocr-deu`). If something is
 missing, slim-pdf says what to install. Adding text invalidates existing
 signatures, so recognize text before signing.
+
+## Encrypting a document
+
+**Encrypt…** (*Edit* tab) protects the document with a password: type it
+twice, and once saved, the document opens only with that password (AES-256
+encryption). A document that is encrypted already gets the new password
+instead of its old one. Like every edit, it takes effect when you save, and
+**Undo** takes it back.
+
+Encryption covers the whole file, so the document is written anew, which
+removes existing signatures; slim-pdf asks first. Encrypt before signing:
+signatures added afterwards stay valid, and the document stays encrypted
+through later edits.
 
 ## Settings
 

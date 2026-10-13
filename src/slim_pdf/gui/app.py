@@ -72,7 +72,7 @@ from . import background, ribbon, state, watchdog
 from .certdialog import details_dialog
 from .screen import fit_to_screen, scrollable
 from .settings import SettingsDialog
-from .dialogs import ask_secret
+from .dialogs import ask_new_password, ask_secret
 from .findbar import FindBar
 from .formpanel import FormPanel
 from .insertdialog import TextDialog
@@ -81,6 +81,7 @@ from .document import PdfDocument, render_stamp
 from .pageview import FormItem, PageView
 from .pagetools import PagesPanel
 
+_SAME = object()  # apply_edit: the password stays
 EDIT_TAB, SIGN_TAB = 0, 1  # ribbon tabs with their own side panel; Edit comes first
 STATUS_COLORS = {validation.VALID: "#2e7d32", validation.UNTRUSTED: "#ef8c00",
                  validation.INVALID: "#c62828", validation.UNSUPPORTED: "#757575"}
@@ -336,6 +337,8 @@ class MainWindow(QMainWindow):
                             page=True)
         self.close_act = act(_("Close"), self.close_current, QKeySequence.Close, "file-x",
                              _("Close this document (Ctrl+W)"), True)
+        self.encrypt_act = act(_("Encrypt…"), self.encrypt_document, None, "lock",
+                               _("Protect the document with a password (AES-256)"), True)
         self.next_tab_act = act(_("Next document"), lambda: self._step_tab(1),
                                 QKeySequence.NextChild)
         self.prev_tab_act = act(_("Previous document"), lambda: self._step_tab(-1),
@@ -455,6 +458,7 @@ class MainWindow(QMainWindow):
         g.add(self.save_as_act)
         g.add(self.undo_act)
         g.add(self.close_act)
+        g.add(self.encrypt_act)
         g = edit.group(_("Insert"))
         g.add(self.insert_text_act)
         g.add(self.insert_image_act)
@@ -884,8 +888,12 @@ class MainWindow(QMainWindow):
             self, _("Existing signatures"), message.format(names=", ".join(names)),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
 
-    def apply_edit(self, new_data: bytes, message: str, page: int | None = None) -> None:
-        self.undo_stack.append(self.data)
+    def apply_edit(self, new_data: bytes, message: str, page: int | None = None,
+                   password=_SAME) -> None:
+        """``password``: the new data's, if it isn't the current one (encrypt)."""
+        self.undo_stack.append((self.data, self.pdf_password))
+        if password is not _SAME:
+            self.pdf_password = password
         self._show(new_data, inspect_pdf(new_data, self.pdf_password),
                    self.view.page if page is None else page, dirty=True)
         self.statusBar().showMessage(
@@ -894,7 +902,7 @@ class MainWindow(QMainWindow):
     def undo(self) -> None:
         if not self.undo_stack:
             return
-        data = self.undo_stack.pop()
+        data, self.pdf_password = self.undo_stack.pop()
         self._show(data, inspect_pdf(data, self.pdf_password), self.view.page,
                    dirty=bool(self.undo_stack))
         self.statusBar().showMessage(_("Undone"), 5000)
@@ -992,6 +1000,26 @@ class MainWindow(QMainWindow):
             message = ngettext("Deleted {n} page", "Deleted {n} pages",
                                len(target)).format(n=len(target))
         self.apply_edit(new, message)
+
+    def encrypt_document(self) -> None:
+        """Protect the document with a password (pages.encrypt), or give an
+        encrypted one a new password."""
+        if self.data is None:
+            return
+        if not self._confirm_breaking(_(
+                "Encrypting writes the document anew, which removes the signature(s) "
+                "{names}.\n\nEncrypt before signing. Continue anyway?")):
+            return
+        new_password = ask_new_password(self, encrypted=self.pdf_password is not None)
+        if new_password is None:
+            return
+        try:
+            new = pages.encrypt(self.data, new_password, self.pdf_password)
+        except (pages.PageError, SigningError) as e:
+            QMessageBox.critical(self, _("Encrypt"), str(e))
+            return
+        self.apply_edit(new, _("Encrypted: the document opens only with the new password"),
+                        password=new_password)
 
     # text recognition -----------------------------------------------------------------
 

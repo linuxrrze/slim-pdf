@@ -31,7 +31,7 @@ class DocumentTab(QWidget):
         self.form_fields: list[forms.FormField] = []
         self.data: bytes | None = None
         self.dirty = False
-        self.undo_stack: list[bytes] = []
+        self.undo_stack: list[tuple[bytes, str | None]] = []  # (data, its password)
         self.reports: list[validation.SignatureReport] = []
         self.verify_error = ""  # why validation failed, if it did
         self.status = ""  # the status bar message for this document

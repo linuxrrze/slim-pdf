@@ -886,6 +886,33 @@ msgid "merged {files} ({pages}) -> {path}"
 msgstr "{files} ({pages}) zusammengeführt -> {path}"
 
 #: src/slim_pdf/cli.py
+msgid "New PDF password"
+msgstr "Neues PDF-Passwort"
+
+#: src/slim_pdf/cli.py
+msgid "New PDF password (again)"
+msgstr "Neues PDF-Passwort (wiederholen)"
+
+#: src/slim_pdf/cli.py
+msgid "the passwords don't match"
+msgstr "die Passwörter stimmen nicht überein"
+
+#: src/slim_pdf/cli.py
+#: src/slim_pdf/pages.py
+msgid "the new password is empty"
+msgstr "das neue Passwort ist leer"
+
+#: src/slim_pdf/cli.py
+#, python-brace-format
+msgid "encrypting would remove the signature(s) {names}"
+msgstr "Verschlüsseln würde die Signatur(en) {names} entfernen"
+
+#: src/slim_pdf/cli.py
+#, python-brace-format
+msgid "encrypted ({algorithm}) -> {path}"
+msgstr "verschlüsselt ({algorithm}) -> {path}"
+
+#: src/slim_pdf/cli.py
 #: src/slim_pdf/gui/__init__.py
 #, python-brace-format
 msgid "the GUI needs PySide6: pip install 'slim-pdf[gui]' ({error})"
@@ -1121,6 +1148,22 @@ msgstr "Ausgabedatei"
 #: src/slim_pdf/cli.py
 msgid "merge even signed documents (the signatures are removed)"
 msgstr "auch signierte Dokumente zusammenführen (die Signaturen werden entfernt)"
+
+#: src/slim_pdf/cli.py
+msgid "protect a PDF with a password"
+msgstr "ein PDF mit einem Passwort schützen"
+
+#: src/slim_pdf/cli.py
+msgid "Encrypts the PDF (AES-256) so it opens only with the new password; an encrypted PDF gets the new password instead of its old one. The file is written anew, so signatures are removed: encrypt before signing."
+msgstr "Verschlüsselt das PDF (AES-256), sodass es sich nur mit dem neuen Passwort öffnen lässt; ein verschlüsseltes PDF bekommt das neue Passwort statt des alten. Die Datei wird neu geschrieben, Signaturen werden dabei entfernt: vor dem Signieren verschlüsseln."
+
+#: src/slim_pdf/cli.py
+msgid "the password to set; '-' reads it from stdin (after --password -, if both are). Without it, $SLIM_PDF_NEW_PDF_PASSWORD or a prompt (twice) is used"
+msgstr "das zu setzende Passwort; '-' liest es von stdin (nach --password -, falls beide). Ohne diese Option wird $SLIM_PDF_NEW_PDF_PASSWORD oder eine (doppelte) Abfrage verwendet"
+
+#: src/slim_pdf/cli.py
+msgid "encrypt even signed documents (the signatures are removed)"
+msgstr "auch signierte Dokumente verschlüsseln (die Signaturen werden entfernt)"
 
 #: src/slim_pdf/cli.py
 msgid "start the GUI"
@@ -1417,6 +1460,14 @@ msgstr "Schließen"
 #: src/slim_pdf/gui/app.py
 msgid "Close this document (Ctrl+W)"
 msgstr "Dieses Dokument schließen (Strg+W)"
+
+#: src/slim_pdf/gui/app.py
+msgid "Encrypt…"
+msgstr "Verschlüsseln…"
+
+#: src/slim_pdf/gui/app.py
+msgid "Protect the document with a password (AES-256)"
+msgstr "Das Dokument mit einem Passwort schützen (AES-256)"
 
 #: src/slim_pdf/gui/app.py
 msgid "Next document"
@@ -1914,6 +1965,26 @@ msgid "Deleted {n} page"
 msgid_plural "Deleted {n} pages"
 msgstr[0] "{n} Seite gelöscht"
 msgstr[1] "{n} Seiten gelöscht"
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid ""
+"Encrypting writes the document anew, which removes the signature(s) {names}.\n"
+"\n"
+"Encrypt before signing. Continue anyway?"
+msgstr ""
+"Beim Verschlüsseln wird das Dokument neu geschrieben, dabei werden die Signatur(en) {names} entfernt.\n"
+"\n"
+"Vor dem Signieren verschlüsseln. Trotzdem fortfahren?"
+
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/dialogs.py
+msgid "Encrypt"
+msgstr "Verschlüsseln"
+
+#: src/slim_pdf/gui/app.py
+msgid "Encrypted: the document opens only with the new password"
+msgstr "Verschlüsselt: das Dokument öffnet sich nur mit dem neuen Passwort"
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
@@ -2779,6 +2850,26 @@ msgstr "Passwort"
 #, python-brace-format
 msgid "{prompt}:"
 msgstr "{prompt}:"
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "The document is encrypted already; it gets this password instead of its current one."
+msgstr "Das Dokument ist bereits verschlüsselt; es bekommt dieses Passwort statt des bisherigen."
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "The document will open only with this password (AES-256 encryption)."
+msgstr "Das Dokument lässt sich dann nur mit diesem Passwort öffnen (AES-256-Verschlüsselung)."
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "New password:"
+msgstr "Neues Passwort:"
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "Repeat:"
+msgstr "Wiederholen:"
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "The passwords don't match."
+msgstr "Die Passwörter stimmen nicht überein."
 
 #: src/slim_pdf/gui/doctab.py
 msgid "No document"

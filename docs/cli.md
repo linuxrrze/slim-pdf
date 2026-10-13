@@ -33,7 +33,8 @@ example about self-signed certificates).
 * **Encrypted PDFs:** you are asked for the password. Scripts can set
   `$SLIM_PDF_PDF_PASSWORD` or pipe it in with `--password -`.
   `--password VALUE` also works, but other users can see it in the process
-  list, and it ends up in your shell history.
+  list, and it ends up in your shell history. To encrypt a PDF, see
+  [`slim-pdf encrypt`](#encrypt-slim-pdf-encrypt).
 * **Language:** English or German. `$SLIM_PDF_LANG` (`en`, `de`), else
   `language` in the config file, else the system language; everything else
   falls back to English. The examples below show English output.
@@ -739,6 +740,38 @@ Windows OCR reads one language at a time (the first of `--lang`); German
 text with English words in it works fine with `de`. Recognized text is
 stored in the Windows-1252 character set (Latin script, €); other characters
 become `?`.
+
+## Encrypt: `slim-pdf encrypt`
+
+`encrypt` protects a PDF with a password: it opens only with that password
+(AES-256 encryption, which every current PDF reader supports). You are asked
+for the new password twice:
+
+```console
+$ slim-pdf encrypt contract.pdf
+New PDF password:
+New PDF password (again):
+encrypted (AES-256) -> contract-encrypted.pdf
+```
+
+`-o`/`--output` or `-i`/`--in-place` choose the output (default:
+`<name>-encrypted.pdf`). An encrypted PDF gets the new password **instead
+of** its old one (`--password` or a prompt for the current one), so this
+also changes a password. Scripts pass the new password with
+`$SLIM_PDF_NEW_PDF_PASSWORD` or `--new-password -` (a line from stdin; with
+`--password -` too, the current password comes first):
+
+```bash
+printf '%s\n%s\n' "$OLD" "$NEW" | slim-pdf encrypt report.pdf -i --password - --new-password -
+```
+
+Encryption covers the whole file, so the PDF is written anew. Earlier
+revisions and **signatures can't be kept**: like split and merge, `encrypt`
+refuses a signed document with exit code `3`, and with `--force` removes the
+signatures (empty signature fields stay). Encrypt **before** signing: a
+signature added to an encrypted PDF stays valid. Later edits (forms, text
+and images, rotate/crop/delete, text recognition) keep the encryption;
+split and merge create new, unencrypted files.
 
 ## GUI: `slim-pdf gui`
 

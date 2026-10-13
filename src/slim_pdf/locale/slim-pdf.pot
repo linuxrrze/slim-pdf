@@ -856,6 +856,33 @@ msgid "merged {files} ({pages}) -> {path}"
 msgstr ""
 
 #: src/slim_pdf/cli.py
+msgid "New PDF password"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "New PDF password (again)"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "the passwords don't match"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+#: src/slim_pdf/pages.py
+msgid "the new password is empty"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+#, python-brace-format
+msgid "encrypting would remove the signature(s) {names}"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+#, python-brace-format
+msgid "encrypted ({algorithm}) -> {path}"
+msgstr ""
+
+#: src/slim_pdf/cli.py
 #: src/slim_pdf/gui/__init__.py
 #, python-brace-format
 msgid "the GUI needs PySide6: pip install 'slim-pdf[gui]' ({error})"
@@ -1090,6 +1117,22 @@ msgstr ""
 
 #: src/slim_pdf/cli.py
 msgid "merge even signed documents (the signatures are removed)"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "protect a PDF with a password"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "Encrypts the PDF (AES-256) so it opens only with the new password; an encrypted PDF gets the new password instead of its old one. The file is written anew, so signatures are removed: encrypt before signing."
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "the password to set; '-' reads it from stdin (after --password -, if both are). Without it, $SLIM_PDF_NEW_PDF_PASSWORD or a prompt (twice) is used"
+msgstr ""
+
+#: src/slim_pdf/cli.py
+msgid "encrypt even signed documents (the signatures are removed)"
 msgstr ""
 
 #: src/slim_pdf/cli.py
@@ -1380,6 +1423,14 @@ msgstr ""
 
 #: src/slim_pdf/gui/app.py
 msgid "Close this document (Ctrl+W)"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Encrypt…"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Protect the document with a password (AES-256)"
 msgstr ""
 
 #: src/slim_pdf/gui/app.py
@@ -1859,6 +1910,23 @@ msgstr ""
 msgid "Deleted {n} page"
 msgid_plural "Deleted {n} pages"
 msgstr[0] ""
+
+#: src/slim_pdf/gui/app.py
+#, python-brace-format
+msgid ""
+"Encrypting writes the document anew, which removes the signature(s) {names}.\n"
+"\n"
+"Encrypt before signing. Continue anyway?"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+#: src/slim_pdf/gui/dialogs.py
+msgid "Encrypt"
+msgstr ""
+
+#: src/slim_pdf/gui/app.py
+msgid "Encrypted: the document opens only with the new password"
+msgstr ""
 
 #: src/slim_pdf/gui/app.py
 #, python-brace-format
@@ -2677,6 +2745,26 @@ msgstr ""
 #: src/slim_pdf/gui/dialogs.py
 #, python-brace-format
 msgid "{prompt}:"
+msgstr ""
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "The document is encrypted already; it gets this password instead of its current one."
+msgstr ""
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "The document will open only with this password (AES-256 encryption)."
+msgstr ""
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "New password:"
+msgstr ""
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "Repeat:"
+msgstr ""
+
+#: src/slim_pdf/gui/dialogs.py
+msgid "The passwords don't match."
 msgstr ""
 
 #: src/slim_pdf/gui/doctab.py
