@@ -18,3 +18,5 @@ packaging/build-icons/
 *.cer
 *.der
 config.toml
+# Claude Code: notes for this machine only
+CLAUDE.local.md
